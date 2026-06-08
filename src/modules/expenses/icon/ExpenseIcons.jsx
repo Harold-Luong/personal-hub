@@ -85,6 +85,42 @@ export const SettingsIcon = ({ size = 24 }) => (
     </svg>
 );
 
+export const BellIcon = ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path
+            d="M18 9.5a6 6 0 0 0-12 0c0 7-2.5 7.5-2.5 7.5h17S18 16.5 18 9.5Z"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+        <path
+            d="M14 20a2.2 2.2 0 0 1-4 0"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+        />
+    </svg>
+);
+
+export const ThemeIcon = ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path
+            d="M12 4a8 8 0 0 0 0 16h1.2a1.8 1.8 0 0 0 1.3-3.05 1.75 1.75 0 0 1 1.24-2.95H17a3 3 0 0 0 3-3c0-3.86-3.58-7-8-7Z"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+        <path
+            d="M7.5 11h.01M9.5 7.8h.01M14.5 7.8h.01M16.5 11h.01"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+        />
+    </svg>
+);
+
 export const FoodIcon = ({ size = 24 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <path

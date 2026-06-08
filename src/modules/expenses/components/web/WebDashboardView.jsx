@@ -10,7 +10,9 @@ export default function WebDashboardView({
   budgets,
   categories,
   navItems,
+  onToggleTheme,
   summary,
+  theme,
   transactions,
   wallets,
 }) {
@@ -18,7 +20,7 @@ export default function WebDashboardView({
     <div className="web-dashboard-view">
       <ExpenseSidebar items={navItems} />
       <main className="web-dashboard-view__main">
-        <ExpenseHeader />
+        <ExpenseHeader onToggleTheme={onToggleTheme} theme={theme} />
         <SummaryCardList items={summary} />
         <div className="web-dashboard-view__grid">
           <CategorySpendingCard categories={categories} />
