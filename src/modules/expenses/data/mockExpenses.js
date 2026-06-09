@@ -19,7 +19,7 @@ export const mockSummary = [
     id: 'expense',
     label: 'Tong chi tieu',
     value: 5550000,
-    trend: -5.3,
+    trend: 5.3,
     tone: 'danger',
     icon: 'card',
   },
