@@ -4,8 +4,12 @@ const iconMap = {
   bus: 'MV',
   card: 'CR',
   chart: 'BR',
+  education: 'ED',
   eye: 'EY',
+  family: 'FM',
+  finance: 'FN',
   game: 'GM',
+  health: 'HL',
   home: 'HM',
   income: 'IN',
   momo: 'MO',
@@ -15,6 +19,8 @@ const iconMap = {
   swap: 'TR',
   utensils: 'FD',
   wallet: 'WL',
+  work: 'WK',
+  travel: 'TV',
 }
 
 export default function CategoryIcon({ icon = 'more', label, color }) {

@@ -14,9 +14,9 @@ export default function CategorySpendingCard({ categories = [], variant = 'deskt
 
   return (
     <SectionCard
-      actionLabel="Xem chi tiet"
+      actionLabel="Xem chi tiết"
       className={`category-spending-card category-spending-card--${variant}`}
-      title="Chi tieu theo danh muc"
+      title="Chi tiêu theo danh mục"
     >
       {variant === 'desktop' ? (
         <div className="category-spending-card__chart" style={{ '--chart-stops': stops }} />
@@ -27,12 +27,14 @@ export default function CategorySpendingCard({ categories = [], variant = 'deskt
             <CategoryIcon color={category.color} icon={category.icon} label={category.name} />
             <div className="category-row__body">
               <div>
-                <span>{category.name}</span>
-                <AmountText amount={category.amount} />
+                <span className="category-row__name">{category.name}</span>
+                <span className="category-row__amount">
+                  <AmountText amount={category.amount} />
+                </span>
               </div>
               <ProgressBar color={category.color} value={category.percentage} />
             </div>
-            <small>{category.percentage}%</small>
+            <small className="category-row__percentage">{category.percentage}%</small>
           </div>
         ))}
       </div>
