@@ -31,12 +31,18 @@
     grid-template-columns: auto minmax(0, 1fr) auto;
   }
 
-  .category-spending-card--mobile .section-card__header h2 {
+  :is(
+    .category-spending-card--mobile,
+    .recent-transactions-card--mobile
+  ) .section-card__header h2 {
     color: var(--expense-heading);
     font-size: 14px;
   }
 
-  .category-spending-card--mobile .section-card__header button {
+  :is(
+    .category-spending-card--mobile,
+    .recent-transactions-card--mobile
+  ) .section-card__header button {
     font-size: 12px;
   }
 
@@ -49,17 +55,18 @@
     font-size: 12px;
   }
 
-  .recent-transactions-card .transaction-list {
-    gap: 0;
+  .recent-transactions-card--mobile .transaction-list {
+    gap: 14px;
   }
 
-  .recent-transactions-card .transaction-item {
-    border-bottom: 1px solid rgba(31, 53, 38, 0.08);
-    padding: 10px 0;
+  .recent-transactions-card--mobile .transaction-item strong {
+    color: var(--expense-heading);
+    font-size: 13px;
   }
 
-  .recent-transactions-card .transaction-item:last-child {
-    border-bottom: 0;
+  .recent-transactions-card--mobile .transaction-item p,
+  .recent-transactions-card--mobile .transaction-item > .amount-text {
+    font-size: 12px;
   }
 }
 
