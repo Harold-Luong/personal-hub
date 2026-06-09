@@ -28,6 +28,7 @@ export default function DashboardPage() {
   return (
     <div className="expenses-page expenses-dashboard-page" data-theme={theme}>
       <MobileDashboardView
+        budgets={mockBudgets}
         categories={mockCategories}
         navItems={expenseNavItems}
         onToggleTheme={handleToggleTheme}

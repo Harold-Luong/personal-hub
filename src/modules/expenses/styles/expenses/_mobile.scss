@@ -21,8 +21,7 @@
   z-index: 10;
 }
 
-.expense-bottom-nav button,
-.mobile-quick-actions button {
+.expense-bottom-nav button {
   align-items: center;
   background: transparent;
   color: var(--expense-muted);
@@ -61,8 +60,7 @@
   stroke-width: 2.2;
 }
 
-.expense-bottom-nav span,
-.mobile-quick-actions span {
+.expense-bottom-nav span {
   font-size: 11px;
 }
 
@@ -133,16 +131,53 @@
   display: block;
 }
 
-.mobile-quick-actions {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.monthly-budget-card {
+  background: color-mix(in srgb, var(--expense-surface-solid) 96%, transparent);
+  border: 1px solid var(--expense-border);
+  border-radius: 14px;
+  box-shadow: 0 8px 22px var(--expense-shadow);
+  padding: 16px;
 }
 
-.mobile-quick-actions button {
-  background: var(--expense-surface-solid);
-  border-radius: 8px;
-  box-shadow: 0 10px 24px var(--expense-shadow);
-  min-height: 76px;
-  padding: 10px 6px;
+.monthly-budget-card h2 {
+  color: var(--expense-heading);
+  font-size: 14px;
+  line-height: 1.2;
+  margin: 0 0 16px;
+}
+
+.monthly-budget-card__summary {
+  align-items: baseline;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.monthly-budget-card__summary p {
+  margin: 0;
+  min-width: 0;
+}
+
+.monthly-budget-card__summary strong {
+  color: var(--expense-heading);
+  font-size: 14px;
+}
+
+.monthly-budget-card__summary p>strong {
+  font-size: 13px;
+}
+
+.monthly-budget-card__summary span {
+  color: var(--expense-muted);
+  font-size: 12px;
+}
+
+.monthly-budget-card .progress-bar {
+  height: 8px;
+}
+
+.monthly-budget-card .progress-bar span {
+  background: var(--expense-active-strong);
+  border-radius: inherit;
 }
