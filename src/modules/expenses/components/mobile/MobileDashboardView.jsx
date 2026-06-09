@@ -15,10 +15,16 @@ export default function MobileDashboardView({
     transactions,
 }) {
     const balance = summary.find((item) => item.id === "balance")?.value ?? 0;
+    const balanceTrend =
+        summary.find((item) => item.id === "balance")?.trend ?? 0;
     const income = summary.find((item) => item.id === "income")?.value ?? 0;
+    const incomeTrend =
+        summary.find((item) => item.id === "income")?.trend ?? 0;
     const expense = Math.abs(
         summary.find((item) => item.id === "expense")?.value ?? 0,
     );
+    const expenseTrend =
+        summary.find((item) => item.id === "expense")?.trend ?? 0;
 
     return (
         <div className="mobile-dashboard-view">
@@ -50,8 +56,11 @@ export default function MobileDashboardView({
 
             <BalanceHeroCard
                 balance={balance}
+                balanceTrend={balanceTrend}
                 expense={expense}
+                expenseTrend={expenseTrend}
                 income={income}
+                incomeTrend={incomeTrend}
             />
             <MobileQuickActions />
             <CategorySpendingCard

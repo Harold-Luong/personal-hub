@@ -1,65 +1,150 @@
 .balance-hero-card {
-  background:
-    linear-gradient(135deg, var(--expense-hero-start), var(--expense-hero-end)),
-    radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.28), transparent 26%);
-  border-radius: 8px;
-  box-shadow: 0 16px 34px color-mix(in srgb, var(--expense-active-strong) 28%, transparent);
-  color: white;
-  overflow: hidden;
+  display: grid;
+  gap: 12px;
 }
 
-.balance-hero-card .amount-text {
+.balance-hero-card__main .amount-text {
   color: inherit;
 }
 
 .balance-hero-card__main {
-  min-height: 122px;
-  padding: 18px;
+  background:
+    radial-gradient(circle at 82% 12%, rgba(255, 255, 255, 0.12), transparent 32%),
+    linear-gradient(135deg, var(--expense-hero-start), var(--expense-hero-end));
+  border-radius: 16px;
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--expense-active-strong) 22%, transparent);
+  color: white;
+  min-height: 148px;
+  overflow: hidden;
+  padding: 22px 18px;
   position: relative;
 }
 
-.balance-hero-card__main p,
-.balance-hero-card__split p {
-  color: rgba(255, 255, 255, 0.76);
-  margin: 0 0 10px;
+.balance-hero-card__content {
+  position: relative;
+  z-index: 1;
+}
+
+.balance-hero-card__main p {
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 16px;
 }
 
 .balance-hero-card__main strong {
   display: block;
-  font-size: 28px;
+  font-size: clamp(26px, 7vw, 31px);
   line-height: 1.1;
 }
 
+.balance-hero-card__comparison {
+  color: rgba(255, 255, 255, 0.82);
+  display: block;
+  font-size: 12px;
+  margin-top: 16px;
+}
+
+.balance-hero-card__comparison b.is-up {
+  color: #b7df42;
+}
+
+.balance-hero-card__comparison b.is-down {
+  color: #ff8b7f;
+}
+
+.balance-hero-card__comparison b.is-flat {
+  color: rgba(255, 255, 255, 0.88);
+}
+
 .balance-hero-card__sparkline {
-  border: solid rgba(255, 255, 255, 0.8);
-  border-width: 3px 3px 0 0;
-  border-radius: 46%;
-  bottom: 22px;
-  height: 46px;
+  bottom: 18px;
+  height: 54px;
   position: absolute;
-  right: -4px;
-  transform: rotate(-18deg);
-  width: 150px;
+  right: 14px;
+  width: 82px;
+}
+
+.balance-hero-card__sparkline.is-up {
+  color: #a8cf35;
+}
+
+.balance-hero-card__sparkline.is-down {
+  color: #ff7468;
+}
+
+.balance-hero-card__sparkline.is-flat {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.balance-hero-card__sparkline path {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-width: 2.5;
+}
+
+.balance-hero-card__sparkline circle {
+  fill: currentColor;
 }
 
 .balance-hero-card__split {
-  background: color-mix(in srgb, var(--expense-surface-solid) 94%, transparent);
-  color: var(--expense-text);
   display: grid;
+  gap: 10px;
   grid-template-columns: 1fr 1fr;
 }
 
-.balance-hero-card__split>div {
-  padding: 16px 18px;
+.balance-hero-card__item {
+  background: color-mix(in srgb, var(--expense-surface-solid) 96%, transparent);
+  border: 1px solid var(--expense-border);
+  border-radius: 14px;
+  box-shadow: 0 8px 22px var(--expense-shadow);
+  min-width: 0;
+  padding: 18px 14px 16px;
 }
 
-.balance-hero-card__split>div+div {
-  border-left: 1px solid var(--expense-border);
-}
-
-.balance-hero-card__split p {
+.balance-hero-card__item p {
   color: var(--expense-muted);
   font-size: 13px;
+  font-weight: 700;
+  margin: 0 0 12px;
+}
+
+.balance-hero-card__item strong {
+  display: block;
+  font-size: clamp(16px, 4.8vw, 20px);
+  line-height: 1.2;
+}
+
+.balance-hero-card__item strong .amount-text {
+  color: var(--expense-heading);
+}
+
+.balance-hero-card__trend {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  margin-top: 12px;
+}
+
+.balance-hero-card__trend.is-up {
+  color: #6eaa1f;
+}
+
+.balance-hero-card__trend.is-down {
+  color: #f04438;
+}
+
+.balance-hero-card__trend.is-flat {
+  color: var(--expense-muted);
+}
+
+.balance-hero-card__trend--expense.is-up {
+  color: #f04438;
+}
+
+.balance-hero-card__trend--expense.is-down {
+  color: #6eaa1f;
 }
 
 .summary-card-list {
