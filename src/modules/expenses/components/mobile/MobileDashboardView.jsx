@@ -68,7 +68,11 @@ export default function MobileDashboardView({
                 categories={categories.slice(0, 5)}
                 variant="mobile"
             />
-            <RecentTransactionsCard limit={3} transactions={transactions} />
+            <RecentTransactionsCard
+                limit={5}
+                transactions={transactions}
+                variant="mobile"
+            />
             <ExpenseBottomNav items={navItems} />
         </div>
     );
