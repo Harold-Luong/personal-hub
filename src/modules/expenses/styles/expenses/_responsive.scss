@@ -1,0 +1,65 @@
+@media (max-width: 900px) {
+  .expenses-page {
+    background: var(--expense-page-bg-mobile);
+  }
+
+  .web-dashboard-view {
+    display: none;
+  }
+
+  .mobile-dashboard-view {
+    display: grid;
+    gap: 22px;
+    margin: 0 auto;
+    max-width: 430px;
+    padding: 42px 18px 92px;
+  }
+
+  .section-card {
+    padding: 16px;
+  }
+
+  .section-card__header {
+    margin-bottom: 14px;
+  }
+
+  .category-spending-card--mobile {
+    grid-template-columns: 1fr;
+  }
+
+  .category-spending-card--mobile .category-row {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .recent-transactions-card .transaction-list {
+    gap: 0;
+  }
+
+  .recent-transactions-card .transaction-item {
+    border-bottom: 1px solid rgba(31, 53, 38, 0.08);
+    padding: 10px 0;
+  }
+
+  .recent-transactions-card .transaction-item:last-child {
+    border-bottom: 0;
+  }
+}
+
+@media (min-width: 901px) {
+  .web-dashboard-view {
+    background: color-mix(in srgb, var(--expense-surface-solid) 55%, transparent);
+    border: 1px solid color-mix(in srgb, var(--expense-surface-solid) 80%, transparent);
+    border-radius: 8px;
+    box-shadow: 0 24px 70px color-mix(in srgb, var(--expense-active-strong) 18%, transparent);
+  }
+}
+
+@media (max-width: 1180px) and (min-width: 901px) {
+  .summary-card-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .web-dashboard-view__grid {
+    grid-template-columns: 1fr;
+  }
+}
