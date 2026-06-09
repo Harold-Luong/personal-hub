@@ -263,19 +263,37 @@
   margin-bottom: 8px;
 }
 
-.category-row span,
+.category-row__name,
 .budget-item strong,
 .wallet-item span,
 .transaction-item strong {
   font-size: 14px;
 }
 
-.category-row small,
+.category-row__name {
+  color: var(--expense-heading);
+  font-weight: 700;
+}
+
+.category-row__amount {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.category-row__amount .amount-text {
+  color: var(--expense-heading);
+}
+
+.category-row__percentage,
 .transaction-item p,
 .budget-item p {
   color: var(--expense-muted);
   font-size: 12px;
   margin: 0;
+}
+
+.category-row__percentage {
+  font-weight: 700;
 }
 
 .transaction-list {
