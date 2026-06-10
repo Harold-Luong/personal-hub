@@ -1,7 +1,15 @@
-export default function TransactionsPage() {
+import MobileTransactionsView from '../components/mobile/MobileTransactionsView'
+
+export default function TransactionsPage({
+  navItems,
+  onNavigate,
+  transactions,
+}) {
   return (
-    <main className="expenses-page expenses-transactions-page">
-      <h1>Transactions</h1>
-    </main>
+    <MobileTransactionsView
+      navItems={navItems}
+      onNavigate={onNavigate}
+      transactions={transactions}
+    />
   )
 }

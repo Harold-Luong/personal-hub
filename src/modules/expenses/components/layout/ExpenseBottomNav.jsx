@@ -14,10 +14,17 @@ const bottomNavIconMap = {
 };
 
 const bottomNavOrder = ["dashboard", "transactions", "report", "settings"];
+const bottomNavLabelMap = {
+    dashboard: "Tổng quan",
+    transactions: "Giao dịch",
+    report: "Báo cáo",
+    settings: "Cài đặt",
+};
 
 export default function ExpenseBottomNav({
     items = [],
     activeId = "dashboard",
+    onNavigate,
 }) {
     const navItems = bottomNavOrder
         .map((id) => items.find((item) => item.id === id))
@@ -33,8 +40,10 @@ export default function ExpenseBottomNav({
 
         return (
             <button
+                aria-label={item.label || bottomNavLabelMap[item.id]}
                 className={`expense-bottom-nav__item${item.id === activeId ? " is-active" : ""}`}
                 key={item.id}
+                onClick={() => onNavigate?.(item.id)}
                 type="button"
             >
                 <Icon size={22} />
@@ -49,6 +58,7 @@ export default function ExpenseBottomNav({
             <button
                 aria-label="Them giao dich"
                 className={`expense-bottom-nav__action${activeId === "add" ? " is-active" : ""}`}
+                onClick={() => onNavigate?.("add")}
                 type="button"
             >
                 <PlusIcon size={30} />

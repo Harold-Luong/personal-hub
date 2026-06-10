@@ -1,0 +1,195 @@
+.mobile-transactions-view {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .mobile-transactions-view {
+    display: block;
+    min-height: 100svh;
+  }
+
+  .mobile-transactions-view__header {
+    margin-bottom: 18px;
+  }
+
+  .mobile-transactions-view__header h1 {
+    color: var(--expense-heading);
+    font-size: 22px;
+    line-height: 1.2;
+    margin: 0;
+  }
+
+  .mobile-transactions-view__search-row {
+    display: grid;
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) 44px;
+  }
+
+  .mobile-transactions-view__search,
+  .mobile-transactions-view__filter-button {
+    background: color-mix(
+      in srgb,
+      var(--expense-surface-solid) 68%,
+      var(--expense-border-strong)
+    );
+    border: 0;
+    border-radius: 12px;
+    color: var(--expense-muted);
+    height: 46px;
+  }
+
+  .mobile-transactions-view__search {
+    align-items: center;
+    border: 1px solid var(--expense-border-strong);
+    display: flex;
+    gap: 9px;
+    min-width: 0;
+    padding: 0 12px;
+  }
+
+  .mobile-transactions-view__search svg {
+    flex: 0 0 auto;
+  }
+
+  .mobile-transactions-view__search input {
+    background: transparent;
+    border: 0;
+    color: var(--expense-heading);
+    font-size: 13px;
+    min-width: 0;
+    outline: 0;
+    padding: 0;
+    width: 100%;
+  }
+
+  .mobile-transactions-view__search input::placeholder {
+    color: var(--expense-muted);
+    opacity: 1;
+  }
+
+  .mobile-transactions-view__search input::-webkit-search-cancel-button {
+    cursor: pointer;
+  }
+
+  .mobile-transactions-view__filter-button {
+    align-items: center;
+    border: 1px solid var(--expense-border-strong);
+    cursor: pointer;
+    display: inline-flex;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .mobile-transactions-view__filters {
+    display: flex;
+    gap: 8px;
+    margin: 16px 0 22px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .mobile-transactions-view__filters::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mobile-transactions-view__filters button {
+    background: color-mix(
+      in srgb,
+      var(--expense-surface-solid) 72%,
+      var(--expense-border-strong)
+    );
+    border: 1px solid var(--expense-border-strong);
+    border-radius: 9px;
+    color: var(--expense-heading);
+    cursor: pointer;
+    flex: 0 0 auto;
+    font-size: 12px;
+    font-weight: 700;
+    height: 34px;
+    padding: 0 12px;
+  }
+
+  .mobile-transactions-view__filters button.is-active {
+    background: var(--expense-active-strong);
+    border-color: var(--expense-active-strong);
+    box-shadow: 0 5px 12px
+      color-mix(in srgb, var(--expense-active-strong) 22%, transparent);
+    color: white;
+  }
+
+  .mobile-transactions-view__groups {
+    display: grid;
+    gap: 16px;
+  }
+
+  .mobile-transaction-group h2 {
+    color: var(--expense-heading);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.3;
+    margin: 0 0 10px;
+  }
+
+  .mobile-transaction-group__list {
+    display: grid;
+    gap: 14px;
+  }
+
+  .mobile-transaction-item {
+    align-items: center;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .mobile-transaction-item__icon {
+    background: #f0efec;
+  }
+
+  .mobile-transaction-item__icon--meal {
+    background: #f8eee7;
+  }
+
+  .mobile-transaction-item__icon--fuel {
+    background: #eef1ef;
+  }
+
+  .mobile-transaction-item__icon--income {
+    background: #f3f1e8;
+  }
+
+  .mobile-transaction-item__icon--shopping {
+    background: #eef1f3;
+  }
+
+  .mobile-transaction-item__copy {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .mobile-transaction-item__copy strong {
+    color: var(--expense-heading);
+    font-size: 13px;
+    line-height: 1.2;
+  }
+
+  .mobile-transaction-item__copy time {
+    color: var(--expense-muted);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .mobile-transaction-item > .amount-text {
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .mobile-transactions-view__empty {
+    color: var(--expense-muted);
+    font-size: 13px;
+    margin: 32px 0;
+    text-align: center;
+  }
+}

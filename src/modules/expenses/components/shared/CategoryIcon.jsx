@@ -23,10 +23,57 @@ const iconMap = {
   travel: 'TV',
 }
 
-export default function CategoryIcon({ icon = 'more', label, color }) {
+const emojiMap = {
+  bank: '🏦',
+  bag: '🛍️',
+  bus: '🚌',
+  card: '💳',
+  chart: '📊',
+  coffee: '☕',
+  education: '🎓',
+  eye: '👁️',
+  family: '👪',
+  finance: '💹',
+  food: '🍽️',
+  fuel: '⛽',
+  fun: '🎮',
+  game: '🎮',
+  health: '🩺',
+  home: '🏠',
+  income: '💰',
+  meal: '🍲',
+  momo: '📱',
+  more: '🧾',
+  movie: '🎬',
+  saving: '🪙',
+  settings: '⚙️',
+  shopping: '🛒',
+  swap: '🔁',
+  transfer: '↔️',
+  transport: '🚌',
+  travel: '✈️',
+  utensils: '🍽️',
+  wallet: '👛',
+  work: '💼',
+}
+
+export default function CategoryIcon({
+  appearance = 'label',
+  className = '',
+  icon = 'more',
+  label,
+  color,
+}) {
+  const icons = appearance === 'emoji' ? emojiMap : iconMap
+
   return (
-    <span className="category-icon" aria-label={label} style={color ? { '--icon-color': color } : undefined}>
-      {iconMap[icon] ?? iconMap.more}
+    <span
+      className={`category-icon category-icon--${appearance} ${className}`.trim()}
+      aria-label={label}
+      role="img"
+      style={color ? { '--icon-color': color } : undefined}
+    >
+      {icons[icon] ?? icons.more}
     </span>
   )
 }

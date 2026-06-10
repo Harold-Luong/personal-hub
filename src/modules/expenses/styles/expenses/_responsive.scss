@@ -7,12 +7,16 @@
     display: none;
   }
 
-  .mobile-dashboard-view {
-    display: grid;
-    gap: 22px;
+  .mobile-dashboard-view,
+  .mobile-transactions-view {
     margin: 0 auto;
     max-width: 430px;
     padding: 42px 18px 92px;
+  }
+
+  .mobile-dashboard-view {
+    display: grid;
+    gap: 22px;
   }
 
   .section-card {

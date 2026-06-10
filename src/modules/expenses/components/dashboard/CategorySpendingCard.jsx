@@ -24,7 +24,12 @@ export default function CategorySpendingCard({ categories = [], variant = 'deskt
       <div className="category-spending-card__list">
         {categories.map((category) => (
           <div className="category-row" key={category.id}>
-            <CategoryIcon color={category.color} icon={category.icon} label={category.name} />
+            <CategoryIcon
+              appearance="emoji"
+              color={category.color}
+              icon={category.icon}
+              label={category.name}
+            />
             <div className="category-row__body">
               <div>
                 <span className="category-row__name">{category.name}</span>

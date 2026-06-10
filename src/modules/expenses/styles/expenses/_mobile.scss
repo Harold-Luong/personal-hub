@@ -24,7 +24,9 @@
 .expense-bottom-nav button {
   align-items: center;
   background: transparent;
+  border: 0;
   color: var(--expense-muted);
+  cursor: pointer;
   display: grid;
   gap: 5px;
   justify-items: center;

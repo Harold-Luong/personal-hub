@@ -10,6 +10,7 @@ export default function MobileDashboardView({
     budgets,
     categories,
     navItems,
+    onNavigate,
     onToggleTheme,
     summary,
     theme = "sage",
@@ -73,7 +74,7 @@ export default function MobileDashboardView({
                 transactions={transactions}
                 variant="mobile"
             />
-            <ExpenseBottomNav items={navItems} />
+            <ExpenseBottomNav items={navItems} onNavigate={onNavigate} />
         </div>
     );
 }
