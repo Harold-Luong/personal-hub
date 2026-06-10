@@ -8,7 +8,8 @@
   }
 
   .mobile-dashboard-view,
-  .mobile-transactions-view {
+  .mobile-transactions-view,
+  .mobile-add-transaction-view {
     margin: 0 auto;
     max-width: 430px;
     padding: 42px 18px 92px;
@@ -75,6 +76,10 @@
 }
 
 @media (min-width: 901px) {
+  .expense-bottom-nav {
+    display: none;
+  }
+
   .web-dashboard-view {
     background: color-mix(in srgb, var(--expense-surface-solid) 55%, transparent);
     border: 1px solid color-mix(in srgb, var(--expense-surface-solid) 80%, transparent);

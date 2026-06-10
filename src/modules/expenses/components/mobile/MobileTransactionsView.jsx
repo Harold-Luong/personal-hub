@@ -7,7 +7,6 @@ import {
 } from '../../utils/mobileTransactionUtils'
 import AmountText from '../shared/AmountText'
 import CategoryIcon from '../shared/CategoryIcon'
-import ExpenseBottomNav from '../layout/ExpenseBottomNav'
 
 const transactionFilters = [
     { id: 'all', label: 'Tất cả' },
@@ -36,11 +35,7 @@ function MobileTransactionItem({ transaction }) {
     )
 }
 
-export default function MobileTransactionsView({
-    navItems,
-    onNavigate,
-    transactions = [],
-}) {
+export default function MobileTransactionsView({ transactions = [] }) {
     const [activeFilter, setActiveFilter] = useState('all')
     const [searchTerm, setSearchTerm] = useState('')
 
@@ -115,12 +110,6 @@ export default function MobileTransactionsView({
                     </p>
                 )}
             </div>
-
-            <ExpenseBottomNav
-                activeId="transactions"
-                items={navItems}
-                onNavigate={onNavigate}
-            />
         </main>
     )
 }
