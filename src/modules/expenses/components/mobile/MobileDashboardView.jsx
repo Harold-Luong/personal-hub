@@ -1,7 +1,6 @@
 import BalanceHeroCard from "../dashboard/BalanceHeroCard";
 import CategorySpendingCard from "../dashboard/CategorySpendingCard";
 import RecentTransactionsCard from "../dashboard/RecentTransactionsCard";
-import ExpenseBottomNav from "../layout/ExpenseBottomNav";
 import MonthlyBudgetCard from "./MonthlyBudgetCard";
 import { formatDate } from "./../../utils/formatDate";
 import { BellIcon, ThemeIcon } from "../../icon/ExpenseIcons";
@@ -9,8 +8,6 @@ import { BellIcon, ThemeIcon } from "../../icon/ExpenseIcons";
 export default function MobileDashboardView({
     budgets,
     categories,
-    navItems,
-    onNavigate,
     onToggleTheme,
     summary,
     theme = "sage",
@@ -74,7 +71,6 @@ export default function MobileDashboardView({
                 transactions={transactions}
                 variant="mobile"
             />
-            <ExpenseBottomNav items={navItems} onNavigate={onNavigate} />
         </div>
     );
 }

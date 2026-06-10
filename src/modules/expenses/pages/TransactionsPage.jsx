@@ -1,15 +1,5 @@
 import MobileTransactionsView from '../components/mobile/MobileTransactionsView'
 
-export default function TransactionsPage({
-  navItems,
-  onNavigate,
-  transactions,
-}) {
-  return (
-    <MobileTransactionsView
-      navItems={navItems}
-      onNavigate={onNavigate}
-      transactions={transactions}
-    />
-  )
+export default function TransactionsPage({ transactions }) {
+  return <MobileTransactionsView transactions={transactions} />
 }
