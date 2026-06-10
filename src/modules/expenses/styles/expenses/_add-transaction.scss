@@ -104,12 +104,6 @@
     width: 100%;
   }
 
-  .transaction-form__amount-control input::-webkit-inner-spin-button,
-  .transaction-form__amount-control input::-webkit-outer-spin-button {
-    appearance: none;
-    margin: 0;
-  }
-
   .transaction-form__amount-control > span {
     color: var(--expense-muted);
     font-size: 18px;

@@ -1,5 +1,9 @@
 import { useState } from 'react'
 import {
+    formatCurrencyInput,
+    parseCurrencyInput,
+} from '../../utils/formatCurrency'
+import {
     getLocalDateValue,
     getLocalTimeValue,
 } from '../../utils/transactionFormUtils'
@@ -43,7 +47,7 @@ export default function TransactionForm({
     const handleSubmit = (event) => {
         event.preventDefault()
 
-        const numericAmount = Number(amount)
+        const numericAmount = parseCurrencyInput(amount)
         const selectedCategory = categoryOptions.find(
             (category) => category.id === categoryId,
         )
@@ -93,12 +97,13 @@ export default function TransactionForm({
                     <input
                         autoFocus
                         inputMode="numeric"
-                        min="1"
                         name="amount"
-                        onChange={(event) => setAmount(event.target.value)}
+                        onChange={(event) =>
+                            setAmount(formatCurrencyInput(event.target.value))
+                        }
                         placeholder="0"
                         required
-                        type="number"
+                        type="text"
                         value={amount}
                     />
                     <span aria-hidden="true">₫</span>
