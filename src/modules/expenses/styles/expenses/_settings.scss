@@ -1,0 +1,340 @@
+.mobile-settings-view {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .mobile-settings-view {
+        display: grid;
+        gap: 22px;
+        min-height: 100svh;
+    }
+
+    .mobile-settings-view__header h1 {
+        color: var(--expense-heading);
+        font-size: 22px;
+        line-height: 1.2;
+        margin: 0;
+    }
+
+    .mobile-settings-view__profile {
+        align-items: center;
+        display: grid;
+        gap: 12px;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
+    .mobile-settings-view__avatar {
+        align-items: center;
+        background: linear-gradient(145deg,
+                var(--expense-action-start),
+                var(--expense-action-end));
+        border-radius: 50%;
+        color: white;
+        display: inline-flex;
+        font-size: 14px;
+        font-weight: 800;
+        height: 46px;
+        justify-content: center;
+        width: 46px;
+    }
+
+    .mobile-settings-view__profile-copy,
+    .mobile-settings-view__preference>span,
+    .mobile-settings-view__management div>span:first-child {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+    }
+
+    .mobile-settings-view__profile-copy strong,
+    .mobile-settings-view__preference strong,
+    .mobile-settings-view__management strong {
+        color: var(--expense-heading);
+        font-size: 13px;
+        line-height: 1.2;
+    }
+
+    .mobile-settings-view__profile-copy small,
+    .mobile-settings-view__preference small,
+    .mobile-settings-view__management small {
+        color: var(--expense-muted);
+        font-size: 11px;
+        font-weight: 600;
+        line-height: 1.3;
+    }
+
+    .mobile-settings-view__status {
+        background: var(--expense-active-soft);
+        border-radius: 999px;
+        color: var(--expense-active-strong);
+        font-size: 10px;
+        font-weight: 800;
+        padding: 5px 8px;
+    }
+
+    .mobile-settings-view__section {
+        display: grid;
+        gap: 10px;
+    }
+
+    .mobile-settings-view__section-heading {
+        align-items: center;
+        display: flex;
+        gap: 9px;
+    }
+
+    .mobile-settings-view__section-icon {
+        align-items: center;
+        background: var(--expense-active-soft);
+        border-radius: 8px;
+        color: var(--expense-active-strong);
+        display: inline-flex;
+        flex: 0 0 auto;
+        height: 32px;
+        justify-content: center;
+        width: 32px;
+    }
+
+    .mobile-settings-view__section-heading h2 {
+        color: var(--expense-heading);
+        font-size: 14px;
+        line-height: 1.2;
+        margin: 0;
+    }
+
+    .mobile-settings-view__section-heading p {
+        color: var(--expense-muted);
+        font-size: 11px;
+        line-height: 1.3;
+        margin: 2px 0 0;
+    }
+
+    .mobile-settings-view__themes {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .mobile-settings-view__themes button {
+        align-items: center;
+        background: color-mix(in srgb,
+                var(--expense-surface-solid) 76%,
+                var(--expense-border-strong));
+        border: 1px solid var(--expense-border-strong);
+        border-radius: 10px;
+        color: var(--expense-muted);
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        font-size: 11px;
+        font-weight: 800;
+        gap: 7px;
+        justify-content: center;
+        min-height: 68px;
+        padding: 8px 5px;
+    }
+
+    .mobile-settings-view__themes button.is-active {
+        background: color-mix(in srgb,
+                var(--settings-theme-color) 12%,
+                var(--expense-surface-solid));
+        border-color: var(--settings-theme-accent);
+        box-shadow: 0 5px 14px color-mix(in srgb, var(--settings-theme-accent) 18%, transparent);
+        color: var(--settings-theme-accent);
+    }
+
+    .mobile-settings-view__theme-swatch {
+        background: linear-gradient(145deg,
+                var(--settings-theme-color),
+                var(--settings-theme-accent));
+        border: 2px solid color-mix(in srgb, var(--expense-surface-solid) 88%, transparent);
+        border-radius: 50%;
+        box-shadow: 0 2px 7px color-mix(in srgb, var(--settings-theme-accent) 24%, transparent);
+        height: 24px;
+        width: 24px;
+    }
+
+    .mobile-settings-view__preferences,
+    .mobile-settings-view__management {
+        display: grid;
+        gap: 0;
+    }
+
+    .mobile-settings-view__preference,
+    .mobile-settings-view__management>div,
+    .mobile-settings-view__about {
+        align-items: center;
+        display: flex;
+        gap: 14px;
+        justify-content: space-between;
+        min-height: 58px;
+    }
+
+    .mobile-settings-view__preference+.mobile-settings-view__preference,
+    .mobile-settings-view__management>div+div {
+        border-top: 1px solid var(--expense-border);
+    }
+
+    .mobile-settings-view__switch {
+        background: color-mix(in srgb, var(--expense-muted) 24%, transparent);
+        border: 0;
+        border-radius: 999px;
+        cursor: pointer;
+        flex: 0 0 auto;
+        height: 26px;
+        padding: 3px;
+        transition: background-color 160ms ease;
+        width: 46px;
+    }
+
+    .mobile-settings-view__switch span {
+        background: white;
+        border-radius: 50%;
+        box-shadow: 0 2px 6px rgba(25, 35, 28, 0.18);
+        display: block;
+        height: 20px;
+        transition: transform 160ms ease;
+        width: 20px;
+    }
+
+    .mobile-settings-view__switch.is-active {
+        background: var(--expense-active-strong);
+    }
+
+    .mobile-settings-view__switch.is-active span {
+        transform: translateX(20px);
+    }
+
+    .mobile-settings-view__preference select {
+        background: color-mix(in srgb,
+                var(--expense-surface-solid) 72%,
+                var(--expense-border-strong));
+        border: 1px solid var(--expense-border-strong);
+        border-radius: 8px;
+        color: var(--expense-heading);
+        flex: 0 0 auto;
+        font-size: 11px;
+        font-weight: 800;
+        height: 34px;
+        padding: 0 8px;
+    }
+
+    .mobile-settings-view__management>div>span:last-child {
+        color: var(--expense-muted);
+        font-size: 17px;
+        font-weight: 700;
+    }
+
+    .mobile-settings-view__about {
+        color: var(--expense-muted);
+        font-size: 12px;
+        min-height: 34px;
+    }
+
+    .mobile-settings-view__about strong {
+        color: var(--expense-heading);
+        font-size: 12px;
+    }
+
+    .mobile-settings-view__logout {
+        align-items: center;
+        background: color-mix(in srgb, #dc1717 5%, var(--expense-surface-solid));
+        border: 1px solid color-mix(in srgb, #dc1717 18%, transparent);
+        border-radius: 12px;
+        color: #c71919;
+        cursor: pointer;
+        display: flex;
+        gap: 11px;
+        min-height: 58px;
+        padding: 12px 16px;
+        text-align: left;
+        width: 100%;
+    }
+
+    .mobile-settings-view__logout>span {
+        display: grid;
+        gap: 3px;
+    }
+
+    .mobile-settings-view__logout strong {
+        font-size: 13px;
+    }
+
+    .mobile-settings-view__logout small {
+        color: color-mix(in srgb, #c71919 72%, var(--expense-muted));
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .mobile-settings-view__dialog-backdrop {
+        align-items: center;
+        background: rgba(18, 24, 20, 0.42);
+        display: flex;
+        inset: 0;
+        justify-content: center;
+        padding: 24px;
+        position: fixed;
+        z-index: 30;
+    }
+
+    .mobile-settings-view__dialog {
+        background: var(--expense-surface-solid);
+        border: 1px solid var(--expense-border-strong);
+        border-radius: 16px;
+        box-shadow: 0 24px 60px rgba(24, 32, 27, 0.22);
+        max-width: 340px;
+        padding: 22px;
+        text-align: center;
+        width: 100%;
+    }
+
+    .mobile-settings-view__dialog-icon {
+        align-items: center;
+        background: color-mix(in srgb, #dc1717 10%, transparent);
+        border-radius: 50%;
+        color: #c71919;
+        display: inline-flex;
+        height: 44px;
+        justify-content: center;
+        width: 44px;
+    }
+
+    .mobile-settings-view__dialog h2 {
+        color: var(--expense-heading);
+        font-size: 17px;
+        margin: 14px 0 6px;
+    }
+
+    .mobile-settings-view__dialog p {
+        color: var(--expense-muted);
+        font-size: 12px;
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    .mobile-settings-view__dialog-actions {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 20px;
+    }
+
+    .mobile-settings-view__dialog-actions button {
+        background: color-mix(in srgb,
+                var(--expense-surface-solid) 68%,
+                var(--expense-border-strong));
+        border: 1px solid var(--expense-border-strong);
+        border-radius: 10px;
+        color: var(--expense-heading);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 800;
+        min-height: 42px;
+    }
+
+    .mobile-settings-view__dialog-actions button:last-child {
+        background: #c71919;
+        border-color: #c71919;
+        color: white;
+    }
+}
