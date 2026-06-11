@@ -38,14 +38,38 @@ function SettingsSwitch({ checked, description, label, onChange }) {
 }
 
 export default function MobileSettingsView({
+    onLogout,
     onThemeChange,
     theme,
+    user,
     wallets = [],
 }) {
     const [currency, setCurrency] = useState('VND')
     const [hideBalance, setHideBalance] = useState(false)
+    const [logoutError, setLogoutError] = useState('')
+    const [isSigningOut, setIsSigningOut] = useState(false)
     const [notificationsEnabled, setNotificationsEnabled] = useState(true)
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+    const profileName = user?.displayName || user?.email || 'Tài khoản'
+    const avatarLabel = profileName
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0])
+        .join('')
+        .toUpperCase()
+
+    const handleLogout = async () => {
+        setLogoutError('')
+        setIsSigningOut(true)
+
+        try {
+            await onLogout?.()
+        } catch {
+            setLogoutError('Không thể đăng xuất. Vui lòng thử lại.')
+            setIsSigningOut(false)
+        }
+    }
 
     return (
         <main className="mobile-settings-view">
@@ -55,11 +79,11 @@ export default function MobileSettingsView({
 
             <section className="mobile-settings-view__profile section-card">
                 <span className="mobile-settings-view__avatar" aria-hidden="true">
-                    ĐT
+                    {avatarLabel || 'TK'}
                 </span>
                 <span className="mobile-settings-view__profile-copy">
-                    <strong>Đức Trọng</strong>
-                    <small>Quản lý tài chính cá nhân</small>
+                    <strong>{profileName}</strong>
+                    <small>{user?.email || 'Quản lý tài chính cá nhân'}</small>
                 </span>
                 <span className="mobile-settings-view__status">Cá nhân</span>
             </section>
@@ -197,7 +221,10 @@ export default function MobileSettingsView({
 
             <button
                 className="mobile-settings-view__logout"
-                onClick={() => setShowLogoutConfirm(true)}
+                onClick={() => {
+                    setLogoutError('')
+                    setShowLogoutConfirm(true)
+                }}
                 type="button"
             >
                 <LogoutIcon size={19} />
@@ -210,7 +237,11 @@ export default function MobileSettingsView({
             {showLogoutConfirm ? (
                 <div
                     className="mobile-settings-view__dialog-backdrop"
-                    onClick={() => setShowLogoutConfirm(false)}
+                    onClick={() => {
+                        if (!isSigningOut) {
+                            setShowLogoutConfirm(false)
+                        }
+                    }}
                     role="presentation"
                 >
                     <div
@@ -225,14 +256,26 @@ export default function MobileSettingsView({
                         </span>
                         <h2 id="logout-dialog-title">Đăng xuất tài khoản?</h2>
                         <p>Bạn cần đăng nhập lại để tiếp tục quản lý chi tiêu.</p>
+                        {logoutError ? (
+                            <p className="mobile-settings-view__dialog-error" role="alert">
+                                {logoutError}
+                            </p>
+                        ) : null}
                         <div className="mobile-settings-view__dialog-actions">
                             <button
+                                disabled={isSigningOut}
                                 onClick={() => setShowLogoutConfirm(false)}
                                 type="button"
                             >
                                 Hủy
                             </button>
-                            <button type="button">Đăng xuất</button>
+                            <button
+                                disabled={isSigningOut}
+                                onClick={handleLogout}
+                                type="button"
+                            >
+                                {isSigningOut ? 'Đang thoát...' : 'Đăng xuất'}
+                            </button>
                         </div>
                     </div>
                 </div>

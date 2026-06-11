@@ -1,11 +1,28 @@
+import { useState } from 'react'
 import MonthPicker from '../shared/MonthPicker'
-import { ThemeIcon } from '../../icon/ExpenseIcons'
+import { LogoutIcon, ThemeIcon } from '../../icon/ExpenseIcons'
 
 export default function ExpenseHeader({
   month = '2026-06',
+  onLogout,
   onToggleTheme,
   theme = 'sage',
+  user,
 }) {
+  const [isSigningOut, setIsSigningOut] = useState(false)
+  const accountName = user?.displayName || user?.email || 'Tài khoản'
+  const avatarLabel = accountName.trim().charAt(0).toUpperCase() || 'T'
+
+  const handleLogout = async () => {
+    setIsSigningOut(true)
+
+    try {
+      await onLogout?.()
+    } finally {
+      setIsSigningOut(false)
+    }
+  }
+
   return (
     <header className="expense-header">
       <div>
@@ -25,7 +42,22 @@ export default function ExpenseHeader({
         </button>
         <button aria-label="Search" type="button">SR</button>
         <button aria-label="Notifications" type="button">NT</button>
-        <span className="expense-header__avatar">D</span>
+        <span
+          className="expense-header__avatar"
+          title={user?.email || accountName}
+        >
+          {avatarLabel}
+        </span>
+        <button
+          aria-label="Đăng xuất"
+          className="expense-header__logout"
+          disabled={isSigningOut}
+          onClick={handleLogout}
+          title="Đăng xuất"
+          type="button"
+        >
+          <LogoutIcon size={17} />
+        </button>
       </div>
     </header>
   )

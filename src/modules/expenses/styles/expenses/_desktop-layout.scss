@@ -116,6 +116,20 @@
   padding: 0 14px;
 }
 
+.expense-header__actions .expense-header__logout {
+  align-items: center;
+  color: #c71919;
+  display: inline-flex;
+  justify-content: center;
+  padding: 0;
+  width: 40px;
+}
+
+.expense-header__actions .expense-header__logout:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .expense-header__avatar {
   align-items: center;
   background: #273026;

@@ -10,17 +10,24 @@ export default function WebDashboardView({
   budgets,
   categories,
   navItems,
+  onLogout,
   onToggleTheme,
   summary,
   theme,
   transactions,
+  user,
   wallets,
 }) {
   return (
     <div className="web-dashboard-view">
       <ExpenseSidebar items={navItems} />
       <main className="web-dashboard-view__main">
-        <ExpenseHeader onToggleTheme={onToggleTheme} theme={theme} />
+        <ExpenseHeader
+          onLogout={onLogout}
+          onToggleTheme={onToggleTheme}
+          theme={theme}
+          user={user}
+        />
         <SummaryCardList items={summary} />
         <div className="web-dashboard-view__grid">
           <CategorySpendingCard categories={categories} />
