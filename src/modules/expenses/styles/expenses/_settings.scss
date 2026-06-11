@@ -312,6 +312,11 @@
         margin: 0;
     }
 
+    .mobile-settings-view__dialog .mobile-settings-view__dialog-error {
+        color: #c71919;
+        margin-top: 10px;
+    }
+
     .mobile-settings-view__dialog-actions {
         display: grid;
         gap: 10px;
@@ -336,5 +341,10 @@
         background: #c71919;
         border-color: #c71919;
         color: white;
+    }
+
+    .mobile-settings-view__dialog-actions button:disabled {
+        cursor: wait;
+        opacity: 0.65;
     }
 }

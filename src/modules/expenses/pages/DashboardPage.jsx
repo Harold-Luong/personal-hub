@@ -17,7 +17,7 @@ import '../styles/expenses.scss'
 
 const expenseThemes = ['sage', 'fjord', 'clay', 'blossom', 'vintage', 'retro']
 
-export default function DashboardPage() {
+export default function DashboardPage({ onLogout, user }) {
     const [activeMobilePage, setActiveMobilePage] = useState('dashboard')
     const [theme, setTheme] = useState(expenseThemes[0])
     const [transactions, setTransactions] = useState(mockTransactions)
@@ -69,8 +69,10 @@ export default function DashboardPage() {
         if (activeMobilePage === 'settings') {
             return (
                 <SettingsPage
+                    onLogout={onLogout}
                     onThemeChange={setTheme}
                     theme={theme}
+                    user={user}
                     wallets={mockWallets}
                 />
             )
@@ -100,10 +102,12 @@ export default function DashboardPage() {
                 budgets={mockBudgets}
                 categories={mockCategories}
                 navItems={expenseNavItems}
+                onLogout={onLogout}
                 onToggleTheme={handleToggleTheme}
                 summary={mockSummary}
                 theme={theme}
                 transactions={transactions}
+                user={user}
                 wallets={mockWallets}
             />
         </div>
