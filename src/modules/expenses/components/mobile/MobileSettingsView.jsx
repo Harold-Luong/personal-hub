@@ -38,17 +38,19 @@ function SettingsSwitch({ checked, description, label, onChange }) {
 }
 
 export default function MobileSettingsView({
+    currency,
+    hideBalance,
+    notificationsEnabled,
     onLogout,
+    onSettingChange,
     onThemeChange,
+    settingsError,
     theme,
     user,
     wallets = [],
 }) {
-    const [currency, setCurrency] = useState('VND')
-    const [hideBalance, setHideBalance] = useState(false)
     const [logoutError, setLogoutError] = useState('')
     const [isSigningOut, setIsSigningOut] = useState(false)
-    const [notificationsEnabled, setNotificationsEnabled] = useState(true)
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
     const profileName = user?.displayName || user?.email || 'Tài khoản'
     const avatarLabel = profileName
@@ -87,6 +89,12 @@ export default function MobileSettingsView({
                 </span>
                 <span className="mobile-settings-view__status">Cá nhân</span>
             </section>
+
+            {settingsError ? (
+                <p className="mobile-settings-view__settings-error" role="alert">
+                    {settingsError}
+                </p>
+            ) : null}
 
             <section className="mobile-settings-view__section">
                 <div className="mobile-settings-view__section-heading">
@@ -135,13 +143,17 @@ export default function MobileSettingsView({
                         checked={notificationsEnabled}
                         description="Nhắc nhở ngân sách và giao dịch"
                         label="Thông báo"
-                        onChange={setNotificationsEnabled}
+                        onChange={(value) =>
+                            onSettingChange?.('notificationsEnabled', value)
+                        }
                     />
                     <SettingsSwitch
                         checked={hideBalance}
                         description="Ẩn số dư khi mở ứng dụng"
                         label="Ẩn số dư"
-                        onChange={setHideBalance}
+                        onChange={(value) =>
+                            onSettingChange?.('hideBalance', value)
+                        }
                     />
                     <label className="mobile-settings-view__preference">
                         <span>
@@ -150,7 +162,12 @@ export default function MobileSettingsView({
                         </span>
                         <select
                             aria-label="Đơn vị tiền tệ"
-                            onChange={(event) => setCurrency(event.target.value)}
+                            onChange={(event) =>
+                                onSettingChange?.(
+                                    'currency',
+                                    event.target.value,
+                                )
+                            }
                             value={currency}
                         >
                             <option value="VND">VND</option>

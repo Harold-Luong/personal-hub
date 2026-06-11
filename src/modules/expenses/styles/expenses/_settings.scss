@@ -154,6 +154,17 @@
         width: 24px;
     }
 
+    .mobile-settings-view__settings-error {
+        background: color-mix(in srgb, #c71919 7%, var(--expense-surface-solid));
+        border: 1px solid color-mix(in srgb, #c71919 20%, transparent);
+        border-radius: 10px;
+        color: #c71919;
+        font-size: 11px;
+        font-weight: 650;
+        margin: 0;
+        padding: 10px 12px;
+    }
+
     .mobile-settings-view__preferences,
     .mobile-settings-view__management {
         display: grid;

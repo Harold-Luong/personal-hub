@@ -2,6 +2,9 @@
   background: var(--expense-page-bg);
   color: var(--expense-text);
   min-height: 100vh;
+}
+
+.expenses-page.is-theme-ready {
   transition:
     background-color 180ms ease,
     color 180ms ease;
