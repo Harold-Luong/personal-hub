@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ExpenseBottomNav from '../components/layout/ExpenseBottomNav'
 import MobileDashboardView from '../components/mobile/MobileDashboardView'
 import WebDashboardView from '../components/web/WebDashboardView'
@@ -16,19 +16,112 @@ import {
 import '../styles/expenses.scss'
 
 const expenseThemes = ['sage', 'fjord', 'clay', 'blossom', 'vintage', 'retro']
+const expenseCurrencies = ['VND', 'USD']
 
-export default function DashboardPage({ onLogout, user }) {
+function getInitialSettings(initialSettings) {
+    return {
+        currency: expenseCurrencies.includes(initialSettings?.currency)
+            ? initialSettings.currency
+            : 'VND',
+        hideBalance:
+            typeof initialSettings?.hideBalance === 'boolean'
+                ? initialSettings.hideBalance
+                : false,
+        notificationsEnabled:
+            typeof initialSettings?.notificationsEnabled === 'boolean'
+                ? initialSettings.notificationsEnabled
+                : true,
+        theme: expenseThemes.includes(initialSettings?.theme)
+            ? initialSettings.theme
+            : expenseThemes[0],
+    }
+}
+
+export default function DashboardPage({ initialSettings, onLogout, user }) {
     const [activeMobilePage, setActiveMobilePage] = useState('dashboard')
-    const [theme, setTheme] = useState(expenseThemes[0])
+    const [areThemeTransitionsEnabled, setAreThemeTransitionsEnabled] =
+        useState(false)
+    const [settings, setSettings] = useState(() =>
+        getInitialSettings(initialSettings),
+    )
+    const [settingsError, setSettingsError] = useState('')
+    const confirmedSettingsRef = useRef(settings)
+    const settingRevisionsRef = useRef({})
+    const settingsRef = useRef(settings)
+    const settingsWriteQueueRef = useRef(Promise.resolve())
     const [transactions, setTransactions] = useState(mockTransactions)
 
-    const handleToggleTheme = () => {
-        setTheme((currentTheme) => {
-            const currentIndex = expenseThemes.indexOf(currentTheme)
-            const nextIndex = (currentIndex + 1) % expenseThemes.length
-
-            return expenseThemes[nextIndex]
+    useEffect(() => {
+        const frameId = window.requestAnimationFrame(() => {
+            setAreThemeTransitionsEnabled(true)
         })
+
+        return () => window.cancelAnimationFrame(frameId)
+    }, [])
+
+    const handleSettingChange = (key, nextValue) => {
+        if (nextValue === settingsRef.current[key]) {
+            return
+        }
+
+        const revision = (settingRevisionsRef.current[key] ?? 0) + 1
+        settingRevisionsRef.current[key] = revision
+        settingsRef.current = {
+            ...settingsRef.current,
+            [key]: nextValue,
+        }
+
+        setSettings(settingsRef.current)
+        setSettingsError('')
+
+        const writePromise = settingsWriteQueueRef.current
+            .catch(() => {})
+            .then(async () => {
+                const { updateExpenseSettings } = await import(
+                    '../api/expenseSettingsRepository'
+                )
+
+                await updateExpenseSettings(user.uid, {
+                    [key]: nextValue,
+                })
+                confirmedSettingsRef.current = {
+                    ...confirmedSettingsRef.current,
+                    [key]: nextValue,
+                }
+            })
+
+        settingsWriteQueueRef.current = writePromise
+
+        writePromise.catch(() => {
+            if (settingRevisionsRef.current[key] === revision) {
+                settingsRef.current = {
+                    ...settingsRef.current,
+                    [key]: confirmedSettingsRef.current[key],
+                }
+                setSettings(settingsRef.current)
+                setSettingsError(
+                    'Không thể lưu cài đặt. Vui lòng kiểm tra kết nối và thử lại.',
+                )
+            }
+        })
+    }
+
+    const handleThemeChange = (nextTheme) => {
+        if (expenseThemes.includes(nextTheme)) {
+            handleSettingChange('theme', nextTheme)
+        }
+    }
+
+    const handleToggleTheme = () => {
+        const currentIndex = expenseThemes.indexOf(settingsRef.current.theme)
+        const nextIndex = (currentIndex + 1) % expenseThemes.length
+
+        handleThemeChange(expenseThemes[nextIndex])
+    }
+
+    const handleLogout = async () => {
+        await settingsWriteQueueRef.current
+        await onLogout()
     }
 
     const handleMobileNavigate = (pageId) => {
@@ -69,9 +162,14 @@ export default function DashboardPage({ onLogout, user }) {
         if (activeMobilePage === 'settings') {
             return (
                 <SettingsPage
-                    onLogout={onLogout}
-                    onThemeChange={setTheme}
-                    theme={theme}
+                    currency={settings.currency}
+                    hideBalance={settings.hideBalance}
+                    notificationsEnabled={settings.notificationsEnabled}
+                    onLogout={handleLogout}
+                    onSettingChange={handleSettingChange}
+                    onThemeChange={handleThemeChange}
+                    settingsError={settingsError}
+                    theme={settings.theme}
                     user={user}
                     wallets={mockWallets}
                 />
@@ -84,14 +182,19 @@ export default function DashboardPage({ onLogout, user }) {
                 categories={mockCategories}
                 onToggleTheme={handleToggleTheme}
                 summary={mockSummary}
-                theme={theme}
+                theme={settings.theme}
                 transactions={transactions}
             />
         )
     }
 
     return (
-        <div className="expenses-page expenses-dashboard-page" data-theme={theme}>
+        <div
+            className={`expenses-page expenses-dashboard-page${
+                areThemeTransitionsEnabled ? ' is-theme-ready' : ''
+            }`}
+            data-theme={settings.theme}
+        >
             {renderMobilePage()}
             <ExpenseBottomNav
                 activeId={activeMobilePage}
@@ -102,10 +205,10 @@ export default function DashboardPage({ onLogout, user }) {
                 budgets={mockBudgets}
                 categories={mockCategories}
                 navItems={expenseNavItems}
-                onLogout={onLogout}
+                onLogout={handleLogout}
                 onToggleTheme={handleToggleTheme}
                 summary={mockSummary}
-                theme={theme}
+                theme={settings.theme}
                 transactions={transactions}
                 user={user}
                 wallets={mockWallets}

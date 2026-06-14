@@ -4,25 +4,11 @@ import {
     loginWithGoogle,
     registerWithEmail,
 } from '../api/authRepository'
+import {
+    authPageMessages,
+    getAuthErrorMessage,
+} from '../messages/authMessages'
 import '../styles/auth.scss'
-
-const authErrorMessages = {
-    'auth/email-already-in-use': 'Email này đã được đăng ký.',
-    'auth/invalid-credential': 'Email hoặc mật khẩu không đúng.',
-    'auth/invalid-email': 'Địa chỉ email không hợp lệ.',
-    'auth/network-request-failed': 'Không thể kết nối Firebase. Vui lòng kiểm tra mạng.',
-    'auth/operation-not-allowed': 'Phương thức đăng nhập này chưa được bật trong Firebase Console.',
-    'auth/popup-blocked': 'Trình duyệt đã chặn cửa sổ đăng nhập Google.',
-    'auth/popup-closed-by-user': 'Cửa sổ đăng nhập Google đã bị đóng.',
-    'auth/too-many-requests': 'Bạn thử quá nhiều lần. Vui lòng thử lại sau.',
-    'auth/unauthorized-domain': 'Domain hiện tại chưa được thêm vào Authorized domains.',
-    'auth/weak-password': 'Mật khẩu cần có ít nhất 6 ký tự.',
-}
-
-function getAuthErrorMessage(error) {
-    return authErrorMessages[error.code]
-        || 'Không thể xác thực. Vui lòng thử lại.'
-}
 
 export default function AuthPage() {
     const [mode, setMode] = useState('login')
@@ -32,6 +18,7 @@ export default function AuthPage() {
     const [isSubmitting, setIsSubmitting] = useState(false)
 
     const isRegisterMode = mode === 'register'
+    const modeMessages = authPageMessages.modes[mode]
 
     const handleEmailSubmit = async (event) => {
         event.preventDefault()
@@ -72,35 +59,37 @@ export default function AuthPage() {
     return (
         <main className="auth-page">
             <section className="auth-card" aria-labelledby="auth-title">
-                <div className="auth-card__brand">Personal Hub</div>
-                <h1 id="auth-title">
-                    {isRegisterMode ? 'Tạo tài khoản' : 'Đăng nhập'}
-                </h1>
+                <div className="auth-card__brand">
+                    {authPageMessages.brand}
+                </div>
+                <h1 id="auth-title">{modeMessages.title}</h1>
                 <p className="auth-card__intro">
-                    {isRegisterMode
-                        ? 'Đăng ký để lưu dữ liệu chi tiêu theo tài khoản của bạn.'
-                        : 'Đăng nhập để tiếp tục quản lý chi tiêu.'}
+                    {modeMessages.intro}
                 </p>
 
                 <form className="auth-form" onSubmit={handleEmailSubmit}>
-                    <label htmlFor="auth-email">Email</label>
+                    <label htmlFor="auth-email">
+                        {authPageMessages.emailLabel}
+                    </label>
                     <input
                         autoComplete="email"
                         id="auth-email"
                         onChange={(event) => setEmail(event.target.value)}
-                        placeholder="you@example.com"
+                        placeholder={authPageMessages.emailPlaceholder}
                         required
                         type="email"
                         value={email}
                     />
 
-                    <label htmlFor="auth-password">Mật khẩu</label>
+                    <label htmlFor="auth-password">
+                        {authPageMessages.passwordLabel}
+                    </label>
                     <input
                         autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
                         id="auth-password"
                         minLength={6}
                         onChange={(event) => setPassword(event.target.value)}
-                        placeholder="Tối thiểu 6 ký tự"
+                        placeholder={authPageMessages.passwordPlaceholder}
                         required
                         type="password"
                         value={password}
@@ -118,15 +107,13 @@ export default function AuthPage() {
                         type="submit"
                     >
                         {isSubmitting
-                            ? 'Đang xử lý...'
-                            : isRegisterMode
-                                ? 'Đăng ký'
-                                : 'Đăng nhập'}
+                            ? authPageMessages.submittingButton
+                            : modeMessages.submitButton}
                     </button>
                 </form>
 
                 <div className="auth-divider">
-                    <span>hoặc</span>
+                    <span>{authPageMessages.divider}</span>
                 </div>
 
                 <button
@@ -135,15 +122,13 @@ export default function AuthPage() {
                     onClick={handleGoogleLogin}
                     type="button"
                 >
-                    Tiếp tục với Google
+                    {authPageMessages.googleButton}
                 </button>
 
                 <p className="auth-card__switch">
-                    {isRegisterMode
-                        ? 'Đã có tài khoản?'
-                        : 'Chưa có tài khoản?'}
+                    {modeMessages.alternateModeLabel}
                     <button onClick={switchMode} type="button">
-                        {isRegisterMode ? 'Đăng nhập' : 'Đăng ký'}
+                        {modeMessages.switchButton}
                     </button>
                 </p>
             </section>
