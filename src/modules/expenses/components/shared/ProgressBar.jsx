@@ -1,5 +1,7 @@
+import { calculateProgressPercentage } from '../../utils/expenseCalculations'
+
 export default function ProgressBar({ value = 0, max = 100, color }) {
-    const percentage = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+    const percentage = calculateProgressPercentage(value, max);
 
     return (
         <div

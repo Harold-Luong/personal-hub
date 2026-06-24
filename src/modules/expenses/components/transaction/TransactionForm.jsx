@@ -3,6 +3,7 @@ import {
     formatCurrencyInput,
     parseCurrencyInput,
 } from '../../utils/formatCurrency'
+import { getSignedTransactionAmount } from '../../utils/expenseCalculations'
 import {
     getLocalDateValue,
     getLocalTimeValue,
@@ -58,7 +59,7 @@ export default function TransactionForm({
 
         onSubmit?.({
             id: `tx-${Date.now()}`,
-            amount: type === 'income' ? numericAmount : -numericAmount,
+            amount: getSignedTransactionAmount(numericAmount, type),
             category: selectedCategory.id,
             date,
             icon: selectedCategory.icon,

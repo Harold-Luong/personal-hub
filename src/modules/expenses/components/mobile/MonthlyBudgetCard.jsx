@@ -1,15 +1,9 @@
 import ProgressBar from "../shared/ProgressBar";
 import { formatCurrency } from "../../utils/formatCurrency";
+import { calculateMonthlyBudgetTotals } from "../../utils/expenseCalculations";
 
 export default function MonthlyBudgetCard({ budgets = [] }) {
-    const { spent, limit } = budgets.reduce(
-        (total, budget) => ({
-            spent: total.spent + Math.max(budget.amount ?? 0, 0),
-            limit: total.limit + Math.max(budget.limit ?? 0, 0),
-        }),
-        { spent: 0, limit: 0 },
-    );
-    const percentage = limit > 0 ? Math.round((spent / limit) * 100) : 0;
+    const { spent, limit, percentage } = calculateMonthlyBudgetTotals(budgets);
 
     return (
         <section className="monthly-budget-card">

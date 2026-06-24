@@ -2,6 +2,7 @@ import AmountText from '../shared/AmountText'
 import CategoryIcon from '../shared/CategoryIcon'
 import ProgressBar from '../shared/ProgressBar'
 import SectionCard from '../shared/SectionCard'
+import { calculateBudgetUsagePercentage } from '../../utils/expenseCalculations'
 
 export default function BudgetOverviewCard({ budgets = [] }) {
   return (
@@ -16,7 +17,7 @@ export default function BudgetOverviewCard({ budgets = [] }) {
                 <AmountText amount={budget.amount} /> / <AmountText amount={budget.limit} />
               </p>
             </div>
-            <span>{Math.round((budget.amount / budget.limit) * 100)}%</span>
+            <span>{calculateBudgetUsagePercentage(budget)}%</span>
           </div>
           <ProgressBar color={budget.color} max={budget.limit} value={budget.amount} />
         </article>
