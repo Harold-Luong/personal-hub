@@ -28,8 +28,8 @@ Chức năng chính:
 
 * Chỉ user đang đăng nhập mới đọc được dữ liệu của mình trong `users/{uid}`.
 * User A không đọc/ghi được dữ liệu của User B.
-* Client chỉ được tạo/cập nhật `users/{uid}/settings/expenses`.
-* `settings/expenses` chỉ nhận các field hợp lệ:
+* Client chỉ được tạo/cập nhật `users/{uid}/modules/expenses/settings/main`.
+* `modules/expenses/settings/main` chỉ nhận các field hợp lệ:
 
   * `theme`
   * `currency`
@@ -198,7 +198,7 @@ npx firebase-tools use --add
 Kiểm tra:
 
 * User đã đăng nhập chưa.
-* App có ghi đúng path `users/{uid}/settings/expenses` không.
+* App có ghi đúng path `users/{uid}/modules/expenses/settings/main` không.
 * `uid` trên path có đúng với `request.auth.uid` không.
 * Payload có đúng whitelist field trong `firestore.rules` không.
 * `updatedAt` có dùng `serverTimestamp()` không.
@@ -209,5 +209,5 @@ Kiểm tra:
 2. Chọn Firebase project bằng `use --add`.
 3. Deploy `firestore.rules`.
 4. Deploy `firestore.indexes.json`.
-5. Test đăng nhập app và tạo/cập nhật `settings/expenses`.
+5. Test đăng nhập app và tạo/cập nhật `modules/expenses/settings/main`.
 6. Sau đó mới tiếp tục seed wallets/categories và thay mock data.

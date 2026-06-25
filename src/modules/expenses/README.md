@@ -118,24 +118,26 @@ khuyến nghị dùng Firebase Callable Cloud Functions.
 ```text
 users/{uid}
 ├── profile
-├── settings/
-│   └── expenses
-├── wallets/{walletId}
-├── categories/{categoryId}
-├── transactions/{transactionId}
-├── budgets/{budgetId}
-└── monthlyStats/{monthKey}
+└── modules/
+    └── expenses
+        ├── settings/
+        │   └── main
+        ├── wallets/{walletId}
+        ├── categories/{categoryId}
+        ├── transactions/{transactionId}
+        ├── budgets/{budgetId}
+        └── monthlyStats/{monthKey}
 ```
 
 Ví dụ:
 
 ```text
-users/abc123/settings/expenses
-users/abc123/wallets/wallet-cash
-users/abc123/categories/food
-users/abc123/transactions/4K9x...
-users/abc123/budgets/2026-06_food
-users/abc123/monthlyStats/2026-06
+users/abc123/modules/expenses/settings/main
+users/abc123/modules/expenses/wallets/wallet-cash
+users/abc123/modules/expenses/categories/food
+users/abc123/modules/expenses/transactions/4K9x...
+users/abc123/modules/expenses/budgets/2026-06_food
+users/abc123/modules/expenses/monthlyStats/2026-06
 ```
 
 Không dùng ID transaction tăng tuần tự như `tx-1`, `tx-2`. Sử dụng Firestore
@@ -171,7 +173,7 @@ Profile chứa thông tin chung của user. Các thiết lập riêng của expe
 Đường dẫn:
 
 ```text
-users/{uid}/settings/expenses
+users/{uid}/modules/expenses/settings/main
 ```
 
 Shape đề xuất:
@@ -214,7 +216,7 @@ Quy tắc:
 Đường dẫn:
 
 ```text
-users/{uid}/wallets/{walletId}
+users/{uid}/modules/expenses/wallets/{walletId}
 ```
 
 Shape đề xuất:
@@ -259,7 +261,7 @@ Quy tắc:
 Đường dẫn:
 
 ```text
-users/{uid}/categories/{categoryId}
+users/{uid}/modules/expenses/categories/{categoryId}
 ```
 
 Shape đề xuất:
@@ -300,7 +302,7 @@ Quy tắc:
 Đường dẫn:
 
 ```text
-users/{uid}/transactions/{transactionId}
+users/{uid}/modules/expenses/transactions/{transactionId}
 ```
 
 Shape chung:
@@ -422,7 +424,7 @@ Tác động:
 Đường dẫn:
 
 ```text
-users/{uid}/budgets/{budgetId}
+users/{uid}/modules/expenses/budgets/{budgetId}
 ```
 
 ID đề xuất:
@@ -480,13 +482,13 @@ budget document.
 Đường dẫn:
 
 ```text
-users/{uid}/monthlyStats/{monthKey}
+users/{uid}/modules/expenses/monthlyStats/{monthKey}
 ```
 
 Ví dụ:
 
 ```text
-users/abc123/monthlyStats/2026-06
+users/abc123/modules/expenses/monthlyStats/2026-06
 ```
 
 Shape:
@@ -575,7 +577,7 @@ Firestore không có join như SQL. Vì vậy:
 | Budget limit | `budgets` | Đọc theo `monthKey` |
 | Budget spent | `monthlyStats` | Kết hợp theo `categoryId` |
 | Dashboard summary | Wallets + current/previous stats | Dựng view model |
-| Theme/preferences | `settings/expenses` | Firestore + local cache |
+| Theme/preferences | `modules/expenses/settings/main` | Firestore + local cache |
 
 `mockSummary` sẽ không trở thành một collection riêng.
 
@@ -642,7 +644,7 @@ Nếu tháng trước bằng `0`, UI cần quy ước riêng thay vì chia cho `
 2. Nếu chưa đăng nhập, hiển thị auth flow hoặc chế độ local theo phạm vi sản
    phẩm.
 3. Đọc cached theme từ `localStorage` để render sớm.
-4. Subscribe `settings/expenses`.
+4. Subscribe `modules/expenses/settings/main`.
 5. Subscribe wallets và categories đang hoạt động.
 6. Đọc monthly stats của tháng đang chọn và tháng trước.
 7. Đọc budgets của tháng đang chọn.
@@ -658,7 +660,7 @@ Các request không phụ thuộc nên chạy song song.
 
 1. User chọn theme.
 2. UI đổi theme ngay bằng optimistic update.
-3. Ghi `theme` vào `users/{uid}/settings/expenses`.
+3. Ghi `theme` vào `users/{uid}/modules/expenses/settings/main`.
 4. Ghi cùng giá trị vào `localStorage`.
 5. Nếu Firestore write thất bại, rollback UI và hiển thị lỗi nhẹ.
 
@@ -873,7 +875,7 @@ Notification backend có thể được bổ sung sau. V1 chỉ cần cảnh bá
 ### Recent transactions
 
 ```text
-collection: users/{uid}/transactions
+collection: users/{uid}/modules/expenses/transactions
 where: status == active
 orderBy: occurredAt desc
 limit: 5

@@ -78,7 +78,15 @@ function getExpenseSettingsRef(uid) {
         throw new Error('A Firebase Authentication uid is required.')
     }
 
-    return doc(firestore, 'users', uid, 'settings', 'expenses')
+    return doc(
+        firestore,
+        'users',
+        uid,
+        'modules',
+        'expenses',
+        'settings',
+        'main',
+    )
 }
 
 export async function getExpenseSettings(uid) {
