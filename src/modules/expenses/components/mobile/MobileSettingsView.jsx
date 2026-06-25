@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
     BellIcon,
     LogoutIcon,
@@ -52,7 +52,10 @@ export default function MobileSettingsView({
     const [logoutError, setLogoutError] = useState('')
     const [isSigningOut, setIsSigningOut] = useState(false)
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+    const [hasAvatarLoadError, setHasAvatarLoadError] = useState(false)
     const profileName = user?.displayName || user?.email || 'Tài khoản'
+    const profilePhotoUrl = user?.photoURL || ''
+    const shouldShowProfilePhoto = profilePhotoUrl && !hasAvatarLoadError
     const avatarLabel = profileName
         .split(/\s+/)
         .filter(Boolean)
@@ -60,6 +63,10 @@ export default function MobileSettingsView({
         .map((part) => part[0])
         .join('')
         .toUpperCase()
+
+    useEffect(() => {
+        setHasAvatarLoadError(false)
+    }, [profilePhotoUrl])
 
     const handleLogout = async () => {
         setLogoutError('')
@@ -81,7 +88,15 @@ export default function MobileSettingsView({
 
             <section className="mobile-settings-view__profile section-card">
                 <span className="mobile-settings-view__avatar" aria-hidden="true">
-                    {avatarLabel || 'TK'}
+                    {shouldShowProfilePhoto ? (
+                        <img
+                            alt=""
+                            onError={() => setHasAvatarLoadError(true)}
+                            src={profilePhotoUrl}
+                        />
+                    ) : (
+                        avatarLabel || 'TK'
+                    )}
                 </span>
                 <span className="mobile-settings-view__profile-copy">
                     <strong>{profileName}</strong>

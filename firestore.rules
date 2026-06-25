@@ -19,6 +19,44 @@ service cloud.firestore {
       return value is string && value.size() > 0;
     }
 
+    function isOptionalString(value) {
+      return value == null || value is string;
+    }
+
+    // =========================
+    // User profile
+    // users/{uid}
+    // =========================
+
+    function allowedUserProfileKeys() {
+      return [
+        'displayName',
+        'email',
+        'photoURL',
+        'createdAt',
+        'initializedAt',
+        'updatedAt',
+      ];
+    }
+
+    function isValidUserProfileCreate(data) {
+      return data.keys().hasOnly(allowedUserProfileKeys())
+        && data.keys().hasAll([
+          'displayName',
+          'email',
+          'photoURL',
+          'createdAt',
+          'initializedAt',
+          'updatedAt',
+        ])
+        && isOptionalString(data.displayName)
+        && isOptionalString(data.email)
+        && isOptionalString(data.photoURL)
+        && data.createdAt == request.time
+        && data.initializedAt == request.time
+        && data.updatedAt == request.time;
+    }
+
     // =========================
     // Expense module root
     // users/{uid}/modules/expenses
@@ -259,7 +297,9 @@ service cloud.firestore {
 
     match /users/{uid} {
       allow read: if isOwner(uid);
-      allow write: if false;
+      allow create: if isOwner(uid)
+        && isValidUserProfileCreate(request.resource.data);
+      allow update, delete: if false;
 
       match /modules/expenses {
         allow read: if isOwner(uid);

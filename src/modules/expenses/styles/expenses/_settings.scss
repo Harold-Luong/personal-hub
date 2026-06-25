@@ -38,6 +38,14 @@
         width: 46px;
     }
 
+    .mobile-settings-view__avatar img {
+        border-radius: inherit;
+        display: block;
+        height: 100%;
+        object-fit: cover;
+        width: 100%;
+    }
+
     .mobile-settings-view__profile-copy,
     .mobile-settings-view__preference>span,
     .mobile-settings-view__management div>span:first-child {

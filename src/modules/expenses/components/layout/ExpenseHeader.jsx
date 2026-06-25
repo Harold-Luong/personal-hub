@@ -10,7 +10,11 @@ export default function ExpenseHeader({
   user,
 }) {
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const [failedAvatarUrl, setFailedAvatarUrl] = useState('')
   const accountName = user?.displayName || user?.email || 'Tài khoản'
+  const accountPhotoUrl = user?.photoURL || ''
+  const shouldShowAccountPhoto =
+    accountPhotoUrl && failedAvatarUrl !== accountPhotoUrl
   const avatarLabel = accountName.trim().charAt(0).toUpperCase() || 'T'
 
   const handleLogout = async () => {
@@ -26,7 +30,7 @@ export default function ExpenseHeader({
   return (
     <header className="expense-header">
       <div>
-        <h1>Xin chao, Duc</h1>
+        <h1>Xin chào, {accountName}</h1>
         <p>Quan ly chi tieu thong minh</p>
       </div>
       <div className="expense-header__actions">
@@ -46,7 +50,15 @@ export default function ExpenseHeader({
           className="expense-header__avatar"
           title={user?.email || accountName}
         >
-          {avatarLabel}
+          {shouldShowAccountPhoto ? (
+            <img
+              alt=""
+              onError={() => setFailedAvatarUrl(accountPhotoUrl)}
+              src={accountPhotoUrl}
+            />
+          ) : (
+            avatarLabel
+          )}
         </span>
         <button
           aria-label="Đăng xuất"
