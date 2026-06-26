@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 const initialState = {
     error: null,
+    phase: 'idle',
     requestKey: null,
     settings: null,
 }
@@ -20,11 +21,29 @@ export default function useEnsureExpenseSettings(user) {
         let isCancelled = false
 
         import('../api/expenseSettingsRepository')
-            .then(({ ensureExpenseSettings }) => ensureExpenseSettings(uid))
+            .then(async ({ ensureUserDataInitialized, getExpenseSettings }) => {
+                const existingSettings = await getExpenseSettings(uid)
+
+                if (existingSettings) {
+                    return existingSettings
+                }
+
+                if (!isCancelled) {
+                    setState({
+                        error: null,
+                        phase: 'initializing',
+                        requestKey,
+                        settings: null,
+                    })
+                }
+
+                return ensureUserDataInitialized(user)
+            })
             .then((settings) => {
                 if (!isCancelled) {
                     setState({
                         error: null,
+                        phase: 'ready',
                         requestKey,
                         settings,
                     })
@@ -34,6 +53,7 @@ export default function useEnsureExpenseSettings(user) {
                 if (!isCancelled) {
                     setState({
                         error,
+                        phase: 'error',
                         requestKey,
                         settings: null,
                     })
@@ -43,7 +63,7 @@ export default function useEnsureExpenseSettings(user) {
         return () => {
             isCancelled = true
         }
-    }, [requestKey, uid])
+    }, [requestKey, uid, user])
 
     if (!uid) {
         return {
@@ -55,11 +75,13 @@ export default function useEnsureExpenseSettings(user) {
     }
 
     const isCurrentRequest = state.requestKey === requestKey
+    const status = isCurrentRequest ? state.phase : 'loading'
 
     return {
         error: isCurrentRequest ? state.error : null,
-        isLoading: !isCurrentRequest,
+        isLoading: status === 'loading' || status === 'initializing',
         retry: () => setAttempt((currentAttempt) => currentAttempt + 1),
         settings: isCurrentRequest ? state.settings : null,
+        status,
     }
 }

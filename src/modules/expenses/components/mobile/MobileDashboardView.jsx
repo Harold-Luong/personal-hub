@@ -12,6 +12,7 @@ export default function MobileDashboardView({
     summary,
     theme = "sage",
     transactions,
+    user,
 }) {
     const balance = summary.find((item) => item.id === "balance")?.value ?? 0;
     const balanceTrend =
@@ -30,7 +31,7 @@ export default function MobileDashboardView({
             <header className="mobile-dashboard-view__header">
                 <div className="mobile-dashboard-view__header-copy">
                     <p>
-                        Xin chào, Đức Trọng <span aria-hidden="true">👋</span>
+                        Xin chào, {user?.displayName || user?.email } <span aria-hidden="true">👋</span>
                     </p>
                     <span>{formatDate(new Date())}</span>
                 </div>

@@ -11,7 +11,12 @@ function AuthenticatedExpenses({ user }) {
         `${user.uid}:${settingsUpdatedAt?.seconds ?? 0}:${settingsUpdatedAt?.nanoseconds ?? 0}`
 
     if (expenseSettings.isLoading) {
-        return <div className="auth-loading">Đang khởi tạo dữ liệu...</div>
+        const loadingMessage =
+            expenseSettings.status === 'initializing'
+                ? 'Đang khởi tạo dữ liệu...'
+                : 'Đang tải dữ liệu...'
+
+        return <div className="auth-loading">{loadingMessage}</div>
     }
 
     if (expenseSettings.error) {
@@ -49,7 +54,7 @@ function App() {
     const { user, isLoading } = useAuthSession()
 
     if (isLoading) {
-        return <div className="auth-loading">Đang khởi tạo dữ liệu...</div>
+        return <div className="auth-loading">Đang kiểm tra phiên đăng nhập...</div>
     }
 
     if (!user) {

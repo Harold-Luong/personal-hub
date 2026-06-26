@@ -75,7 +75,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         setSettingsError('')
 
         const writePromise = settingsWriteQueueRef.current
-            .catch(() => {})
+            .catch(() => { })
             .then(async () => {
                 const { updateExpenseSettings } = await import(
                     '../api/expenseSettingsRepository'
@@ -184,15 +184,15 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 summary={mockSummary}
                 theme={settings.theme}
                 transactions={transactions}
+                user={user}
             />
         )
     }
 
     return (
         <div
-            className={`expenses-page expenses-dashboard-page${
-                areThemeTransitionsEnabled ? ' is-theme-ready' : ''
-            }`}
+            className={`expenses-page expenses-dashboard-page${areThemeTransitionsEnabled ? ' is-theme-ready' : ''
+                }`}
             data-theme={settings.theme}
         >
             {renderMobilePage()}
