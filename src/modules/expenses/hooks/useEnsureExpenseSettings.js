@@ -21,13 +21,7 @@ export default function useEnsureExpenseSettings(user) {
         let isCancelled = false
 
         import('../api/expenseSettingsRepository')
-            .then(async ({ ensureUserDataInitialized, getExpenseSettings }) => {
-                const existingSettings = await getExpenseSettings(uid)
-
-                if (existingSettings) {
-                    return existingSettings
-                }
-
+            .then(({ ensureUserDataInitialized }) => {
                 if (!isCancelled) {
                     setState({
                         error: null,

@@ -1,23 +1,34 @@
-import { useState } from 'react'
+import { useState } from "react";
 import {
     formatCurrencyInput,
     parseCurrencyInput,
-} from '../../utils/formatCurrency'
-import { getSignedTransactionAmount } from '../../utils/expenseCalculations'
+} from "../../utils/formatCurrency";
+import { getSignedTransactionAmount } from "../../utils/expenseCalculations";
 import {
     getLocalDateValue,
     getLocalTimeValue,
-} from '../../utils/transactionFormUtils'
+} from "../../utils/transactionFormUtils";
 
 const transactionTypes = [
-    { id: 'expense', label: 'Chi tiêu' },
-    { id: 'income', label: 'Thu nhập' },
-    { id: 'transfer', label: 'Chuyển khoản' },
-]
+    { id: "expense", label: "Chi tiêu" },
+    { id: "income", label: "Thu nhập" },
+    { id: "transfer", label: "Chuyển khoản" },
+];
 
-const specialCategoryOptions = {
-    income: [{ id: 'income', name: 'Thu nhập', icon: 'income' }],
-    transfer: [{ id: 'transfer', name: 'Chuyển khoản', icon: 'transfer' }],
+const fallbackCategoryOptions = {
+    transfer: [{ id: "transfer", name: "Chuyển khoản", icon: "transfer" }],
+};
+
+function getCategoryOptions(type, categories) {
+    if (type === "transfer") {
+        return fallbackCategoryOptions.transfer;
+    }
+
+    const typedCategories = categories.filter(
+        (category) => (category.type ?? "expense") === type,
+    );
+
+    return typedCategories.length > 0 ? typedCategories : [];
 }
 
 export default function TransactionForm({
@@ -25,36 +36,41 @@ export default function TransactionForm({
     onSubmit,
     wallets = [],
 }) {
-    const [type, setType] = useState('expense')
-    const [amount, setAmount] = useState('')
-    const [title, setTitle] = useState('')
-    const [categoryId, setCategoryId] = useState(categories[0]?.id ?? '')
-    const [walletId, setWalletId] = useState(wallets[0]?.id ?? '')
-    const [date, setDate] = useState(getLocalDateValue)
-    const [time, setTime] = useState(getLocalTimeValue)
-    const [note, setNote] = useState('')
+    const [type, setType] = useState("expense");
+    const [amount, setAmount] = useState("");
+    const [title, setTitle] = useState("");
+    const [categoryId, setCategoryId] = useState(
+        () => getCategoryOptions("expense", categories)[0]?.id ?? "",
+    );
+    const [walletId, setWalletId] = useState(wallets[0]?.id ?? "");
+    const [date, setDate] = useState(getLocalDateValue);
+    const [time, setTime] = useState(getLocalTimeValue);
+    const [note, setNote] = useState("");
 
-    const categoryOptions =
-        type === 'expense' ? categories : specialCategoryOptions[type]
+    const categoryOptions = getCategoryOptions(type, categories);
+    const selectedCategoryId = categoryOptions.some(
+        (category) => category.id === categoryId,
+    )
+        ? categoryId
+        : (categoryOptions[0]?.id ?? "");
 
     const handleTypeChange = (nextType) => {
-        const nextCategoryOptions =
-            nextType === 'expense' ? categories : specialCategoryOptions[nextType]
+        const nextCategoryOptions = getCategoryOptions(nextType, categories);
 
-        setType(nextType)
-        setCategoryId(nextCategoryOptions[0]?.id ?? '')
-    }
+        setType(nextType);
+        setCategoryId(nextCategoryOptions[0]?.id ?? "");
+    };
 
     const handleSubmit = (event) => {
-        event.preventDefault()
+        event.preventDefault();
 
-        const numericAmount = parseCurrencyInput(amount)
+        const numericAmount = parseCurrencyInput(amount);
         const selectedCategory = categoryOptions.find(
-            (category) => category.id === categoryId,
-        )
+            (category) => category.id === selectedCategoryId,
+        );
 
         if (!numericAmount || !title.trim() || !selectedCategory || !walletId) {
-            return
+            return;
         }
 
         onSubmit?.({
@@ -69,8 +85,8 @@ export default function TransactionForm({
             title: title.trim(),
             type,
             walletId,
-        })
-    }
+        });
+    };
 
     return (
         <form className="transaction-form" onSubmit={handleSubmit}>
@@ -82,7 +98,9 @@ export default function TransactionForm({
                 {transactionTypes.map((transactionType) => (
                     <button
                         aria-pressed={type === transactionType.id}
-                        className={type === transactionType.id ? 'is-active' : ''}
+                        className={
+                            type === transactionType.id ? "is-active" : ""
+                        }
                         key={transactionType.id}
                         onClick={() => handleTypeChange(transactionType.id)}
                         type="button"
@@ -130,7 +148,7 @@ export default function TransactionForm({
                         name="category"
                         onChange={(event) => setCategoryId(event.target.value)}
                         required
-                        value={categoryId}
+                        value={selectedCategoryId}
                     >
                         {categoryOptions.map((category) => (
                             <option key={category.id} value={category.id}>
@@ -195,5 +213,5 @@ export default function TransactionForm({
                 Lưu giao dịch
             </button>
         </form>
-    )
+    );
 }

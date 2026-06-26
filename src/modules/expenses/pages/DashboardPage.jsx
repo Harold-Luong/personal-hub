@@ -8,7 +8,7 @@ import TransactionsPage from './TransactionsPage'
 import {
     expenseNavItems,
     mockBudgets,
-    mockCategories,
+    mockCategorySpendingStats,
     mockSummary,
     mockTransactions,
     mockWallets,
@@ -49,6 +49,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     const settingRevisionsRef = useRef({})
     const settingsRef = useRef(settings)
     const settingsWriteQueueRef = useRef(Promise.resolve())
+    const [categories, setCategories] = useState([])
     const [transactions, setTransactions] = useState(mockTransactions)
 
     useEffect(() => {
@@ -58,6 +59,35 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
 
         return () => window.cancelAnimationFrame(frameId)
     }, [])
+
+    useEffect(() => {
+        let isCancelled = false
+
+        import('../api/categoriesRepository')
+            .then(({ getExpenseCategories }) => getExpenseCategories(user.uid))
+            .then((nextCategories) => {
+                if (!isCancelled) {
+                    setCategories(nextCategories)
+                }
+            })
+            .catch(() => {
+                if (!isCancelled) {
+                    setCategories([])
+                }
+            })
+
+        return () => {
+            isCancelled = true
+        }
+    }, [user.uid])
+
+    const categorySpending = categories
+        .filter((category) => category.type === 'expense')
+        .map((category) => ({
+            ...category,
+            ...mockCategorySpendingStats[category.id],
+        }))
+        .filter((category) => typeof category.amount === 'number')
 
     const handleSettingChange = (key, nextValue) => {
         if (nextValue === settingsRef.current[key]) {
@@ -147,7 +177,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         if (activeMobilePage === 'add') {
             return (
                 <AddTransactionPage
-                    categories={mockCategories}
+                    categories={categories}
                     onCancel={() => setActiveMobilePage('dashboard')}
                     onSubmit={handleAddTransaction}
                     wallets={mockWallets}
@@ -179,7 +209,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         return (
             <MobileDashboardView
                 budgets={mockBudgets}
-                categories={mockCategories}
+                categorySpending={categorySpending}
                 onToggleTheme={handleToggleTheme}
                 summary={mockSummary}
                 theme={settings.theme}
@@ -203,7 +233,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             />
             <WebDashboardView
                 budgets={mockBudgets}
-                categories={mockCategories}
+                categorySpending={categorySpending}
                 navItems={expenseNavItems}
                 onLogout={handleLogout}
                 onToggleTheme={handleToggleTheme}
