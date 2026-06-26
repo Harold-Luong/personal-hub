@@ -10,6 +10,142 @@ import { firestore } from '../../../lib/firebase/firestore'
 const expenseThemes = ['sage', 'fjord', 'clay', 'blossom', 'vintage', 'retro']
 const expenseCurrencies = ['VND', 'USD']
 const defaultWalletId = 'wallet-cash'
+const defaultExpenseCategories = [
+    {
+        id: 'food',
+        name: 'Ăn uống',
+        type: 'expense',
+        icon: 'utensils',
+        color: '#f4a340',
+    },
+    {
+        id: 'home',
+        name: 'Nhà cửa',
+        type: 'expense',
+        icon: 'home',
+        color: '#4f93d7',
+    },
+    {
+        id: 'transport',
+        name: 'Di chuyển',
+        type: 'expense',
+        icon: 'bus',
+        color: '#56b879',
+    },
+    {
+        id: 'shopping',
+        name: 'Mua sắm',
+        type: 'expense',
+        icon: 'bag',
+        color: '#ef6f7e',
+    },
+    {
+        id: 'health',
+        name: 'Sức khỏe',
+        type: 'expense',
+        icon: 'health',
+        color: '#d08c7a',
+    },
+    {
+        id: 'education',
+        name: 'Giáo dục',
+        type: 'expense',
+        icon: 'education',
+        color: '#8797b2',
+    },
+    {
+        id: 'fun',
+        name: 'Giải trí',
+        type: 'expense',
+        icon: 'game',
+        color: '#9b7bd8',
+    },
+    {
+        id: 'family',
+        name: 'Gia đình',
+        type: 'expense',
+        icon: 'family',
+        color: '#e0b88a',
+    },
+    {
+        id: 'finance',
+        name: 'Tài chính',
+        type: 'expense',
+        icon: 'finance',
+        color: '#6b8f71',
+    },
+    {
+        id: 'work',
+        name: 'Công việc',
+        type: 'expense',
+        icon: 'work',
+        color: '#8fa6ac',
+    },
+    {
+        id: 'travel',
+        name: 'Du lịch',
+        type: 'expense',
+        icon: 'travel',
+        color: '#d9a441',
+    },
+    {
+        id: 'other',
+        name: 'Khác',
+        type: 'expense',
+        icon: 'more',
+        color: '#b8bec8',
+    },
+]
+
+const defaultIncomeCategories = [
+    {
+        id: 'salary',
+        name: 'Lương',
+        type: 'income',
+        icon: 'wallet',
+        color: '#56b879',
+    },
+    {
+        id: 'bonus',
+        name: 'Thưởng',
+        type: 'income',
+        icon: 'income',
+        color: '#d9a441',
+    },
+    {
+        id: 'freelance',
+        name: 'Làm thêm',
+        type: 'income',
+        icon: 'work',
+        color: '#4f93d7',
+    },
+    {
+        id: 'investment-income',
+        name: 'Đầu tư',
+        type: 'income',
+        icon: 'finance',
+        color: '#6b8f71',
+    },
+    {
+        id: 'interest',
+        name: 'Lãi tiết kiệm',
+        type: 'income',
+        icon: 'saving',
+        color: '#9b7bd8',
+    },
+    {
+        id: 'income',
+        name: 'Thu nhập khác',
+        type: 'income',
+        icon: 'income',
+        color: '#b8bec8',
+    },
+]
+
+const defaultCategories = [
+    ...defaultExpenseCategories,
+    ...defaultIncomeCategories,
+]
 
 const defaultExpenseSettings = {
     theme: 'sage',
@@ -122,6 +258,22 @@ function getDefaultWalletRef(uid) {
     )
 }
 
+function getDefaultCategoryRef(uid, categoryId) {
+    if (!uid) {
+        throw new Error('A Firebase Authentication uid is required.')
+    }
+
+    return doc(
+        firestore,
+        'users',
+        uid,
+        'modules',
+        'expenses',
+        'categories',
+        categoryId,
+    )
+}
+
 function getUserProfile(user) {
     return {
         displayName: user?.displayName ?? null,
@@ -154,6 +306,10 @@ export async function ensureUserDataInitialized(user, settings = {}) {
     const expenseModuleRef = getExpenseModuleRef(uid)
     const settingsRef = getExpenseSettingsRef(uid)
     const walletRef = getDefaultWalletRef(uid)
+    const categoryRefs = defaultCategories.map((category) => ({
+        category,
+        ref: getDefaultCategoryRef(uid, category.id),
+    }))
     const profile = getUserProfile(user)
     const validatedSettings = validateExpenseSettings(settings, {
         allowEmpty: true,
@@ -164,6 +320,9 @@ export async function ensureUserDataInitialized(user, settings = {}) {
         const expenseModuleSnapshot = await transaction.get(expenseModuleRef)
         const settingsSnapshot = await transaction.get(settingsRef)
         const walletSnapshot = await transaction.get(walletRef)
+        const categorySnapshots = await Promise.all(
+            categoryRefs.map(({ ref }) => transaction.get(ref)),
+        )
         const timestamp = serverTimestamp()
 
         if (!userSnapshot.exists()) {
@@ -203,6 +362,25 @@ export async function ensureUserDataInitialized(user, settings = {}) {
                 updatedAt: timestamp,
             })
         }
+
+        categorySnapshots.forEach((categorySnapshot, index) => {
+            if (categorySnapshot.exists()) {
+                return
+            }
+
+            const { category, ref } = categoryRefs[index]
+
+            transaction.set(ref, {
+                name: category.name,
+                type: category.type,
+                icon: category.icon,
+                color: category.color,
+                sortOrder: (index + 1) * 10,
+                isArchived: false,
+                createdAt: timestamp,
+                updatedAt: timestamp,
+            })
+        })
     })
 
     return getExpenseSettings(uid)

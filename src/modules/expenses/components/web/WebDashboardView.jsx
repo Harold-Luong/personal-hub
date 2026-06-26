@@ -8,7 +8,7 @@ import ExpenseSidebar from '../layout/ExpenseSidebar'
 
 export default function WebDashboardView({
   budgets,
-  categories,
+  categorySpending,
   navItems,
   onLogout,
   onToggleTheme,
@@ -30,7 +30,7 @@ export default function WebDashboardView({
         />
         <SummaryCardList items={summary} />
         <div className="web-dashboard-view__grid">
-          <CategorySpendingCard categories={categories} />
+          <CategorySpendingCard categories={categorySpending} />
           <RecentTransactionsCard transactions={transactions} />
           <BudgetOverviewCard budgets={budgets} />
           <WalletCard wallets={wallets} />

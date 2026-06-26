@@ -7,7 +7,7 @@ import { BellIcon, ThemeIcon } from "../../icon/ExpenseIcons";
 
 export default function MobileDashboardView({
     budgets,
-    categories,
+    categorySpending = [],
     onToggleTheme,
     summary,
     theme = "sage",
@@ -64,7 +64,7 @@ export default function MobileDashboardView({
             />
             <MonthlyBudgetCard budgets={budgets} />
             <CategorySpendingCard
-                categories={categories.slice(0, 5)}
+                categories={categorySpending.slice(0, 5)}
                 variant="mobile"
             />
             <RecentTransactionsCard
