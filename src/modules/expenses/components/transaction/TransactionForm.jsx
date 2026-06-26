@@ -53,6 +53,9 @@ export default function TransactionForm({
     )
         ? categoryId
         : (categoryOptions[0]?.id ?? "");
+    const selectedWalletId = wallets.some((wallet) => wallet.id === walletId)
+        ? walletId
+        : (wallets[0]?.id ?? "");
 
     const handleTypeChange = (nextType) => {
         const nextCategoryOptions = getCategoryOptions(nextType, categories);
@@ -69,7 +72,12 @@ export default function TransactionForm({
             (category) => category.id === selectedCategoryId,
         );
 
-        if (!numericAmount || !title.trim() || !selectedCategory || !walletId) {
+        if (
+            !numericAmount ||
+            !title.trim() ||
+            !selectedCategory ||
+            !selectedWalletId
+        ) {
             return;
         }
 
@@ -84,7 +92,7 @@ export default function TransactionForm({
             time,
             title: title.trim(),
             type,
-            walletId,
+            walletId: selectedWalletId,
         });
     };
 
@@ -164,7 +172,7 @@ export default function TransactionForm({
                         name="wallet"
                         onChange={(event) => setWalletId(event.target.value)}
                         required
-                        value={walletId}
+                        value={selectedWalletId}
                     >
                         {wallets.map((wallet) => (
                             <option key={wallet.id} value={wallet.id}>

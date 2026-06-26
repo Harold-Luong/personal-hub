@@ -11,7 +11,6 @@ import {
     mockCategorySpendingStats,
     mockSummary,
     mockTransactions,
-    mockWallets,
 } from '../data/mockExpenses'
 import '../styles/expenses.scss'
 
@@ -50,6 +49,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     const settingsRef = useRef(settings)
     const settingsWriteQueueRef = useRef(Promise.resolve())
     const [categories, setCategories] = useState([])
+    const [wallets, setWallets] = useState([])
     const [transactions, setTransactions] = useState(mockTransactions)
 
     useEffect(() => {
@@ -81,6 +81,27 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         }
     }, [user.uid])
 
+    useEffect(() => {
+        let isCancelled = false
+
+        import('../api/walletsRepository')
+            .then(({ getExpenseWallets }) => getExpenseWallets(user.uid))
+            .then((nextWallets) => {
+                if (!isCancelled) {
+                    setWallets(nextWallets)
+                }
+            })
+            .catch(() => {
+                if (!isCancelled) {
+                    setWallets([])
+                }
+            })
+
+        return () => {
+            isCancelled = true
+        }
+    }, [user.uid])
+
     const categorySpending = categories
         .filter((category) => category.type === 'expense')
         .map((category) => ({
@@ -88,6 +109,18 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             ...mockCategorySpendingStats[category.id],
         }))
         .filter((category) => typeof category.amount === 'number')
+    const totalWalletBalance = wallets.reduce(
+        (total, wallet) => total + wallet.balance,
+        0,
+    )
+    const summary = mockSummary.map((item) =>
+        item.id === 'balance'
+            ? {
+                ...item,
+                value: totalWalletBalance,
+            }
+            : item,
+    )
 
     const handleSettingChange = (key, nextValue) => {
         if (nextValue === settingsRef.current[key]) {
@@ -180,7 +213,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                     categories={categories}
                     onCancel={() => setActiveMobilePage('dashboard')}
                     onSubmit={handleAddTransaction}
-                    wallets={mockWallets}
+                    wallets={wallets}
                 />
             )
         }
@@ -201,7 +234,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                     settingsError={settingsError}
                     theme={settings.theme}
                     user={user}
-                    wallets={mockWallets}
+                    wallets={wallets}
                 />
             )
         }
@@ -211,7 +244,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 budgets={mockBudgets}
                 categorySpending={categorySpending}
                 onToggleTheme={handleToggleTheme}
-                summary={mockSummary}
+                summary={summary}
                 theme={settings.theme}
                 transactions={transactions}
                 user={user}
@@ -237,11 +270,11 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 navItems={expenseNavItems}
                 onLogout={handleLogout}
                 onToggleTheme={handleToggleTheme}
-                summary={mockSummary}
+                summary={summary}
                 theme={settings.theme}
                 transactions={transactions}
                 user={user}
-                wallets={mockWallets}
+                wallets={wallets}
             />
         </div>
     )

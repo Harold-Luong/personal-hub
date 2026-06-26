@@ -352,11 +352,15 @@ export async function ensureUserDataInitialized(user, settings = {}) {
 
         if (!walletSnapshot.exists()) {
             transaction.set(walletRef, {
-                name: 'Vi tien mat',
+                name: 'Ví tiền mặt',
                 type: 'cash',
-                currency: 'VND',
+                icon: 'wallet',
+                color: '#56b879',
+                balance: 0,
                 initialBalance: 0,
-                currentBalance: 0,
+                currency: 'VND',
+                order: 10,
+                isDefault: true,
                 isArchived: false,
                 createdAt: timestamp,
                 updatedAt: timestamp,

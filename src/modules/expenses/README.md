@@ -6,8 +6,10 @@ Tài liệu này mô tả thiết kế dữ liệu và các luồng nghiệp v�
 `expenses` khi chuyển từ mock data sang Firebase Authentication và Cloud
 Firestore.
 
-Phạm vi hiện tại chỉ là thiết kế. Chưa triển khai Firebase SDK, Cloud
-Functions, Security Rules hoặc thay đổi component React.
+Trạng thái hiện tại không còn chỉ là thiết kế. App đã có Firebase SDK,
+Firestore Security Rules, init settings/categories/wallet mặc định và các
+repository đọc categories/wallets từ Firestore. Transactions, budgets, summary
+và một số aggregate dashboard vẫn đang dùng mock/projection tạm thời.
 
 Mục tiêu của thiết kế:
 
@@ -30,18 +32,22 @@ src/modules/expenses/data/mockExpenses.js
 `DashboardPage` giữ transactions trong local state và truyền mock data xuống
 các view mobile và desktop qua props.
 
-Các nhóm mock data hiện có:
+Các nhóm mock data còn lại:
 
 - `mockTransactions`
-- `mockWallets`
-- `mockCategories`
+- `mockCategorySpendingStats`
 - `mockBudgets`
 - `mockSummary`
 
-Một số dữ liệu mock hiện đang trộn dữ liệu gốc với dữ liệu dẫn xuất:
+Các nhóm đã chuyển sang Firestore:
 
-- `wallet.balance` là kết quả của lịch sử giao dịch.
-- `category.amount` và `category.percentage` là thống kê theo kỳ.
+- `settings/main`
+- `wallets`
+- `categories`
+
+Một số dữ liệu hiện vẫn là dữ liệu dẫn xuất/projection tạm:
+
+- `mockCategorySpendingStats` chưa phải aggregate thật từ transactions.
 - `budget.amount` là số tiền đã chi, không phải cấu hình ngân sách.
 - `mockSummary` là kết quả tổng hợp, không phải entity độc lập.
 
@@ -73,7 +79,7 @@ Transactions là nguồn dữ liệu gốc cho:
 - Mức sử dụng ngân sách.
 - Báo cáo theo ngày, tháng và năm.
 
-`wallet.currentBalanceMinor` và `monthlyStats` là projection được lưu để tăng
+`wallet.balance` và `monthlyStats` là projection được lưu để tăng
 tốc độ đọc. Hai loại dữ liệu này phải có khả năng rebuild từ transactions.
 
 ### 3.3 Tiền được lưu bằng số nguyên
@@ -225,12 +231,13 @@ Shape đề xuất:
 {
   name: "ACB Bank",
   type: "bank",
-  currency: "VND",
-  openingBalanceMinor: 5000000,
-  currentBalanceMinor: 7250000,
   icon: "bank",
   color: "#4f93d7",
-  sortOrder: 20,
+  balance: 7250000,
+  initialBalance: 5000000,
+  currency: "VND",
+  order: 20,
+  isDefault: false,
   isArchived: false,
   createdAt: Timestamp,
   updatedAt: Timestamp
@@ -242,18 +249,24 @@ Shape đề xuất:
 ```text
 cash
 bank
-e_wallet
-credit
+eWallet
+card
+saving
 other
 ```
 
 Quy tắc:
 
-- `openingBalanceMinor` chỉ là số dư ban đầu khi tạo hoặc import wallet.
-- `currentBalanceMinor` là projection được cập nhật cùng transaction.
+- `initialBalance` chỉ là số dư ban đầu khi tạo hoặc import wallet.
+- `balance` là projection được cập nhật cùng transaction.
+- `color` là màu nhận diện của ví, không phụ thuộc trực tiếp vào theme.
+- `icon` là key trong `CategoryIcon`, ví dụ `wallet`, `bank`, `momo`, `card`,
+  `saving`, `more`.
+- `order` dùng để sắp xếp ví trong UI.
+- `isDefault` đánh dấu ví mặc định của user.
 - Transaction mới không được tham chiếu wallet đã archive.
 - Wallet có transaction cũ không được hard-delete.
-- Số dư tổng của user bằng tổng `currentBalanceMinor` của các wallet đang hoạt
+- Số dư tổng của user bằng tổng `balance` của các wallet đang hoạt
   động, tùy quy tắc có tính credit wallet hay không.
 
 ### 5.4 Category
@@ -627,7 +640,7 @@ Repository hoặc selector dựng dữ liệu dashboard từ Firestore:
 Công thức:
 
 ```text
-balance = tổng currentBalanceMinor của các wallet được tính vào tổng tài sản
+balance = tổng balance của các wallet được tính vào tổng tài sản
 income = monthlyStats.incomeMinor
 expense = monthlyStats.expenseMinor
 saving = income - expense
@@ -653,6 +666,18 @@ Nếu tháng trước bằng `0`, UI cần quy ước riêng thay vì chia cho `
 10. Khi settings từ Firestore về, đồng bộ theme vào app và `localStorage`.
 
 Các request không phụ thuộc nên chạy song song.
+
+Triển khai hiện tại dùng `ensureUserDataInitialized()` để idempotently tạo:
+
+- user profile
+- `modules/expenses`
+- `settings/main`
+- ví mặc định `wallet-cash`
+- default expense/income categories
+
+Sau bootstrap, `DashboardPage` đọc categories qua `categoriesRepository` và
+wallets qua `walletsRepository`. Transactions, budgets, monthly stats và một số
+aggregate dashboard vẫn là bước tiếp theo.
 
 ## 10. Flow theme và settings
 
@@ -802,7 +827,7 @@ thị trong lịch sử kiểm toán.
 
 1. Validate name, type và currency.
 2. Tạo wallet với opening balance.
-3. Đặt `currentBalanceMinor = openingBalanceMinor`.
+3. Đặt `balance = initialBalance`.
 4. Không tạo income transaction cho opening balance, trừ khi sản phẩm muốn
    hiển thị nó như một giao dịch điều chỉnh.
 
@@ -815,7 +840,7 @@ Cho phép sửa:
 - Color.
 - Sort order.
 
-Không sửa trực tiếp `currentBalanceMinor`.
+Không sửa trực tiếp `balance` ngoài flow transaction/rebuild có kiểm soát.
 
 ### Điều chỉnh số dư
 
@@ -970,7 +995,7 @@ Các index chính:
 | `transactions` | `categoryId ASC`, `status ASC`, `occurredAt DESC` |
 | `transactions` | `walletIds ARRAY`, `status ASC`, `occurredAt DESC` |
 | `budgets` | `monthKey ASC`, `categoryId ASC` |
-| `wallets` | `isArchived ASC`, `sortOrder ASC` |
+| `wallets` | `isArchived ASC`, `order ASC` |
 | `categories` | `type ASC`, `isArchived ASC`, `sortOrder ASC` |
 
 Chỉ thêm index khi có query thực tế sử dụng. Cấu hình index phải được commit
@@ -1017,7 +1042,7 @@ Client có thể trực tiếp ghi:
 
 Client không được trực tiếp ghi:
 
-- `wallet.currentBalanceMinor`
+- `wallet.balance`
 - `monthlyStats`
 - Transaction mutations có tác động tài chính
 
@@ -1287,7 +1312,7 @@ Chuyển mock transaction:
 
 ### Bước 5: Build projections
 
-- Tính lại wallet balances từ opening balances và transactions.
+- Tính lại wallet balances từ initial balances và transactions.
 - Tạo monthly stats.
 - Kiểm tra tổng trước và sau migration.
 
@@ -1327,7 +1352,7 @@ phát triển. Cần có công cụ rebuild.
 
 `rebuildExpenseProjections(uid)`:
 
-1. Đọc wallets và opening balances.
+1. Đọc wallets và initial balances.
 2. Đọc toàn bộ active transactions của user.
 3. Tính lại balances.
 4. Tính lại monthly stats.
