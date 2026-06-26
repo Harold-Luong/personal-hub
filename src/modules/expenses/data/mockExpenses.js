@@ -163,27 +163,6 @@ export const mockBudgets = [
   },
 ]
 
-export const mockWallets = [
-  {
-    id: 'wallet-cash',
-    name: 'Vi tien mat',
-    balance: 3200000,
-    icon: 'wallet',
-  },
-  {
-    id: 'wallet-bank',
-    name: 'ACB Bank',
-    balance: 7250000,
-    icon: 'bank',
-  },
-  {
-    id: 'wallet-momo',
-    name: 'MOMO',
-    balance: 2000000,
-    icon: 'momo',
-  },
-]
-
 export const expenseNavItems = [
   { id: 'dashboard', label: '', icon: 'home' },
   { id: 'transactions', label: '', icon: 'swap' },

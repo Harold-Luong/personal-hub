@@ -58,17 +58,24 @@ const emojiMap = {
 }
 
 export default function CategoryIcon({
-  appearance = 'label',
+  appearance = 'auto',
   className = '',
   icon = 'more',
   label,
   color,
 }) {
-  const icons = appearance === 'emoji' ? emojiMap : iconMap
+  const hasEmojiIcon = Object.hasOwn(emojiMap, icon)
+  const resolvedAppearance =
+    appearance === 'auto'
+      ? hasEmojiIcon
+        ? 'emoji'
+        : 'label'
+      : appearance
+  const icons = resolvedAppearance === 'emoji' ? emojiMap : iconMap
 
   return (
     <span
-      className={`category-icon category-icon--${appearance} ${className}`.trim()}
+      className={`category-icon category-icon--${resolvedAppearance} ${className}`.trim()}
       aria-label={label}
       role="img"
       style={color ? { '--icon-color': color } : undefined}

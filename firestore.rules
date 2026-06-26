@@ -160,9 +160,13 @@ service cloud.firestore {
       return [
         'name',
         'type',
-        'currency',
+        'icon',
+        'color',
+        'balance',
         'initialBalance',
-        'currentBalance',
+        'currency',
+        'order',
+        'isDefault',
         'isArchived',
         'createdAt',
         'updatedAt',
@@ -185,18 +189,26 @@ service cloud.firestore {
         && data.keys().hasAll([
           'name',
           'type',
-          'currency',
+          'icon',
+          'color',
+          'balance',
           'initialBalance',
-          'currentBalance',
+          'currency',
+          'order',
+          'isDefault',
           'isArchived',
           'createdAt',
           'updatedAt',
         ])
         && isValidString(data.name)
         && isValidWalletType(data.type)
-        && isValidCurrency(data.currency)
+        && isValidString(data.icon)
+        && isValidString(data.color)
+        && data.balance is number
         && data.initialBalance is number
-        && data.currentBalance is number
+        && isValidCurrency(data.currency)
+        && data.order is int
+        && data.isDefault is bool
         && data.isArchived is bool
         && data.createdAt == request.time
         && data.updatedAt == request.time;
@@ -207,17 +219,26 @@ service cloud.firestore {
           .hasOnly([
             'name',
             'type',
+            'icon',
+            'color',
+            'balance',
+            'initialBalance',
             'currency',
-            'currentBalance',
+            'order',
+            'isDefault',
             'isArchived',
             'updatedAt',
           ])
         && request.resource.data.keys().hasOnly(allowedWalletKeys())
         && isValidString(request.resource.data.name)
         && isValidWalletType(request.resource.data.type)
-        && isValidCurrency(request.resource.data.currency)
+        && isValidString(request.resource.data.icon)
+        && isValidString(request.resource.data.color)
+        && request.resource.data.balance is number
         && request.resource.data.initialBalance is number
-        && request.resource.data.currentBalance is number
+        && isValidCurrency(request.resource.data.currency)
+        && request.resource.data.order is int
+        && request.resource.data.isDefault is bool
         && request.resource.data.isArchived is bool
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.updatedAt == request.time;
