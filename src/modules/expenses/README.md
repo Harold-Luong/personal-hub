@@ -8,8 +8,9 @@ Firestore.
 
 Trạng thái hiện tại không còn chỉ là thiết kế. App đã có Firebase SDK,
 Firestore Security Rules, init settings/categories/wallet mặc định và các
-repository đọc categories/wallets từ Firestore. Transactions, budgets, summary
-và một số aggregate dashboard vẫn đang dùng mock/projection tạm thời.
+repository đọc categories/wallets/transactions từ Firestore. Add transaction
+đã ghi dữ liệu thật và cập nhật số dư ví. Budgets và một phần dashboard summary
+vẫn đang dùng mock/projection tạm thời.
 
 Mục tiêu của thiết kế:
 
@@ -29,13 +30,11 @@ Module hiện đang lấy dữ liệu từ:
 src/modules/expenses/data/mockExpenses.js
 ```
 
-`DashboardPage` giữ transactions trong local state và truyền mock data xuống
-các view mobile và desktop qua props.
+`DashboardPage` đọc transactions từ Firestore, giữ view model trong local state
+và truyền dữ liệu thật xuống các view mobile và desktop qua props.
 
 Các nhóm mock data còn lại:
 
-- `mockTransactions`
-- `mockCategorySpendingStats`
 - `mockBudgets`
 - `mockSummary`
 
@@ -44,10 +43,11 @@ Các nhóm đã chuyển sang Firestore:
 - `settings/main`
 - `wallets`
 - `categories`
+- `transactions`
 
 Một số dữ liệu hiện vẫn là dữ liệu dẫn xuất/projection tạm:
 
-- `mockCategorySpendingStats` chưa phải aggregate thật từ transactions.
+- Category spending trên dashboard đang được tính từ transactions đã tải.
 - `budget.amount` là số tiền đã chi, không phải cấu hình ngân sách.
 - `mockSummary` là kết quả tổng hợp, không phải entity độc lập.
 
@@ -1466,9 +1466,9 @@ phức tạp của phiên bản đầu.
 
 ```text
 Status: Design approved for implementation planning
-Implementation: Not started
-Mock data removal: Not started
-Firebase integration: Not started
+Implementation: In progress
+Mock data removal: Transactions removed from runtime
+Firebase integration: Settings/categories/wallets/transactions active
 ```
 
 Tài liệu này là contract thiết kế cho bước triển khai tiếp theo. Khi schema

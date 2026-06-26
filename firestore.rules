@@ -313,6 +313,146 @@ service cloud.firestore {
     }
 
     // =========================
+    // Transactions
+    // users/{uid}/modules/expenses/transactions/{transactionId}
+    // =========================
+
+    function allowedTransactionKeys() {
+      return [
+        'type',
+        'amountMinor',
+        'currency',
+        'title',
+        'titleNormalized',
+        'note',
+        'categoryId',
+        'walletId',
+        'fromWalletId',
+        'toWalletId',
+        'walletIds',
+        'occurredAt',
+        'localDate',
+        'monthKey',
+        'timezone',
+        'categorySnapshot',
+        'walletSnapshot',
+        'fromWalletSnapshot',
+        'toWalletSnapshot',
+        'status',
+        'createdAt',
+        'updatedAt',
+        'voidedAt',
+      ];
+    }
+
+    function requiredTransactionKeys() {
+      return [
+        'type',
+        'amountMinor',
+        'currency',
+        'title',
+        'titleNormalized',
+        'note',
+        'categoryId',
+        'walletId',
+        'fromWalletId',
+        'toWalletId',
+        'walletIds',
+        'occurredAt',
+        'localDate',
+        'monthKey',
+        'timezone',
+        'categorySnapshot',
+        'walletSnapshot',
+        'fromWalletSnapshot',
+        'toWalletSnapshot',
+        'status',
+        'createdAt',
+        'updatedAt',
+        'voidedAt',
+      ];
+    }
+
+    function isValidTransactionType(type) {
+      return type in [
+        'expense',
+        'income',
+        'transfer',
+      ];
+    }
+
+    function isValidSnapshot(snapshot) {
+      return snapshot is map
+        && snapshot.keys().hasOnly([
+          'name',
+          'icon',
+          'color',
+        ])
+        && isValidString(snapshot.name)
+        && isValidString(snapshot.icon)
+        && isValidString(snapshot.color);
+    }
+
+    function isValidExpenseOrIncomeTransaction(data) {
+      return data.type in [
+          'expense',
+          'income',
+        ]
+        && isValidString(data.categoryId)
+        && isValidString(data.walletId)
+        && data.fromWalletId == null
+        && data.toWalletId == null
+        && data.walletIds is list
+        && data.walletIds.size() == 1
+        && data.walletIds[0] == data.walletId
+        && isValidSnapshot(data.categorySnapshot)
+        && isValidSnapshot(data.walletSnapshot)
+        && data.fromWalletSnapshot == null
+        && data.toWalletSnapshot == null;
+    }
+
+    function isValidTransferTransaction(data) {
+      return data.type == 'transfer'
+        && data.categoryId == null
+        && data.walletId == null
+        && isValidString(data.fromWalletId)
+        && isValidString(data.toWalletId)
+        && data.fromWalletId != data.toWalletId
+        && data.walletIds is list
+        && data.walletIds.size() == 2
+        && data.walletIds[0] == data.fromWalletId
+        && data.walletIds[1] == data.toWalletId
+        && data.categorySnapshot == null
+        && data.walletSnapshot == null
+        && isValidSnapshot(data.fromWalletSnapshot)
+        && isValidSnapshot(data.toWalletSnapshot);
+    }
+
+    function isValidTransactionCreate(data) {
+      return data.keys().hasOnly(allowedTransactionKeys())
+        && data.keys().hasAll(requiredTransactionKeys())
+        && isValidTransactionType(data.type)
+        && data.amountMinor is int
+        && data.amountMinor > 0
+        && isValidCurrency(data.currency)
+        && isValidString(data.title)
+        && isValidString(data.titleNormalized)
+        && data.note is string
+        && data.occurredAt is timestamp
+        && isValidString(data.localDate)
+        && isValidString(data.monthKey)
+        && isValidString(data.timezone)
+        && data.status == 'active'
+        && data.createdAt == request.time
+        && data.updatedAt == request.time
+        && data.voidedAt == null
+        && (
+          isValidExpenseOrIncomeTransaction(data)
+          || isValidTransferTransaction(data)
+        );
+    }
+
+    // =========================
     // Rules
     // =========================
 
@@ -367,6 +507,15 @@ service cloud.firestore {
             && isValidCategoryUpdate();
 
           allow delete: if false;
+        }
+
+        match /transactions/{transactionId} {
+          allow read: if isOwner(uid);
+
+          allow create: if isOwner(uid)
+            && isValidTransactionCreate(request.resource.data);
+
+          allow update, delete: if false;
         }
       }
 

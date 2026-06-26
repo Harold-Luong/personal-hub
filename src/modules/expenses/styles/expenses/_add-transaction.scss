@@ -189,4 +189,17 @@
     min-height: 50px;
     padding: 0 20px;
   }
+
+  .transaction-form__submit:disabled {
+    cursor: wait;
+    opacity: 0.68;
+  }
+
+  .transaction-form__error {
+    color: color-mix(in srgb, #c71919 78%, var(--expense-muted));
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.45;
+    margin: -4px 2px 0;
+  }
 }
