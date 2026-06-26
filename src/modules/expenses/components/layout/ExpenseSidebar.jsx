@@ -1,12 +1,23 @@
 import CategoryIcon from '../shared/CategoryIcon'
 
-export default function ExpenseSidebar({ items = [], activeId = 'dashboard' }) {
+export default function ExpenseSidebar({
+  items = [],
+  activeId = 'dashboard',
+  user,
+}) {
+  const accountName = user?.displayName || user?.email || 'Tai khoan'
+
   return (
     <aside className="expense-sidebar">
       <div className="expense-sidebar__brand">
         <span className="expense-sidebar__logo">MC</span>
         <strong>MoneyCare</strong>
       </div>
+      <section className="expense-sidebar__profile">
+        <span>Xin chào,</span>
+        <strong>{accountName}</strong>
+        <small>Quản lý chi tiêu thông minh</small>
+      </section>
       <nav>
         {items.map((item) => (
           <button
