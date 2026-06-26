@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import {
     BellIcon,
     LogoutIcon,
@@ -52,10 +52,11 @@ export default function MobileSettingsView({
     const [logoutError, setLogoutError] = useState('')
     const [isSigningOut, setIsSigningOut] = useState(false)
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-    const [hasAvatarLoadError, setHasAvatarLoadError] = useState(false)
+    const [failedProfilePhotoUrl, setFailedProfilePhotoUrl] = useState('')
     const profileName = user?.displayName || user?.email || 'Tài khoản'
     const profilePhotoUrl = user?.photoURL || ''
-    const shouldShowProfilePhoto = profilePhotoUrl && !hasAvatarLoadError
+    const shouldShowProfilePhoto =
+        profilePhotoUrl && failedProfilePhotoUrl !== profilePhotoUrl
     const avatarLabel = profileName
         .split(/\s+/)
         .filter(Boolean)
@@ -63,10 +64,6 @@ export default function MobileSettingsView({
         .map((part) => part[0])
         .join('')
         .toUpperCase()
-
-    useEffect(() => {
-        setHasAvatarLoadError(false)
-    }, [profilePhotoUrl])
 
     const handleLogout = async () => {
         setLogoutError('')
@@ -91,7 +88,9 @@ export default function MobileSettingsView({
                     {shouldShowProfilePhoto ? (
                         <img
                             alt=""
-                            onError={() => setHasAvatarLoadError(true)}
+                            onError={() =>
+                                setFailedProfilePhotoUrl(profilePhotoUrl)
+                            }
                             src={profilePhotoUrl}
                         />
                     ) : (

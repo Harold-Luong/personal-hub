@@ -8,14 +8,19 @@ import TransactionsPage from './TransactionsPage'
 import {
     expenseNavItems,
     mockBudgets,
-    mockCategorySpendingStats,
     mockSummary,
-    mockTransactions,
 } from '../data/mockExpenses'
 import '../styles/expenses.scss'
 
 const expenseThemes = ['sage', 'fjord', 'clay', 'blossom', 'vintage', 'retro']
 const expenseCurrencies = ['VND', 'USD']
+
+function getCurrentMonthKey() {
+    const today = new Date()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+
+    return `${today.getFullYear()}-${month}`
+}
 
 function getInitialSettings(initialSettings) {
     return {
@@ -50,7 +55,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     const settingsWriteQueueRef = useRef(Promise.resolve())
     const [categories, setCategories] = useState([])
     const [wallets, setWallets] = useState([])
-    const [transactions, setTransactions] = useState(mockTransactions)
+    const [transactions, setTransactions] = useState([])
 
     useEffect(() => {
         const frameId = window.requestAnimationFrame(() => {
@@ -102,25 +107,108 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         }
     }, [user.uid])
 
+    useEffect(() => {
+        let isCancelled = false
+
+        import('../api/transactionsRepository')
+            .then(({ getExpenseTransactions }) => getExpenseTransactions(user.uid))
+            .then((nextTransactions) => {
+                if (!isCancelled) {
+                    setTransactions(nextTransactions)
+                }
+            })
+            .catch(() => {
+                if (!isCancelled) {
+                    setTransactions([])
+                }
+            })
+
+        return () => {
+            isCancelled = true
+        }
+    }, [user.uid])
+
+    // TODO: Move these dashboard statistics to Firestore monthlyStats later.
+    // monthlyIncome, monthlyExpense, and categorySpendingById are temporary
+    // client-side aggregates that will support richer reporting/statistics.
+    const currentMonthKey = getCurrentMonthKey()
+    const currentMonthTransactions = transactions.filter((transaction) =>
+        transaction.date?.startsWith(currentMonthKey),
+    )
+    const monthlyIncome = currentMonthTransactions
+        .filter((transaction) => transaction.type === 'income')
+        .reduce((total, transaction) => total + Math.max(transaction.amount, 0), 0)
+    const monthlyExpense = currentMonthTransactions
+        .filter((transaction) => transaction.type === 'expense')
+        .reduce(
+            (total, transaction) => total + Math.abs(Math.min(transaction.amount, 0)),
+            0,
+        )
+    const monthlySaving = monthlyIncome - monthlyExpense
+    const categorySpendingById = currentMonthTransactions
+        .filter((transaction) => transaction.type === 'expense')
+        .reduce((result, transaction) => {
+            const categoryId = transaction.category
+            const currentAmount = result[categoryId] ?? 0
+
+            return {
+                ...result,
+                [categoryId]: currentAmount + Math.abs(transaction.amount),
+            }
+        }, {})
     const categorySpending = categories
         .filter((category) => category.type === 'expense')
         .map((category) => ({
             ...category,
-            ...mockCategorySpendingStats[category.id],
+            amount: categorySpendingById[category.id] ?? 0,
+            percentage:
+                monthlyExpense > 0
+                    ? Math.round(
+                        ((categorySpendingById[category.id] ?? 0)
+                            / monthlyExpense)
+                        * 100,
+                    )
+                    : 0,
         }))
-        .filter((category) => typeof category.amount === 'number')
+        .filter((category) => category.amount > 0)
     const totalWalletBalance = wallets.reduce(
         (total, wallet) => total + wallet.balance,
         0,
     )
-    const summary = mockSummary.map((item) =>
-        item.id === 'balance'
-            ? {
+    const summary = mockSummary.map((item) => {
+        if (item.id === 'balance') {
+            return {
                 ...item,
                 value: totalWalletBalance,
             }
-            : item,
-    )
+        }
+
+        if (item.id === 'income') {
+            return {
+                ...item,
+                trend: 0,
+                value: monthlyIncome,
+            }
+        }
+
+        if (item.id === 'expense') {
+            return {
+                ...item,
+                trend: 0,
+                value: monthlyExpense,
+            }
+        }
+
+        if (item.id === 'saving') {
+            return {
+                ...item,
+                trend: 0,
+                value: monthlySaving,
+            }
+        }
+
+        return item
+    })
 
     const handleSettingChange = (key, nextValue) => {
         if (nextValue === settingsRef.current[key]) {
@@ -198,11 +286,26 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         }
     }
 
-    const handleAddTransaction = (transaction) => {
+    const handleAddTransaction = async (transaction) => {
+        const { createExpenseTransaction } = await import(
+            '../api/transactionsRepository'
+        )
+        const result = await createExpenseTransaction(user.uid, transaction)
+
         setTransactions((currentTransactions) => [
-            transaction,
+            result.transaction,
             ...currentTransactions,
         ])
+        setWallets((currentWallets) =>
+            currentWallets.map((wallet) =>
+                Object.hasOwn(result.walletBalanceUpdates, wallet.id)
+                    ? {
+                        ...wallet,
+                        balance: result.walletBalanceUpdates[wallet.id],
+                    }
+                    : wallet,
+            ),
+        )
         setActiveMobilePage('transactions')
     }
 

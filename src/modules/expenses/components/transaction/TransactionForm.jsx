@@ -43,9 +43,12 @@ export default function TransactionForm({
         () => getCategoryOptions("expense", categories)[0]?.id ?? "",
     );
     const [walletId, setWalletId] = useState(wallets[0]?.id ?? "");
+    const [toWalletId, setToWalletId] = useState(wallets[1]?.id ?? "");
     const [date, setDate] = useState(getLocalDateValue);
     const [time, setTime] = useState(getLocalTimeValue);
     const [note, setNote] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState("");
 
     const categoryOptions = getCategoryOptions(type, categories);
     const selectedCategoryId = categoryOptions.some(
@@ -56,44 +59,67 @@ export default function TransactionForm({
     const selectedWalletId = wallets.some((wallet) => wallet.id === walletId)
         ? walletId
         : (wallets[0]?.id ?? "");
+    const selectedToWalletId = wallets.some(
+        (wallet) => wallet.id === toWalletId && wallet.id !== selectedWalletId,
+    )
+        ? toWalletId
+        : (wallets.find((wallet) => wallet.id !== selectedWalletId)?.id ?? "");
 
     const handleTypeChange = (nextType) => {
         const nextCategoryOptions = getCategoryOptions(nextType, categories);
 
         setType(nextType);
         setCategoryId(nextCategoryOptions[0]?.id ?? "");
+        setSubmitError("");
     };
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
 
         const numericAmount = parseCurrencyInput(amount);
         const selectedCategory = categoryOptions.find(
             (category) => category.id === selectedCategoryId,
         );
+        const isTransfer = type === "transfer";
 
         if (
             !numericAmount ||
             !title.trim() ||
-            !selectedCategory ||
-            !selectedWalletId
+            !selectedWalletId ||
+            (!isTransfer && !selectedCategory) ||
+            (isTransfer
+                && (!selectedToWalletId
+                    || selectedToWalletId === selectedWalletId))
         ) {
+            setSubmitError("Vui lòng nhập đủ thông tin giao dịch.");
             return;
         }
 
-        onSubmit?.({
-            id: `tx-${Date.now()}`,
-            amount: getSignedTransactionAmount(numericAmount, type),
-            category: selectedCategory.id,
-            date,
-            icon: selectedCategory.icon,
-            note: note.trim(),
-            subtitle: time,
-            time,
-            title: title.trim(),
-            type,
-            walletId: selectedWalletId,
-        });
+        setIsSubmitting(true);
+        setSubmitError("");
+
+        try {
+            await onSubmit?.({
+                amount: getSignedTransactionAmount(numericAmount, type),
+                categoryId: isTransfer ? null : selectedCategory.id,
+                date,
+                fromWalletId: isTransfer ? selectedWalletId : null,
+                icon: isTransfer ? "transfer" : selectedCategory.icon,
+                note: note.trim(),
+                subtitle: time,
+                time,
+                title: title.trim(),
+                toWalletId: isTransfer ? selectedToWalletId : null,
+                type,
+                walletId: isTransfer ? null : selectedWalletId,
+            });
+        } catch {
+            setSubmitError(
+                "Không thể lưu giao dịch. Vui lòng kiểm tra kết nối và thử lại.",
+            );
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
@@ -150,24 +176,26 @@ export default function TransactionForm({
                     />
                 </label>
 
-                <label className="transaction-form__field">
-                    <span>Danh mục</span>
-                    <select
-                        name="category"
-                        onChange={(event) => setCategoryId(event.target.value)}
-                        required
-                        value={selectedCategoryId}
-                    >
-                        {categoryOptions.map((category) => (
-                            <option key={category.id} value={category.id}>
-                                {category.name}
-                            </option>
-                        ))}
-                    </select>
-                </label>
+                {type !== "transfer" ? (
+                    <label className="transaction-form__field">
+                        <span>Danh mục</span>
+                        <select
+                            name="categoryId"
+                            onChange={(event) => setCategoryId(event.target.value)}
+                            required
+                            value={selectedCategoryId}
+                        >
+                            {categoryOptions.map((category) => (
+                                <option key={category.id} value={category.id}>
+                                    {category.name}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                ) : null}
 
                 <label className="transaction-form__field">
-                    <span>Ví</span>
+                    <span>{type === "transfer" ? "Ví chuyển" : "Ví"}</span>
                     <select
                         name="wallet"
                         onChange={(event) => setWalletId(event.target.value)}
@@ -181,6 +209,26 @@ export default function TransactionForm({
                         ))}
                     </select>
                 </label>
+
+                {type === "transfer" ? (
+                    <label className="transaction-form__field">
+                        <span>Ví nhận</span>
+                        <select
+                            name="toWallet"
+                            onChange={(event) => setToWalletId(event.target.value)}
+                            required
+                            value={selectedToWalletId}
+                        >
+                            {wallets
+                                .filter((wallet) => wallet.id !== selectedWalletId)
+                                .map((wallet) => (
+                                    <option key={wallet.id} value={wallet.id}>
+                                        {wallet.name}
+                                    </option>
+                                ))}
+                        </select>
+                    </label>
+                ) : null}
 
                 <div className="transaction-form__field-row">
                     <label className="transaction-form__field">
@@ -217,8 +265,16 @@ export default function TransactionForm({
                 </label>
             </div>
 
-            <button className="transaction-form__submit" type="submit">
-                Lưu giao dịch
+            {submitError ? (
+                <p className="transaction-form__error">{submitError}</p>
+            ) : null}
+
+            <button
+                className="transaction-form__submit"
+                disabled={isSubmitting}
+                type="submit"
+            >
+                {isSubmitting ? "Đang lưu..." : "Lưu giao dịch"}
             </button>
         </form>
     );
