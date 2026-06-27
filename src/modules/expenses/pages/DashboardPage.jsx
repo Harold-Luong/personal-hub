@@ -54,8 +54,16 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     const settingsRef = useRef(settings)
     const settingsWriteQueueRef = useRef(Promise.resolve())
     const [categories, setCategories] = useState([])
+    const [monthlyStats, setMonthlyStats] = useState(() => ({
+        monthKey: getCurrentMonthKey(),
+        incomeMinor: 0,
+        expenseMinor: 0,
+        netMinor: 0,
+        categoryExpenseMinor: {},
+    }))
     const [wallets, setWallets] = useState([])
     const [transactions, setTransactions] = useState([])
+    const currentMonthKey = getCurrentMonthKey()
 
     useEffect(() => {
         const frameId = window.requestAnimationFrame(() => {
@@ -110,6 +118,35 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     useEffect(() => {
         let isCancelled = false
 
+        import('../api/monthlyStatsRepository')
+            .then(({ getExpenseMonthlyStats }) =>
+                getExpenseMonthlyStats(user.uid, currentMonthKey),
+            )
+            .then((nextMonthlyStats) => {
+                if (!isCancelled) {
+                    setMonthlyStats(nextMonthlyStats)
+                }
+            })
+            .catch(() => {
+                if (!isCancelled) {
+                    setMonthlyStats({
+                        monthKey: currentMonthKey,
+                        incomeMinor: 0,
+                        expenseMinor: 0,
+                        netMinor: 0,
+                        categoryExpenseMinor: {},
+                    })
+                }
+            })
+
+        return () => {
+            isCancelled = true
+        }
+    }, [currentMonthKey, user.uid])
+
+    useEffect(() => {
+        let isCancelled = false
+
         import('../api/transactionsRepository')
             .then(({ getExpenseTransactions }) => getExpenseTransactions(user.uid))
             .then((nextTransactions) => {
@@ -128,34 +165,10 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         }
     }, [user.uid])
 
-    // TODO: Move these dashboard statistics to Firestore monthlyStats later.
-    // monthlyIncome, monthlyExpense, and categorySpendingById are temporary
-    // client-side aggregates that will support richer reporting/statistics.
-    const currentMonthKey = getCurrentMonthKey()
-    const currentMonthTransactions = transactions.filter((transaction) =>
-        transaction.date?.startsWith(currentMonthKey),
-    )
-    const monthlyIncome = currentMonthTransactions
-        .filter((transaction) => transaction.type === 'income')
-        .reduce((total, transaction) => total + Math.max(transaction.amount, 0), 0)
-    const monthlyExpense = currentMonthTransactions
-        .filter((transaction) => transaction.type === 'expense')
-        .reduce(
-            (total, transaction) => total + Math.abs(Math.min(transaction.amount, 0)),
-            0,
-        )
-    const monthlySaving = monthlyIncome - monthlyExpense
-    const categorySpendingById = currentMonthTransactions
-        .filter((transaction) => transaction.type === 'expense')
-        .reduce((result, transaction) => {
-            const categoryId = transaction.category
-            const currentAmount = result[categoryId] ?? 0
-
-            return {
-                ...result,
-                [categoryId]: currentAmount + Math.abs(transaction.amount),
-            }
-        }, {})
+    const monthlyIncome = monthlyStats.incomeMinor ?? 0
+    const monthlyExpense = monthlyStats.expenseMinor ?? 0
+    const monthlySaving = monthlyStats.netMinor ?? monthlyIncome - monthlyExpense
+    const categorySpendingById = monthlyStats.categoryExpenseMinor ?? {}
     const categorySpending = categories
         .filter((category) => category.type === 'expense')
         .map((category) => ({
@@ -306,6 +319,9 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                     : wallet,
             ),
         )
+        if (result.monthlyStats?.monthKey === currentMonthKey) {
+            setMonthlyStats(result.monthlyStats)
+        }
         setActiveMobilePage('transactions')
     }
 
