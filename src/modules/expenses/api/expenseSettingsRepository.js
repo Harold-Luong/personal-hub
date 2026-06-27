@@ -156,6 +156,13 @@ const defaultExpenseSettings = {
     defaultWalletId,
 }
 
+const userDataInitializationRequests = new Map()
+
+function isAlreadyExistsError(error) {
+    return error?.code === 'already-exists'
+        || error?.message?.includes('already-exists')
+}
+
 function validateExpenseSetting(key, value) {
     if (key === 'theme' && !expenseThemes.includes(value)) {
         throw new Error(`Unsupported expense theme: ${value}.`)
@@ -295,7 +302,7 @@ export async function getExpenseSettings(uid) {
     }
 }
 
-export async function ensureUserDataInitialized(user, settings = {}) {
+async function initializeUserData(user, settings = {}) {
     const uid = typeof user === 'string' ? user : user?.uid
 
     if (!uid) {
@@ -315,7 +322,8 @@ export async function ensureUserDataInitialized(user, settings = {}) {
         allowEmpty: true,
     })
 
-    await runTransaction(firestore, async (transaction) => {
+    try {
+        await runTransaction(firestore, async (transaction) => {
         const userSnapshot = await transaction.get(userRef)
         const expenseModuleSnapshot = await transaction.get(expenseModuleRef)
         const settingsSnapshot = await transaction.get(settingsRef)
@@ -385,9 +393,44 @@ export async function ensureUserDataInitialized(user, settings = {}) {
                 updatedAt: timestamp,
             })
         })
-    })
+        })
+    } catch (error) {
+        if (isAlreadyExistsError(error)) {
+            const settingsAfterRace = await getExpenseSettings(uid)
+
+            if (settingsAfterRace) {
+                return settingsAfterRace
+            }
+        }
+
+        throw error
+    }
 
     return getExpenseSettings(uid)
+}
+
+export async function ensureUserDataInitialized(user, settings = {}) {
+    const uid = typeof user === 'string' ? user : user?.uid
+
+    if (!uid) {
+        throw new Error('A Firebase Authentication uid is required.')
+    }
+
+    const existingRequest = userDataInitializationRequests.get(uid)
+
+    if (existingRequest) {
+        return existingRequest
+    }
+
+    const request = initializeUserData(user, settings).finally(() => {
+        if (userDataInitializationRequests.get(uid) === request) {
+            userDataInitializationRequests.delete(uid)
+        }
+    })
+
+    userDataInitializationRequests.set(uid, request)
+
+    return request
 }
 
 export async function createExpenseSettings(uid, settings = {}) {

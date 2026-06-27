@@ -66,6 +66,22 @@ function getCategoryRef(uid, categoryId) {
     )
 }
 
+function getMonthlyStatsRef(uid, monthKey) {
+    if (!monthKey) {
+        throw new Error('A month key is required.')
+    }
+
+    return doc(
+        firestore,
+        'users',
+        uid,
+        'modules',
+        'expenses',
+        'monthlyStats',
+        monthKey,
+    )
+}
+
 function normalizeText(value) {
     return value
         .normalize('NFD')
@@ -184,6 +200,51 @@ function mapTransactionSnapshot(documentSnapshot) {
     return mapTransactionData(documentSnapshot.id, documentSnapshot.data())
 }
 
+function getMonthlyStatsData(monthKey, data = {}) {
+    return {
+        monthKey,
+        incomeMinor: data.incomeMinor ?? 0,
+        expenseMinor: data.expenseMinor ?? 0,
+        netMinor: data.netMinor ?? 0,
+        transactionCount: data.transactionCount ?? 0,
+        categoryExpenseMinor: data.categoryExpenseMinor ?? {},
+        categoryIncomeMinor: data.categoryIncomeMinor ?? {},
+    }
+}
+
+function getNextMonthlyStats(monthKey, currentStats, transactionData, timestamp) {
+    const nextStats = {
+        ...currentStats,
+        monthKey,
+        transactionCount: currentStats.transactionCount + 1,
+        updatedAt: timestamp,
+    }
+
+    if (transactionData.type === 'income') {
+        nextStats.incomeMinor += transactionData.amountMinor
+        nextStats.categoryIncomeMinor = {
+            ...currentStats.categoryIncomeMinor,
+            [transactionData.categoryId]:
+                (currentStats.categoryIncomeMinor[transactionData.categoryId] ?? 0)
+                + transactionData.amountMinor,
+        }
+    }
+
+    if (transactionData.type === 'expense') {
+        nextStats.expenseMinor += transactionData.amountMinor
+        nextStats.categoryExpenseMinor = {
+            ...currentStats.categoryExpenseMinor,
+            [transactionData.categoryId]:
+                (currentStats.categoryExpenseMinor[transactionData.categoryId] ?? 0)
+                + transactionData.amountMinor,
+        }
+    }
+
+    nextStats.netMinor = nextStats.incomeMinor - nextStats.expenseMinor
+
+    return nextStats
+}
+
 export async function getExpenseTransactions(uid, maxTransactions = 50) {
     const transactionsQuery = query(
         getTransactionsCollectionRef(uid),
@@ -215,6 +276,8 @@ export async function createExpenseTransaction(uid, input) {
 
     return runTransaction(firestore, async (firestoreTransaction) => {
         const walletBalanceUpdates = {}
+        const monthlyStatsRef = getMonthlyStatsRef(uid, monthKey)
+        let nextMonthlyStats
         let transactionData
 
         if (input.type === 'transfer') {
@@ -225,12 +288,21 @@ export async function createExpenseTransaction(uid, input) {
                 throw new Error('Transfer wallets must be different.')
             }
 
-            const [fromWalletSnapshot, toWalletSnapshot] = await Promise.all([
+            const [
+                fromWalletSnapshot,
+                toWalletSnapshot,
+                monthlyStatsSnapshot,
+            ] = await Promise.all([
                 firestoreTransaction.get(fromWalletRef),
                 firestoreTransaction.get(toWalletRef),
+                firestoreTransaction.get(monthlyStatsRef),
             ])
             const fromWallet = getSnapshotData(fromWalletSnapshot, 'Source wallet')
             const toWallet = getSnapshotData(toWalletSnapshot, 'Destination wallet')
+            const currentMonthlyStats = getMonthlyStatsData(
+                monthKey,
+                monthlyStatsSnapshot.data(),
+            )
             const fromBalance = (fromWallet.balance ?? 0) - amountMinor
             const toBalance = (toWallet.balance ?? 0) + amountMinor
 
@@ -259,8 +331,15 @@ export async function createExpenseTransaction(uid, input) {
                 updatedAt: timestamp,
                 voidedAt: null,
             }
+            nextMonthlyStats = getNextMonthlyStats(
+                monthKey,
+                currentMonthlyStats,
+                transactionData,
+                timestamp,
+            )
 
             firestoreTransaction.set(transactionRef, transactionData)
+            firestoreTransaction.set(monthlyStatsRef, nextMonthlyStats)
             firestoreTransaction.update(fromWalletRef, {
                 balance: fromBalance,
                 updatedAt: timestamp,
@@ -275,12 +354,21 @@ export async function createExpenseTransaction(uid, input) {
         } else {
             const walletRef = getWalletRef(uid, input.walletId)
             const categoryRef = getCategoryRef(uid, input.categoryId)
-            const [walletSnapshot, categorySnapshot] = await Promise.all([
+            const [
+                walletSnapshot,
+                categorySnapshot,
+                monthlyStatsSnapshot,
+            ] = await Promise.all([
                 firestoreTransaction.get(walletRef),
                 firestoreTransaction.get(categoryRef),
+                firestoreTransaction.get(monthlyStatsRef),
             ])
             const wallet = getSnapshotData(walletSnapshot, 'Wallet')
             const category = getSnapshotData(categorySnapshot, 'Category')
+            const currentMonthlyStats = getMonthlyStatsData(
+                monthKey,
+                monthlyStatsSnapshot.data(),
+            )
 
             if ((category.type ?? 'expense') !== input.type) {
                 throw new Error('Transaction category does not match its type.')
@@ -315,8 +403,15 @@ export async function createExpenseTransaction(uid, input) {
                 updatedAt: timestamp,
                 voidedAt: null,
             }
+            nextMonthlyStats = getNextMonthlyStats(
+                monthKey,
+                currentMonthlyStats,
+                transactionData,
+                timestamp,
+            )
 
             firestoreTransaction.set(transactionRef, transactionData)
+            firestoreTransaction.set(monthlyStatsRef, nextMonthlyStats)
             firestoreTransaction.update(walletRef, {
                 balance: nextBalance,
                 updatedAt: timestamp,
@@ -326,6 +421,7 @@ export async function createExpenseTransaction(uid, input) {
         }
 
         return {
+            monthlyStats: nextMonthlyStats,
             transaction: mapTransactionData(transactionRef.id, transactionData),
             walletBalanceUpdates,
         }

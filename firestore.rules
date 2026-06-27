@@ -453,6 +453,41 @@ service cloud.firestore {
     }
 
     // =========================
+    // Monthly stats
+    // users/{uid}/modules/expenses/monthlyStats/{monthKey}
+    // =========================
+
+    function allowedMonthlyStatsKeys() {
+      return [
+        'monthKey',
+        'incomeMinor',
+        'expenseMinor',
+        'netMinor',
+        'transactionCount',
+        'categoryExpenseMinor',
+        'categoryIncomeMinor',
+        'updatedAt',
+      ];
+    }
+
+    function isValidMonthlyStats(data, monthKey) {
+      return data.keys().hasOnly(allowedMonthlyStatsKeys())
+        && data.keys().hasAll(allowedMonthlyStatsKeys())
+        && data.monthKey == monthKey
+        && data.incomeMinor is number
+        && data.incomeMinor >= 0
+        && data.expenseMinor is number
+        && data.expenseMinor >= 0
+        && data.netMinor is number
+        && data.netMinor == data.incomeMinor - data.expenseMinor
+        && data.transactionCount is int
+        && data.transactionCount >= 0
+        && data.categoryExpenseMinor is map
+        && data.categoryIncomeMinor is map
+        && data.updatedAt == request.time;
+    }
+
+    // =========================
     // Rules
     // =========================
 
@@ -516,6 +551,15 @@ service cloud.firestore {
             && isValidTransactionCreate(request.resource.data);
 
           allow update, delete: if false;
+        }
+
+        match /monthlyStats/{monthKey} {
+          allow read: if isOwner(uid);
+
+          allow create, update: if isOwner(uid)
+            && isValidMonthlyStats(request.resource.data, monthKey);
+
+          allow delete: if false;
         }
       }
 
