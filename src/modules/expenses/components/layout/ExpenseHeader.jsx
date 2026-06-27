@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import MonthPicker from '../shared/MonthPicker'
-import { LogoutIcon, ThemeIcon } from '../../icon/ExpenseIcons'
+import { LogoutIcon, PlusIcon, ThemeIcon } from '../../icon/ExpenseIcons'
 
 export default function ExpenseHeader({
   month = '2026-06',
+  onAddTransactionClick,
   onLogout,
   onToggleTheme,
   theme = 'sage',
@@ -11,7 +12,7 @@ export default function ExpenseHeader({
 }) {
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [failedAvatarUrl, setFailedAvatarUrl] = useState('')
-  const accountName = user?.displayName || user?.email || 'Tài khoản'
+  const accountName = user?.displayName || user?.email || 'Tai khoan'
   const accountPhotoUrl = user?.photoURL || ''
   const shouldShowAccountPhoto =
     accountPhotoUrl && failedAvatarUrl !== accountPhotoUrl
@@ -29,11 +30,16 @@ export default function ExpenseHeader({
 
   return (
     <header className="expense-header">
-      <div>
-        <h1>Xin chào, {accountName}</h1>
-        <p>Quan ly chi tieu thong minh</p>
-      </div>
       <div className="expense-header__actions">
+        <button
+          aria-label="Thêm giao dịch"
+          className="expense-header__add"
+          onClick={onAddTransactionClick}
+          type="button"
+        >
+          <PlusIcon size={17} />
+          <span>Thêm giao dịch</span>
+        </button>
         <MonthPicker value={month} />
         <button
           aria-label="Doi giao dien"

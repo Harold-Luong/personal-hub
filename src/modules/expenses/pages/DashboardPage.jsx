@@ -369,8 +369,10 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             />
             <WebDashboardView
                 budgets={mockBudgets}
+                categories={categories}
                 categorySpending={categorySpending}
                 navItems={expenseNavItems}
+                onAddTransaction={handleAddTransaction}
                 onLogout={handleLogout}
                 onToggleTheme={handleToggleTheme}
                 summary={summary}
