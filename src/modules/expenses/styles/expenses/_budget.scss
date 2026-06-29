@@ -1,0 +1,155 @@
+@media (min-width: 901px) {
+  .web-budget-panel {
+    height: auto;
+    max-height: calc(100svh - 64px);
+    width: min(540px, 100%);
+  }
+}
+
+.budget-form {
+  display: grid;
+  gap: 16px;
+}
+
+.budget-form__content {
+  display: grid;
+  gap: 12px;
+}
+
+.budget-form__field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.budget-form__field>span:first-child {
+  color: var(--expense-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.budget-form__field input,
+.budget-form__field select {
+  background: color-mix(in srgb,
+      var(--expense-surface-solid) 70%,
+      var(--expense-border-strong));
+  border: 1px solid var(--expense-border-strong);
+  border-radius: 8px;
+  color: var(--expense-heading);
+  font: inherit;
+  font-size: 13px;
+  height: 42px;
+  outline: 0;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.budget-form__field>input:focus,
+.budget-form__field>select:focus {
+  border-color: var(--expense-active-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--expense-active-color) 14%, transparent);
+}
+
+.budget-form__amount-control {
+  align-items: center;
+  background: color-mix(in srgb,
+      var(--expense-surface-solid) 70%,
+      var(--expense-border-strong));
+  border: 1px solid var(--expense-border-strong);
+  border-radius: 8px;
+  display: flex;
+  gap: 8px;
+  height: 54px;
+  padding: 0 12px;
+}
+
+.budget-form__amount-control:focus-within {
+  border-color: var(--expense-active-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--expense-active-color) 14%, transparent);
+}
+
+.budget-form__amount-control input {
+  background: transparent;
+  border: 0;
+  color: var(--expense-heading);
+  flex: 1;
+  font-size: 24px;
+  font-weight: 800;
+  height: auto;
+  min-width: 0;
+  padding: 0;
+}
+
+.budget-form__amount-control>span {
+  color: var(--expense-muted);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.budget-form__hint,
+.budget-form__error {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.budget-form__hint {
+  color: var(--expense-muted);
+}
+
+.budget-form__error {
+  color: color-mix(in srgb, #c71919 78%, var(--expense-muted));
+}
+
+.budget-form__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.budget-form__delete,
+.budget-form__cancel,
+.budget-form__submit {
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  min-height: 42px;
+  padding: 0 16px;
+}
+
+.budget-form__delete {
+  background: color-mix(in srgb, #dc1717 8%, var(--expense-surface-solid));
+  border: 1px solid color-mix(in srgb, #dc1717 34%, var(--expense-border-strong));
+  color: #dc1717;
+  margin-right: auto;
+}
+
+.budget-form__cancel {
+  background: color-mix(in srgb, var(--expense-surface-solid) 82%, transparent);
+  border: 1px solid var(--expense-border-strong);
+  color: var(--expense-muted);
+}
+
+.budget-form__submit {
+  background: linear-gradient(145deg,
+      var(--expense-action-start),
+      var(--expense-action-end));
+  border: 0;
+  box-shadow: 0 10px 22px var(--expense-action-shadow);
+  color: white;
+  min-width: 150px;
+}
+
+.budget-form__submit:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}
+
+.budget-form__delete:disabled,
+.budget-form__cancel:disabled {
+  cursor: wait;
+  opacity: 0.68;
+}

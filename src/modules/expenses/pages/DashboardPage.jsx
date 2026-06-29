@@ -400,6 +400,46 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         setActiveMobilePage('transactions')
     }
 
+    const handleSaveBudget = async (budget) => {
+        const { upsertExpenseBudget } = await import('../api/budgetsRepository')
+        const result = await upsertExpenseBudget(user.uid, {
+            ...budget,
+            monthKey: currentMonthKey,
+        })
+
+        setBudgetLimits((currentBudgets) => {
+            const existingBudgetIndex = currentBudgets.findIndex(
+                (currentBudget) =>
+                    currentBudget.monthKey === result.monthKey
+                    && currentBudget.categoryId === result.categoryId,
+            )
+
+            if (existingBudgetIndex === -1) {
+                return [...currentBudgets, result]
+            }
+
+            return currentBudgets.map((currentBudget, index) =>
+                index === existingBudgetIndex ? result : currentBudget,
+            )
+        })
+    }
+
+    const handleDeleteBudget = async (budget) => {
+        const { deleteExpenseBudget } = await import('../api/budgetsRepository')
+        const result = await deleteExpenseBudget(user.uid, {
+            ...budget,
+            monthKey: currentMonthKey,
+        })
+
+        setBudgetLimits((currentBudgets) =>
+            currentBudgets.filter(
+                (currentBudget) =>
+                    currentBudget.monthKey !== result.monthKey
+                    || currentBudget.categoryId !== result.categoryId,
+            ),
+        )
+    }
+
     const renderMobilePage = () => {
         if (activeMobilePage === 'add') {
             return (
@@ -464,7 +504,9 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 categorySpending={categorySpending}
                 navItems={expenseNavItems}
                 onAddTransaction={handleAddTransaction}
+                onDeleteBudget={handleDeleteBudget}
                 onLogout={handleLogout}
+                onSaveBudget={handleSaveBudget}
                 onToggleTheme={handleToggleTheme}
                 summary={summary}
                 theme={settings.theme}

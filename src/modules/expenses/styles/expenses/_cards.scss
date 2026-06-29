@@ -303,6 +303,7 @@
 }
 
 .category-row,
+.budget-item,
 .transaction-item,
 .wallet-item {
   align-items: center;
@@ -315,7 +316,6 @@
 }
 
 .category-row__body>div,
-.budget-item__top,
 .wallet-item {
   align-items: center;
   display: flex;
@@ -374,6 +374,7 @@
 }
 
 .budget-overview-card {
+  align-content: start;
   display: grid;
   gap: 16px;
 }
@@ -385,35 +386,80 @@
 }
 
 .budget-item {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--expense-surface-solid) 96%, transparent), color-mix(in srgb, var(--expense-active-soft) 70%, white));
-  border: 1px solid var(--expense-border);
-  border-radius: 8px;
-  padding: 14px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  min-width: 0;
 }
 
-.budget-item__top {
-  margin-bottom: 12px;
+.budget-item__body {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
 }
 
-.budget-item--warning {
-  border-color: color-mix(in srgb, #d98c00 42%, var(--expense-border));
+.budget-item__copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
 }
 
-.budget-item--warning .budget-item__top>span,
+.budget-item__copy strong {
+  color: var(--expense-heading);
+  line-height: 1.2;
+}
+
+.budget-item__amounts {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  line-height: 1.2;
+}
+
+.budget-item__spent .amount-text {
+  color: var(--expense-active-strong);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.budget-item__separator {
+  color: color-mix(in srgb, var(--expense-muted) 72%, transparent);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.budget-item__limit .amount-text {
+  color: var(--expense-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.budget-item .progress-bar {
+  width: 100%;
+}
+
+.budget-item__percentage {
+  color: var(--expense-heading);
+  font-size: 13px;
+  font-weight: 800;
+  justify-self: end;
+  min-width: 42px;
+  text-align: right;
+}
+
+.budget-item--warning .budget-item__percentage,
+.budget-item--warning .budget-item__spent .amount-text,
 .budget-item--warning strong {
   color: #a86a00;
 }
 
-.budget-item--exceeded {
-  border-color: color-mix(in srgb, #dc1717 42%, var(--expense-border));
-}
-
-.budget-item--exceeded .budget-item__top>span,
+.budget-item--exceeded .budget-item__percentage,
+.budget-item--exceeded .budget-item__spent .amount-text,
 .budget-item--exceeded strong {
   color: #dc1717;
 }
 
 .wallet-card {
+  align-content: start;
   display: grid;
   gap: 16px;
 }

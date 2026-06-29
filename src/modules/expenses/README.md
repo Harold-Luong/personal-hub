@@ -473,6 +473,7 @@ View model trả về UI:
   category: "Ăn uống",
   amount: 2100000,
   limit: 3000000,
+  alertThreshold: 80,
   color: "#f4a340",
   icon: "utensils"
 }
@@ -888,6 +889,13 @@ Runtime hiện tại đọc budget bằng `budgetsRepository`, query theo `month
 `orderBy categoryId`. `DashboardPage` ghép budget document với category metadata
 và `monthlyStats.categoryExpenseMinor` để tạo view model cho mobile/desktop.
 
+Web dashboard cho tạo/cập nhật/xóa budget ngay trong modal từ
+`BudgetOverviewCard`. Form chỉ cho chọn expense category đang active, lưu
+`limitMinor` và `alertThreshold` qua `upsertExpenseBudget()`. Nếu category đã có
+budget trong tháng hiện tại, lần lưu tiếp theo sẽ cập nhật budget đó thay vì tạo
+document mới. Xóa budget dùng `deleteExpenseBudget()` và chỉ xóa config hạn mức,
+không ảnh hưởng transaction hoặc `monthlyStats`.
+
 ### Hiển thị cảnh báo
 
 ```text
@@ -1050,6 +1058,7 @@ Client có thể trực tiếp ghi:
 - Một số field profile.
 - Expense settings đã whitelist.
 - Budget config đã validate (`monthKey`, `categoryId`, `limitMinor`, `alertThreshold`).
+- Xóa budget config của chính user.
 - Metadata không ảnh hưởng tài chính nếu rules đủ chặt.
 
 Client không được trực tiếp ghi:
@@ -1487,6 +1496,7 @@ Status: Design approved for implementation planning
 Implementation: In progress
 Mock data removal: Financial dashboard mock data removed from runtime
 Firebase integration: Settings/categories/wallets/budgets/transactions/monthlyStats active
+Budget UI: Web budget create/update/delete modal active
 ```
 
 Tài liệu này là contract thiết kế cho bước triển khai tiếp theo. Khi schema

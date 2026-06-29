@@ -7,6 +7,7 @@ import WalletCard from '../dashboard/WalletCard'
 import ExpenseHeader from '../layout/ExpenseHeader'
 import ExpenseSidebar from '../layout/ExpenseSidebar'
 import WebAddTransactionPanel from './WebAddTransactionPanel'
+import WebBudgetPanel from './WebBudgetPanel'
 
 export default function WebDashboardView({
   budgets,
@@ -14,6 +15,8 @@ export default function WebDashboardView({
   categorySpending,
   navItems,
   onAddTransaction,
+  onDeleteBudget,
+  onSaveBudget,
   onLogout,
   onToggleTheme,
   summary,
@@ -23,10 +26,21 @@ export default function WebDashboardView({
   wallets,
 }) {
   const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false)
+  const [isBudgetOpen, setIsBudgetOpen] = useState(false)
 
   const handleAddTransaction = async (transaction) => {
     await onAddTransaction?.(transaction)
     setIsAddTransactionOpen(false)
+  }
+
+  const handleSaveBudget = async (budget) => {
+    await onSaveBudget?.(budget)
+    setIsBudgetOpen(false)
+  }
+
+  const handleDeleteBudget = async (budget) => {
+    await onDeleteBudget?.(budget)
+    setIsBudgetOpen(false)
   }
 
   return (
@@ -49,10 +63,22 @@ export default function WebDashboardView({
             wallets={wallets}
           />
         ) : null}
+        {isBudgetOpen ? (
+          <WebBudgetPanel
+            budgets={budgets}
+            categories={categories}
+            onCancel={() => setIsBudgetOpen(false)}
+            onDelete={handleDeleteBudget}
+            onSubmit={handleSaveBudget}
+          />
+        ) : null}
         <div className="web-dashboard-view__grid">
           <CategorySpendingCard categories={categorySpending} limit={5} />
           <RecentTransactionsCard transactions={transactions} limit={10}/>
-          <BudgetOverviewCard budgets={budgets} />
+          <BudgetOverviewCard
+            budgets={budgets}
+            onManageBudget={() => setIsBudgetOpen(true)}
+          />
           <WalletCard wallets={wallets} />
         </div>
       </main>
