@@ -6,6 +6,7 @@ import AddTransactionPage from "./AddTransactionPage";
 import BudgetPage from "./BudgetPage";
 import SettingsPage from "./SettingsPage";
 import TransactionsPage from "./TransactionsPage";
+import WalletPage from "./WalletPage";
 import { expenseCurrencies, expenseNavItems, expenseSummaryItems, expenseThemes } from "../constant/expensesMetaData";
 import { calculateTrend, getEmptyMonthlyStats, getPreviousMonthKey } from "../utils/monthlyStatsUtils";
 import "../styles/expenses.scss";
@@ -25,6 +26,17 @@ function getInitialSettings(initialSettings) {
             typeof initialSettings?.notificationsEnabled === "boolean" ? initialSettings.notificationsEnabled : true,
         theme: expenseThemes.includes(initialSettings?.theme) ? initialSettings.theme : expenseThemes[0],
     };
+}
+
+function sortWallets(firstWallet, secondWallet) {
+    if (firstWallet.isDefault !== secondWallet.isDefault) {
+        return firstWallet.isDefault ? -1 : 1;
+    }
+
+    return (
+        (firstWallet.order ?? Number.MAX_SAFE_INTEGER) -
+        (secondWallet.order ?? Number.MAX_SAFE_INTEGER)
+    );
 }
 
 export default function DashboardPage({ initialSettings, onLogout, user }) {
@@ -304,6 +316,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             pageId === "transactions" ||
             pageId === "add" ||
             pageId === "budget" ||
+            pageId === "wallets" ||
             pageId === "settings"
         ) {
             setActiveMobilePage(pageId);
@@ -369,6 +382,45 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         );
     };
 
+    const handleSaveWallet = async (wallet) => {
+        const { upsertExpenseWallet } = await import("../api/walletsRepository");
+        const result = await upsertExpenseWallet(user.uid, wallet);
+
+        setWallets((currentWallets) => {
+            const nextWallets = result.isDefault
+                ? currentWallets.map((currentWallet) => ({
+                      ...currentWallet,
+                      isDefault: currentWallet.id === result.id,
+                  }))
+                : currentWallets;
+            const existingWalletIndex = nextWallets.findIndex((currentWallet) => currentWallet.id === result.id);
+
+            if (existingWalletIndex === -1) {
+                return [...nextWallets, result].sort(sortWallets);
+            }
+
+            return nextWallets
+                .map((currentWallet, index) => (index === existingWalletIndex ? result : currentWallet))
+                .sort(sortWallets);
+        });
+    };
+
+    const handleDeleteWallet = async (wallet) => {
+        const { deleteExpenseWallet } = await import("../api/walletsRepository");
+        const result = await deleteExpenseWallet(user.uid, wallet);
+
+        setWallets((currentWallets) =>
+            currentWallets
+                .filter((currentWallet) => currentWallet.id !== result.id)
+                .map((currentWallet) => ({
+                    ...currentWallet,
+                    isDefault:
+                        currentWallet.id === result.replacementDefaultWalletId ? true : currentWallet.isDefault,
+                }))
+                .sort(sortWallets),
+        );
+    };
+
     const renderMobilePage = () => {
         if (activeMobilePage === "add") {
             return (
@@ -398,6 +450,17 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             );
         }
 
+        if (activeMobilePage === "wallets") {
+            return (
+                <WalletPage
+                    onBack={() => setActiveMobilePage("settings")}
+                    onDeleteWallet={handleDeleteWallet}
+                    onSaveWallet={handleSaveWallet}
+                    wallets={wallets}
+                />
+            );
+        }
+
         if (activeMobilePage === "settings") {
             return (
                 <SettingsPage
@@ -406,6 +469,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                     notificationsEnabled={settings.notificationsEnabled}
                     onLogout={handleLogout}
                     onManageBudget={() => setActiveMobilePage("budget")}
+                    onManageWallet={() => setActiveMobilePage("wallets")}
                     onSettingChange={handleSettingChange}
                     onThemeChange={handleThemeChange}
                     settingsError={settingsError}
@@ -444,8 +508,10 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 navItems={expenseNavItems}
                 onAddTransaction={handleAddTransaction}
                 onDeleteBudget={handleDeleteBudget}
+                onDeleteWallet={handleDeleteWallet}
                 onLogout={handleLogout}
                 onSaveBudget={handleSaveBudget}
+                onSaveWallet={handleSaveWallet}
                 onToggleTheme={handleToggleTheme}
                 summary={summary}
                 theme={settings.theme}

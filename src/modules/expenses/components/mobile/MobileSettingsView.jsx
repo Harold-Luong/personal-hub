@@ -30,6 +30,7 @@ export default function MobileSettingsView({
     notificationsEnabled,
     onLogout,
     onManageBudget,
+    onManageWallet,
     onSettingChange,
     onThemeChange,
     settingsError,
@@ -180,13 +181,13 @@ export default function MobileSettingsView({
                         </span>
                         <span aria-hidden="true">&gt;</span>
                     </button>
-                    <div>
+                    <button onClick={onManageWallet} type="button">
                         <span>
                             <strong>Ví của tôi</strong>
                             <small>{wallets.length} ví đang hoạt động</small>
                         </span>
                         <span aria-hidden="true">&gt;</span>
-                    </div>
+                    </button>
                     <div>
                         <span>
                             <strong>Danh mục</strong>

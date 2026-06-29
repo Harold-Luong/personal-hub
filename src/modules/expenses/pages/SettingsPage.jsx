@@ -6,6 +6,7 @@ export default function SettingsPage({
     notificationsEnabled,
     onLogout,
     onManageBudget,
+    onManageWallet,
     onSettingChange,
     onThemeChange,
     settingsError,
@@ -20,6 +21,7 @@ export default function SettingsPage({
             notificationsEnabled={notificationsEnabled}
             onLogout={onLogout}
             onManageBudget={onManageBudget}
+            onManageWallet={onManageWallet}
             onSettingChange={onSettingChange}
             onThemeChange={onThemeChange}
             settingsError={settingsError}
