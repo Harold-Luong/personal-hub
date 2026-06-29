@@ -64,7 +64,8 @@ export default function MobileDashboardView({
             />
             <MonthlyBudgetCard budgets={budgets} />
             <CategorySpendingCard
-                categories={categorySpending.slice(0, 5)}
+                limit={5}
+                categories={categorySpending}
                 variant="mobile"
             />
             <RecentTransactionsCard

@@ -163,6 +163,18 @@ function getTransactionTime(data) {
     })
 }
 
+function getTransactionSubtitle(data) {
+    const date = data.occurredAt?.toDate?.()
+    const day = String(date.getDate()).padStart(2, '0')
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const time = getTransactionTime(data)
+
+    if (!date) {
+        return time
+    }
+    return [time, `${day}/${month}`].filter(Boolean).join(' ')
+}
+
 function getSignedAmount(data) {
     if (data.type === 'income') {
         return data.amountMinor
@@ -186,9 +198,9 @@ function mapTransactionData(id, data) {
             ?? data.walletSnapshot?.icon
             ?? 'transfer',
         title: data.title,
-        subtitle: time,
+        subtitle: getTransactionSubtitle(data),
         date: data.localDate,
-        time,
+        time: time,
         walletId: data.walletId,
         fromWalletId: data.fromWalletId,
         toWalletId: data.toWalletId,
