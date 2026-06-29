@@ -1,38 +1,3 @@
-export const mockSummary = [
-  {
-    id: 'balance',
-    label: 'Tong so du',
-    value: 12450000,
-    trend: 8.5,
-    tone: 'positive',
-    icon: 'eye',
-  },
-  {
-    id: 'income',
-    label: 'Tong thu nhap',
-    value: 18000000,
-    trend: 12.4,
-    tone: 'positive',
-    icon: 'wallet',
-  },
-  {
-    id: 'expense',
-    label: 'Tong chi tieu',
-    value: 5550000,
-    trend: 5.3,
-    tone: 'danger',
-    icon: 'card',
-  },
-  {
-    id: 'saving',
-    label: 'Tiet kiem',
-    value: 6900000,
-    trend: 15.8,
-    tone: 'warning',
-    icon: 'saving',
-  },
-]
-
 export const mockBudgets = [
   {
     id: 'budget-food',

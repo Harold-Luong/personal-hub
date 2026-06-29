@@ -36,7 +36,6 @@ và truyền dữ liệu thật xuống các view mobile và desktop qua props.
 Các nhóm mock data còn lại:
 
 - `mockBudgets`
-- `mockSummary`
 
 Các nhóm đã chuyển sang Firestore:
 
@@ -49,8 +48,6 @@ Một số dữ liệu hiện vẫn là dữ liệu dẫn xuất/projection tạ
 
 - Category spending trên dashboard đang được tính từ transactions đã tải.
 - `budget.amount` là số tiền đã chi, không phải cấu hình ngân sách.
-- `mockSummary` là kết quả tổng hợp, không phải entity độc lập.
-
 Khi chuyển sang Firestore, các giá trị này không được coi là nguồn sự thật.
 
 ## 3. Các quyết định chính
@@ -592,8 +589,6 @@ Firestore không có join như SQL. Vì vậy:
 | Dashboard summary | Wallets + current/previous stats | Dựng view model |
 | Theme/preferences | `modules/expenses/settings/main` | Firestore + local cache |
 
-`mockSummary` sẽ không trở thành một collection riêng.
-
 ## 8. Dashboard view model
 
 Repository hoặc selector dựng dữ liệu dashboard từ Firestore:
@@ -649,7 +644,21 @@ budget percentage = category expense / budget limit * 100
 trend = (current - previous) / abs(previous) * 100
 ```
 
-Nếu tháng trước bằng `0`, UI cần quy ước riêng thay vì chia cho `0`.
+Nếu tháng trước chưa có document `monthlyStats`, giá trị tháng trước không hợp lệ
+hoặc bằng `0`, UI trả `trend = 0` thay vì chia cho `0`.
+
+Triển khai hiện tại gom các helper tính toán monthly stats trong:
+
+```text
+src/modules/expenses/utils/monthlyStatsUtils.js
+```
+
+Các helper dùng chung:
+
+- `getPreviousMonthKey(monthKey)`: tính key tháng trước từ `YYYY-MM`.
+- `getEmptyMonthlyStats(monthKey)`: tạo fallback shape khi chưa có stats thật.
+- `calculateTrend(currentValue, previousValue)`: tính phần trăm thay đổi và trả `0`
+  khi không đủ dữ liệu hợp lệ.
 
 ## 9. Flow khởi động ứng dụng
 
@@ -1264,6 +1273,10 @@ expenseTrend =
 savingTrend =
   (currentNet - previousNet) / abs(previousNet) * 100
 ```
+
+Nếu previous value không tồn tại, không phải số hoặc bằng `0`, helper
+`calculateTrend()` trả `0` để dashboard không render giá trị sai hoặc lỗi chia
+cho `0`.
 
 Balance trend cần quyết định rõ về nghiệp vụ. Đề xuất:
 

@@ -8,12 +8,42 @@ import TransactionsPage from './TransactionsPage'
 import {
     expenseNavItems,
     mockBudgets,
-    mockSummary,
 } from '../data/mockExpenses'
+import {
+    calculateTrend,
+    getEmptyMonthlyStats,
+    getPreviousMonthKey,
+} from '../utils/monthlyStatsUtils'
 import '../styles/expenses.scss'
 
 const expenseThemes = ['sage', 'fjord', 'clay', 'blossom', 'vintage', 'retro']
 const expenseCurrencies = ['VND', 'USD']
+const expenseSummaryItems = [
+    {
+        id: 'balance',
+        label: 'Tổng số dư',
+        tone: 'positive',
+        icon: 'eye',
+    },
+    {
+        id: 'income',
+        label: 'Tổng thu nhập',
+        tone: 'positive',
+        icon: 'wallet',
+    },
+    {
+        id: 'expense',
+        label: 'Tổng chi tiêu',
+        tone: 'danger',
+        icon: 'card',
+    },
+    {
+        id: 'saving',
+        label: 'Tiết kiệm',
+        tone: 'warning',
+        icon: 'saving',
+    },
+]
 
 function getCurrentMonthKey() {
     const today = new Date()
@@ -54,16 +84,16 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     const settingsRef = useRef(settings)
     const settingsWriteQueueRef = useRef(Promise.resolve())
     const [categories, setCategories] = useState([])
-    const [monthlyStats, setMonthlyStats] = useState(() => ({
-        monthKey: getCurrentMonthKey(),
-        incomeMinor: 0,
-        expenseMinor: 0,
-        netMinor: 0,
-        categoryExpenseMinor: {},
-    }))
+    const [monthlyStats, setMonthlyStats] = useState(() =>
+        getEmptyMonthlyStats(getCurrentMonthKey()),
+    )
+    const [previousMonthlyStats, setPreviousMonthlyStats] = useState(() =>
+        getEmptyMonthlyStats(getPreviousMonthKey(getCurrentMonthKey())),
+    )
     const [wallets, setWallets] = useState([])
     const [transactions, setTransactions] = useState([])
     const currentMonthKey = getCurrentMonthKey()
+    const previousMonthKey = getPreviousMonthKey(currentMonthKey)
 
     useEffect(() => {
         const frameId = window.requestAnimationFrame(() => {
@@ -120,29 +150,28 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
 
         import('../api/monthlyStatsRepository')
             .then(({ getExpenseMonthlyStats }) =>
-                getExpenseMonthlyStats(user.uid, currentMonthKey),
+                Promise.all([
+                    getExpenseMonthlyStats(user.uid, currentMonthKey),
+                    getExpenseMonthlyStats(user.uid, previousMonthKey),
+                ]),
             )
-            .then((nextMonthlyStats) => {
+            .then(([nextMonthlyStats, nextPreviousMonthlyStats]) => {
                 if (!isCancelled) {
                     setMonthlyStats(nextMonthlyStats)
+                    setPreviousMonthlyStats(nextPreviousMonthlyStats)
                 }
             })
             .catch(() => {
                 if (!isCancelled) {
-                    setMonthlyStats({
-                        monthKey: currentMonthKey,
-                        incomeMinor: 0,
-                        expenseMinor: 0,
-                        netMinor: 0,
-                        categoryExpenseMinor: {},
-                    })
+                    setMonthlyStats(getEmptyMonthlyStats(currentMonthKey))
+                    setPreviousMonthlyStats(getEmptyMonthlyStats(previousMonthKey))
                 }
             })
 
         return () => {
             isCancelled = true
         }
-    }, [currentMonthKey, user.uid])
+    }, [currentMonthKey, previousMonthKey, user.uid])
 
     useEffect(() => {
         let isCancelled = false
@@ -168,6 +197,11 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     const monthlyIncome = monthlyStats.incomeMinor ?? 0
     const monthlyExpense = monthlyStats.expenseMinor ?? 0
     const monthlySaving = monthlyStats.netMinor ?? monthlyIncome - monthlyExpense
+    const previousMonthlyIncome = previousMonthlyStats.incomeMinor ?? 0
+    const previousMonthlyExpense = previousMonthlyStats.expenseMinor ?? 0
+    const previousMonthlySaving =
+        previousMonthlyStats.netMinor
+        ?? previousMonthlyIncome - previousMonthlyExpense
     const categorySpendingById = monthlyStats.categoryExpenseMinor ?? {}
     const categorySpending = categories
         .filter((category) => category.type === 'expense')
@@ -188,10 +222,11 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         (total, wallet) => total + wallet.balance,
         0,
     )
-    const summary = mockSummary.map((item) => {
+    const summary = expenseSummaryItems.map((item) => {
         if (item.id === 'balance') {
             return {
                 ...item,
+                trend: 0,
                 value: totalWalletBalance,
             }
         }
@@ -199,7 +234,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         if (item.id === 'income') {
             return {
                 ...item,
-                trend: 0,
+                trend: calculateTrend(monthlyIncome, previousMonthlyIncome),
                 value: monthlyIncome,
             }
         }
@@ -207,7 +242,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         if (item.id === 'expense') {
             return {
                 ...item,
-                trend: 0,
+                trend: calculateTrend(monthlyExpense, previousMonthlyExpense),
                 value: monthlyExpense,
             }
         }
@@ -215,7 +250,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         if (item.id === 'saving') {
             return {
                 ...item,
-                trend: 0,
+                trend: calculateTrend(monthlySaving, previousMonthlySaving),
                 value: monthlySaving,
             }
         }
