@@ -10,14 +10,19 @@ const budgetStatusColors = {
     warning: "#d98c00",
 };
 
-export default function MonthlyBudgetCard({ budgets = [] }) {
+export default function MonthlyBudgetCard({ budgets = [], onManageBudget }) {
     const { spent, limit, percentage } = calculateMonthlyBudgetTotals(budgets);
     const status = getBudgetUsageStatus({ amount: spent, limit });
     const statusColor = budgetStatusColors[status];
 
     return (
         <section className={`monthly-budget-card monthly-budget-card--${status}`}>
-            <h2>Ngân sách tháng</h2>
+            <header className="monthly-budget-card__header">
+                <h2>Ngân sách tháng</h2>
+                <button onClick={onManageBudget} type="button">
+                    {budgets.length ? "Quản lý" : "Tạo mới"}
+                </button>
+            </header>
 
             <div className="monthly-budget-card__summary">
                 <p>

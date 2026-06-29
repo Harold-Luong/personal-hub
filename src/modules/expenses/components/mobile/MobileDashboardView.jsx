@@ -1,6 +1,7 @@
 import BalanceHeroCard from "../dashboard/BalanceHeroCard";
 import CategorySpendingCard from "../dashboard/CategorySpendingCard";
 import RecentTransactionsCard from "../dashboard/RecentTransactionsCard";
+import MobilePageHeader from "./MobilePageHeader";
 import MonthlyBudgetCard from "./MonthlyBudgetCard";
 import { formatDate } from "./../../utils/formatDate";
 import { BellIcon, ThemeIcon } from "../../icon/ExpenseIcons";
@@ -8,6 +9,7 @@ import { BellIcon, ThemeIcon } from "../../icon/ExpenseIcons";
 export default function MobileDashboardView({
     budgets,
     categorySpending = [],
+    onManageBudget,
     onToggleTheme,
     summary,
     theme = "sage",
@@ -28,31 +30,34 @@ export default function MobileDashboardView({
 
     return (
         <div className="mobile-dashboard-view">
-            <header className="mobile-dashboard-view__header">
-                <div className="mobile-dashboard-view__header-copy">
-                    <p>
-                        Xin chào, {user?.displayName || user?.email } <span aria-hidden="true">👋</span>
-                    </p>
-                    <span>{formatDate(new Date())}</span>
-                </div>
-                <div className="mobile-dashboard-view__header-actions">
-                    <button
-                        aria-label={`Đổi giao diện hiện tại: ${theme}`}
-                        className="mobile-dashboard-view__theme-toggle"
-                        onClick={onToggleTheme}
-                        type="button"
-                    >
-                        <ThemeIcon size={22} />
-                    </button>
-                    <button
-                        aria-label="Thông báo"
-                        className="mobile-dashboard-view__notification"
-                        type="button"
-                    >
-                        <BellIcon size={22} />
-                    </button>
-                </div>
-            </header>
+            <MobilePageHeader
+                actions={
+                    <>
+                        <button
+                            aria-label={`Đổi giao diện hiện tại: ${theme}`}
+                            className="mobile-dashboard-view__theme-toggle"
+                            onClick={onToggleTheme}
+                            type="button"
+                        >
+                            <ThemeIcon size={22} />
+                        </button>
+                        <button
+                            aria-label="Thông báo"
+                            className="mobile-dashboard-view__notification"
+                            type="button"
+                        >
+                            <BellIcon size={22} />
+                        </button>
+                    </>
+                }
+                subtitle={formatDate(new Date())}
+                title={
+                    <>
+                        Xin chào, {user?.displayName || user?.email}{" "}
+                        <span aria-hidden="true">👋</span>
+                    </>
+                }
+            />
 
             <BalanceHeroCard
                 balance={balance}
@@ -62,7 +67,10 @@ export default function MobileDashboardView({
                 income={income}
                 incomeTrend={incomeTrend}
             />
-            <MonthlyBudgetCard budgets={budgets} />
+            <MonthlyBudgetCard
+                budgets={budgets}
+                onManageBudget={onManageBudget}
+            />
             <CategorySpendingCard
                 limit={5}
                 categories={categorySpending}

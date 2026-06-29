@@ -3,6 +3,7 @@ import ExpenseBottomNav from '../components/layout/ExpenseBottomNav'
 import MobileDashboardView from '../components/mobile/MobileDashboardView'
 import WebDashboardView from '../components/web/WebDashboardView'
 import AddTransactionPage from './AddTransactionPage'
+import BudgetPage from './BudgetPage'
 import SettingsPage from './SettingsPage'
 import TransactionsPage from './TransactionsPage'
 import { expenseNavItems } from '../data/mockExpenses'
@@ -368,6 +369,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             pageId === 'dashboard' ||
             pageId === 'transactions' ||
             pageId === 'add' ||
+            pageId === 'budget' ||
             pageId === 'settings'
         ) {
             setActiveMobilePage(pageId)
@@ -456,6 +458,19 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             return <TransactionsPage transactions={transactions} />
         }
 
+        if (activeMobilePage === 'budget') {
+            return (
+                <BudgetPage
+                    budgets={budgets}
+                    categories={categories}
+                    monthKey={currentMonthKey}
+                    onBack={() => setActiveMobilePage('dashboard')}
+                    onDeleteBudget={handleDeleteBudget}
+                    onSaveBudget={handleSaveBudget}
+                />
+            )
+        }
+
         if (activeMobilePage === 'settings') {
             return (
                 <SettingsPage
@@ -463,6 +478,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                     hideBalance={settings.hideBalance}
                     notificationsEnabled={settings.notificationsEnabled}
                     onLogout={handleLogout}
+                    onManageBudget={() => setActiveMobilePage('budget')}
                     onSettingChange={handleSettingChange}
                     onThemeChange={handleThemeChange}
                     settingsError={settingsError}
@@ -477,6 +493,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             <MobileDashboardView
                 budgets={budgets}
                 categorySpending={categorySpending}
+                onManageBudget={() => setActiveMobilePage('budget')}
                 onToggleTheme={handleToggleTheme}
                 summary={summary}
                 theme={settings.theme}

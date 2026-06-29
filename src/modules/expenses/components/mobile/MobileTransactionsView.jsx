@@ -5,6 +5,7 @@ import {
     getTransactionGroupLabel,
     groupTransactions,
 } from '../../utils/mobileTransactionUtils'
+import MobilePageHeader from './MobilePageHeader'
 import AmountText from '../shared/AmountText'
 import CategoryIcon from '../shared/CategoryIcon'
 
@@ -47,9 +48,11 @@ export default function MobileTransactionsView({ transactions = [] }) {
 
     return (
         <main className="mobile-transactions-view">
-            <header className="mobile-transactions-view__header">
-                <h1>Giao dịch</h1>
-            </header>
+            <MobilePageHeader
+                className="mobile-transactions-view__header"
+                title="Giao dịch"
+                titleTag="h1"
+            />
 
             <div className="mobile-transactions-view__search-row">
                 <label className="mobile-transactions-view__search">

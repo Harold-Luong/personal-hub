@@ -10,7 +10,11 @@ function getExpenseCategories(categories) {
     );
 }
 
-function getInitialCategoryId(categories, budgets) {
+function getInitialCategoryId(categories, budgets, preferredCategoryId) {
+    if (categories.some((category) => category.id === preferredCategoryId)) {
+        return preferredCategoryId;
+    }
+
     const budgetCategory = budgets.find((budget) =>
         categories.some((category) => category.id === budget.categoryId),
     );
@@ -43,12 +47,17 @@ function getCategoryName(categories, categoryId) {
 export default function BudgetForm({
     budgets = [],
     categories = [],
+    initialCategoryId: preferredCategoryId,
     onCancel,
     onDelete,
     onSubmit,
 }) {
     const expenseCategories = getExpenseCategories(categories);
-    const initialCategoryId = getInitialCategoryId(expenseCategories, budgets);
+    const initialCategoryId = getInitialCategoryId(
+        expenseCategories,
+        budgets,
+        preferredCategoryId,
+    );
     const initialBudget = getBudgetForCategory(budgets, initialCategoryId);
     const [categoryId, setCategoryId] = useState(initialCategoryId);
     const [limit, setLimit] = useState(() =>
