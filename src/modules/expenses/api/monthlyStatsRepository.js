@@ -3,6 +3,7 @@ import {
     getDocFromServer,
 } from 'firebase/firestore'
 import { firestore } from '../../../lib/firebase/firestore'
+import { getEmptyMonthlyStats } from '../utils/monthlyStatsUtils'
 
 function getMonthlyStatsRef(uid, monthKey) {
     if (!uid) {
@@ -22,18 +23,6 @@ function getMonthlyStatsRef(uid, monthKey) {
         'monthlyStats',
         monthKey,
     )
-}
-
-function getEmptyMonthlyStats(monthKey) {
-    return {
-        monthKey,
-        incomeMinor: 0,
-        expenseMinor: 0,
-        netMinor: 0,
-        transactionCount: 0,
-        categoryExpenseMinor: {},
-        categoryIncomeMinor: {},
-    }
 }
 
 export async function getExpenseMonthlyStats(uid, monthKey) {
