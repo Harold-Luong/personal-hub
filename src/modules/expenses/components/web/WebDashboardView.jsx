@@ -50,8 +50,8 @@ export default function WebDashboardView({
           />
         ) : null}
         <div className="web-dashboard-view__grid">
-          <CategorySpendingCard categories={categorySpending} />
-          <RecentTransactionsCard transactions={transactions} />
+          <CategorySpendingCard categories={categorySpending} limit={5} />
+          <RecentTransactionsCard transactions={transactions} limit={10}/>
           <BudgetOverviewCard budgets={budgets} />
           <WalletCard wallets={wallets} />
         </div>

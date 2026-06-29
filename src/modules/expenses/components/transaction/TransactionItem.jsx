@@ -16,6 +16,7 @@ export default function TransactionItem({ transaction }) {
       <div>
         <strong>{transaction.title}</strong>
         <p>{transaction.subtitle}</p>
+         <p>{transaction.note}</p>
       </div>
       <AmountText amount={transaction.amount} showSign />
     </article>

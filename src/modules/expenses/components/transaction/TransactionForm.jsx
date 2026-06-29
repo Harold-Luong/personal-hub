@@ -19,6 +19,15 @@ const transactionTypes = [
 const fallbackCategoryOptions = {
     transfer: [{ id: "transfer", name: "Chuyển khoản", icon: "transfer" }],
 };
+const weekdays = [
+    "Chủ nhật",
+    "Thứ 2",
+    "Thứ 3",
+    "Thứ 4",
+    "Thứ 5",
+    "Thứ 6",
+    "Thứ 7",
+];
 
 function getCategoryOptions(type, categories) {
     if (type === "transfer") {
@@ -30,6 +39,20 @@ function getCategoryOptions(type, categories) {
     );
 
     return typedCategories.length > 0 ? typedCategories : [];
+}
+
+function getTransactionSubtitle(date, time) {
+    const dateValue = new Date(`${date}T00:00:00`);
+
+    if (Number.isNaN(dateValue.getTime())) {
+        return time;
+    }
+
+    const day = String(dateValue.getDate()).padStart(2, "0");
+    const month = String(dateValue.getMonth() + 1).padStart(2, "0");
+    const dateLabel = `${weekdays[dateValue.getDay()]}, ${day}/${month}`;
+
+    return [time, dateLabel].filter(Boolean).join(" ");
 }
 
 export default function TransactionForm({
@@ -116,7 +139,7 @@ export default function TransactionForm({
                 fromWalletId: isTransfer ? selectedWalletId : null,
                 icon: isTransfer ? "transfer" : selectedCategory.icon,
                 note: note.trim(),
-                subtitle: time,
+                subtitle: getTransactionSubtitle(date, time),
                 time,
                 title: title.trim(),
                 toWalletId: isTransfer ? selectedToWalletId : null,

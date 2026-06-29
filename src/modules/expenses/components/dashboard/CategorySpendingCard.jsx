@@ -7,14 +7,15 @@ import DonutChart from "../shared/DonutChart";
 
 export default function CategorySpendingCard({
     categories = [],
+    limit,
     variant = "desktop",
 }) {
     const sortedCategories = [...categories].sort(
         (firstCategory, secondCategory) =>
             (secondCategory.percentage ?? 0) - (firstCategory.percentage ?? 0),
     );
-    const visibleCategories = sortedCategories.slice(0, 5);
-    const hiddenCategories = sortedCategories.slice(5);
+    const visibleCategories = limit ? sortedCategories.slice(0, limit) : sortedCategories;
+    const hiddenCategories = sortedCategories.slice(limit);
     const shouldShowDonut = variant === "desktop";
     const totalAmount = shouldShowDonut
         ? sortedCategories.reduce(
