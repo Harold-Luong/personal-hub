@@ -33,6 +33,16 @@
         grid-template-columns: 1fr;
     }
 
+    .category-spending-card--mobile .category-spending-card__chart {
+        width: 136px;
+    }
+
+    .category-spending-card--mobile .hidden-items {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
+    }
+
     .category-spending-card--mobile .category-row {
         grid-template-columns: auto minmax(0, 1fr) auto;
     }
