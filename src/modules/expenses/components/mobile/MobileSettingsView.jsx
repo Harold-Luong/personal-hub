@@ -6,6 +6,7 @@ import {
     ThemeIcon,
     WalletIcon,
 } from '../../icon/ExpenseIcons'
+import MobilePageHeader from './MobilePageHeader'
 
 const themeOptions = [
     { id: 'sage', label: 'Sage', color: '#6b8f71', accent: '#2f7246' },
@@ -42,6 +43,7 @@ export default function MobileSettingsView({
     hideBalance,
     notificationsEnabled,
     onLogout,
+    onManageBudget,
     onSettingChange,
     onThemeChange,
     settingsError,
@@ -79,9 +81,11 @@ export default function MobileSettingsView({
 
     return (
         <main className="mobile-settings-view">
-            <header className="mobile-settings-view__header">
-                <h1>Cài đặt</h1>
-            </header>
+            <MobilePageHeader
+                className="mobile-settings-view__header"
+                title="Cài đặt"
+                titleTag="h1"
+            />
 
             <section className="mobile-settings-view__profile section-card">
                 <span className="mobile-settings-view__avatar" aria-hidden="true">
@@ -203,13 +207,13 @@ export default function MobileSettingsView({
                 </div>
 
                 <div className="mobile-settings-view__management section-card">
-                    <div>
+                    <button onClick={onManageBudget} type="button">
                         <span>
                             <strong>Ngân sách tháng</strong>
                             <small>Thiết lập hạn mức theo danh mục</small>
                         </span>
                         <span aria-hidden="true">&gt;</span>
-                    </div>
+                    </button>
                     <div>
                         <span>
                             <strong>Ví của tôi</strong>

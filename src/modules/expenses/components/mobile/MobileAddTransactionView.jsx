@@ -1,3 +1,4 @@
+import MobilePageHeader from './MobilePageHeader'
 import TransactionForm from '../transaction/TransactionForm'
 
 export default function MobileAddTransactionView({
@@ -8,12 +9,16 @@ export default function MobileAddTransactionView({
 }) {
     return (
         <main className="mobile-add-transaction-view">
-            <header className="mobile-add-transaction-view__header">
-                <h1>Thêm giao dịch</h1>
-                <button onClick={onCancel} type="button">
-                    Hủy
-                </button>
-            </header>
+            <MobilePageHeader
+                actions={
+                    <button onClick={onCancel} type="button">
+                        Hủy
+                    </button>
+                }
+                className="mobile-add-transaction-view__header"
+                title="Thêm giao dịch"
+                titleTag="h1"
+            />
 
             <TransactionForm
                 categories={categories}

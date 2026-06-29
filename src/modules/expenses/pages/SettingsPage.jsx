@@ -5,6 +5,7 @@ export default function SettingsPage({
     hideBalance,
     notificationsEnabled,
     onLogout,
+    onManageBudget,
     onSettingChange,
     onThemeChange,
     settingsError,
@@ -18,6 +19,7 @@ export default function SettingsPage({
             hideBalance={hideBalance}
             notificationsEnabled={notificationsEnabled}
             onLogout={onLogout}
+            onManageBudget={onManageBudget}
             onSettingChange={onSettingChange}
             onThemeChange={onThemeChange}
             settingsError={settingsError}

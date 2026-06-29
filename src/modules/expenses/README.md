@@ -896,6 +896,11 @@ budget trong tháng hiện tại, lần lưu tiếp theo sẽ cập nhật budge
 document mới. Xóa budget dùng `deleteExpenseBudget()` và chỉ xóa config hạn mức,
 không ảnh hưởng transaction hoặc `monthlyStats`.
 
+Mobile mở `BudgetPage` từ `Cài đặt > Quản lý > Ngân sách tháng` hoặc từ card
+ngân sách trên dashboard. Trang này hiển thị tổng ngân sách tháng, danh sách
+budget theo category và mở bottom sheet `BudgetForm` để tạo, sửa hoặc xóa
+budget.
+
 ### Hiển thị cảnh báo
 
 ```text
