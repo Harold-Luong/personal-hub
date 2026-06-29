@@ -26,6 +26,24 @@ export function calculateBudgetUsagePercentage(budget) {
     return calculatePercentage(budget?.amount, budget?.limit)
 }
 
+// Phan loai trang thai ngan sach de UI doi mau khi cham nguong canh bao.
+export function getBudgetUsageStatus(budget, defaultAlertThreshold = 80) {
+    const percentage = calculateBudgetUsagePercentage(budget)
+    const alertThreshold = toSafeNumber(
+        budget?.alertThreshold ?? defaultAlertThreshold,
+    )
+
+    if (percentage >= 100) {
+        return 'exceeded'
+    }
+
+    if (alertThreshold > 0 && percentage >= alertThreshold) {
+        return 'warning'
+    }
+
+    return 'normal'
+}
+
 // Tinh tong tien da chi, tong han muc va phan tram su dung cua danh sach ngan sach.
 export function calculateMonthlyBudgetTotals(budgets = []) {
     const totals = budgets.reduce(

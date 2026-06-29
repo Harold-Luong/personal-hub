@@ -8,9 +8,10 @@ Firestore.
 
 Trạng thái hiện tại không còn chỉ là thiết kế. App đã có Firebase SDK,
 Firestore Security Rules, init settings/categories/wallet mặc định và các
-repository đọc categories/wallets/transactions từ Firestore. Add transaction
-đã ghi dữ liệu thật và cập nhật số dư ví. Budgets và một phần dashboard summary
-vẫn đang dùng mock/projection tạm thời.
+repository đọc categories/wallets/budgets/transactions/monthlyStats từ
+Firestore. Add transaction đã ghi dữ liệu thật và cập nhật số dư ví. Dashboard
+không còn dùng mock financial data trong runtime; dữ liệu tổng hợp vẫn được
+dựng từ projection để đọc nhanh.
 
 Mục tiêu của thiết kế:
 
@@ -24,31 +25,24 @@ Mục tiêu của thiết kế:
 
 ## 2. Hiện trạng
 
-Module hiện đang lấy dữ liệu từ:
-
-```text
-src/modules/expenses/data/mockExpenses.js
-```
-
-`DashboardPage` đọc transactions từ Firestore, giữ view model trong local state
-và truyền dữ liệu thật xuống các view mobile và desktop qua props.
-
-Các nhóm mock data còn lại:
-
-- `mockBudgets`
+`DashboardPage` đọc categories, wallets, budgets, monthlyStats và transactions
+từ Firestore, giữ view model trong local state và truyền dữ liệu thật xuống các
+view mobile và desktop qua props.
 
 Các nhóm đã chuyển sang Firestore:
 
 - `settings/main`
 - `wallets`
 - `categories`
+- `budgets`
+- `monthlyStats`
 - `transactions`
 
-Một số dữ liệu hiện vẫn là dữ liệu dẫn xuất/projection tạm:
+Một số dữ liệu hiện vẫn là dữ liệu dẫn xuất/projection:
 
-- Category spending trên dashboard đang được tính từ transactions đã tải.
+- Category spending trên dashboard được tính từ `monthlyStats.categoryExpenseMinor`.
 - `budget.amount` là số tiền đã chi, không phải cấu hình ngân sách.
-Khi chuyển sang Firestore, các giá trị này không được coi là nguồn sự thật.
+Các giá trị dẫn xuất này không được coi là nguồn sự thật.
 
 ## 3. Các quyết định chính
 
@@ -684,9 +678,9 @@ Triển khai hiện tại dùng `ensureUserDataInitialized()` để idempotently
 - ví mặc định `wallet-cash`
 - default expense/income categories
 
-Sau bootstrap, `DashboardPage` đọc categories qua `categoriesRepository` và
-wallets qua `walletsRepository`. Transactions, budgets, monthly stats và một số
-aggregate dashboard vẫn là bước tiếp theo.
+Sau bootstrap, `DashboardPage` đọc categories, wallets, budgets, monthly stats
+và transactions qua các repository tương ứng. Dashboard chỉ dựng view model từ
+dữ liệu thật và projection đã lưu.
 
 ## 10. Flow theme và settings
 
@@ -890,6 +884,10 @@ hình báo cáo hiện tại có thể dùng metadata mới theo `categoryId`.
 2. Client hoặc backend ghi document `{monthKey}_{categoryId}`.
 3. UI ghép budget với category spending trong monthly stats.
 
+Runtime hiện tại đọc budget bằng `budgetsRepository`, query theo `monthKey` và
+`orderBy categoryId`. `DashboardPage` ghép budget document với category metadata
+và `monthlyStats.categoryExpenseMinor` để tạo view model cho mobile/desktop.
+
 ### Hiển thị cảnh báo
 
 ```text
@@ -901,6 +899,9 @@ Trạng thái đề xuất:
 - Dưới threshold: bình thường.
 - Từ threshold đến dưới 100%: warning.
 - Từ 100% trở lên: exceeded.
+
+UI hiện tại đổi màu phần trăm và progress bar theo trạng thái: warning dùng màu
+vàng/cam cảnh báo, exceeded dùng màu đỏ.
 
 Notification backend có thể được bổ sung sau. V1 chỉ cần cảnh báo trong UI.
 
@@ -953,6 +954,7 @@ orderBy occurredAt desc
 
 ```text
 where monthKey == selectedMonth
+orderBy categoryId asc
 ```
 
 ### Phân trang
@@ -1047,6 +1049,7 @@ Client có thể trực tiếp ghi:
 
 - Một số field profile.
 - Expense settings đã whitelist.
+- Budget config đã validate (`monthKey`, `categoryId`, `limitMinor`, `alertThreshold`).
 - Metadata không ảnh hưởng tài chính nếu rules đủ chặt.
 
 Client không được trực tiếp ghi:
@@ -1183,6 +1186,7 @@ như expense âm.
   category: category.name,
   amount: categorySpentMinor,
   limit: budget.limitMinor,
+  alertThreshold: budget.alertThreshold,
   color: category.color,
   icon: category.icon
 }
@@ -1195,6 +1199,7 @@ Nên dùng realtime listener cho dữ liệu nhỏ và thay đổi thường xuy
 - Expense settings.
 - Wallets.
 - Categories.
+- Budgets của tháng đang xem.
 - Recent transactions.
 - Monthly stats của tháng đang xem.
 
@@ -1480,8 +1485,8 @@ phức tạp của phiên bản đầu.
 ```text
 Status: Design approved for implementation planning
 Implementation: In progress
-Mock data removal: Transactions removed from runtime
-Firebase integration: Settings/categories/wallets/transactions active
+Mock data removal: Financial dashboard mock data removed from runtime
+Firebase integration: Settings/categories/wallets/budgets/transactions/monthlyStats active
 ```
 
 Tài liệu này là contract thiết kế cho bước triển khai tiếp theo. Khi schema

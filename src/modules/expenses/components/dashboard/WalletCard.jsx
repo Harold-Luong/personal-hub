@@ -4,7 +4,7 @@ import SectionCard from '../shared/SectionCard'
 
 export default function WalletCard({ wallets = [] }) {
   return (
-    <SectionCard actionLabel="Xem tất cả" className="wallet-card" title="Ví của tôi">
+    <SectionCard className="wallet-card" title="Ví của tôi">
       {wallets.map((wallet) => (
         <article className="wallet-item" key={wallet.id}>
           <CategoryIcon

@@ -5,10 +5,7 @@ import WebDashboardView from '../components/web/WebDashboardView'
 import AddTransactionPage from './AddTransactionPage'
 import SettingsPage from './SettingsPage'
 import TransactionsPage from './TransactionsPage'
-import {
-    expenseNavItems,
-    mockBudgets,
-} from '../data/mockExpenses'
+import { expenseNavItems } from '../data/mockExpenses'
 import {
     calculateTrend,
     getEmptyMonthlyStats,
@@ -92,6 +89,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     )
     const [wallets, setWallets] = useState([])
     const [transactions, setTransactions] = useState([])
+    const [budgetLimits, setBudgetLimits] = useState([])
     const currentMonthKey = getCurrentMonthKey()
     const previousMonthKey = getPreviousMonthKey(currentMonthKey)
 
@@ -176,6 +174,29 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     useEffect(() => {
         let isCancelled = false
 
+        import('../api/budgetsRepository')
+            .then(({ getExpenseBudgets }) =>
+                getExpenseBudgets(user.uid, currentMonthKey),
+            )
+            .then((nextBudgets) => {
+                if (!isCancelled) {
+                    setBudgetLimits(nextBudgets)
+                }
+            })
+            .catch(() => {
+                if (!isCancelled) {
+                    setBudgetLimits([])
+                }
+            })
+
+        return () => {
+            isCancelled = true
+        }
+    }, [currentMonthKey, user.uid])
+
+    useEffect(() => {
+        let isCancelled = false
+
         import('../api/transactionsRepository')
             .then(({ getExpenseTransactions }) => getExpenseTransactions(user.uid))
             .then((nextTransactions) => {
@@ -203,6 +224,9 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         previousMonthlyStats.netMinor
         ?? previousMonthlyIncome - previousMonthlyExpense
     const categorySpendingById = monthlyStats.categoryExpenseMinor ?? {}
+    const categoriesById = new Map(
+        categories.map((category) => [category.id, category]),
+    )
     const categorySpending = categories
         .filter((category) => category.type === 'expense')
         .map((category) => ({
@@ -218,6 +242,22 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                     : 0,
         }))
         .filter((category) => category.amount > 0)
+    const budgets = budgetLimits
+        .map((budget) => {
+            const category = categoriesById.get(budget.categoryId)
+
+            return {
+                id: budget.id,
+                categoryId: budget.categoryId,
+                category: category?.name ?? budget.categoryId,
+                amount: categorySpendingById[budget.categoryId] ?? 0,
+                limit: budget.limitMinor,
+                alertThreshold: budget.alertThreshold,
+                color: category?.color ?? '#b8bec8',
+                icon: category?.icon ?? 'more',
+            }
+        })
+        .filter((budget) => budget.limit > 0)
     const totalWalletBalance = wallets.reduce(
         (total, wallet) => total + wallet.balance,
         0,
@@ -395,7 +435,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
 
         return (
             <MobileDashboardView
-                budgets={mockBudgets}
+                budgets={budgets}
                 categorySpending={categorySpending}
                 onToggleTheme={handleToggleTheme}
                 summary={summary}
@@ -419,7 +459,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 onNavigate={handleMobileNavigate}
             />
             <WebDashboardView
-                budgets={mockBudgets}
+                budgets={budgets}
                 categories={categories}
                 categorySpending={categorySpending}
                 navItems={expenseNavItems}

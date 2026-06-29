@@ -378,6 +378,12 @@
   gap: 16px;
 }
 
+.budget-overview-card__empty {
+  color: var(--expense-muted);
+  font-size: 14px;
+  margin: 0;
+}
+
 .budget-item {
   background: linear-gradient(135deg, color-mix(in srgb, var(--expense-surface-solid) 96%, transparent), color-mix(in srgb, var(--expense-active-soft) 70%, white));
   border: 1px solid var(--expense-border);
@@ -387,6 +393,24 @@
 
 .budget-item__top {
   margin-bottom: 12px;
+}
+
+.budget-item--warning {
+  border-color: color-mix(in srgb, #d98c00 42%, var(--expense-border));
+}
+
+.budget-item--warning .budget-item__top>span,
+.budget-item--warning strong {
+  color: #a86a00;
+}
+
+.budget-item--exceeded {
+  border-color: color-mix(in srgb, #dc1717 42%, var(--expense-border));
+}
+
+.budget-item--exceeded .budget-item__top>span,
+.budget-item--exceeded strong {
+  color: #dc1717;
 }
 
 .wallet-card {

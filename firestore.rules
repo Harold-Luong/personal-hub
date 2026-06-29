@@ -453,6 +453,61 @@ service cloud.firestore {
     }
 
     // =========================
+    // Budgets
+    // users/{uid}/modules/expenses/budgets/{budgetId}
+    // =========================
+
+    function allowedBudgetKeys() {
+      return [
+        'monthKey',
+        'categoryId',
+        'limitMinor',
+        'alertThreshold',
+        'createdAt',
+        'updatedAt',
+      ];
+    }
+
+    function isActiveExpenseCategory(uid, categoryId) {
+      return exists(/databases/$(database)/documents/users/$(uid)/modules/expenses/categories/$(categoryId))
+        && get(/databases/$(database)/documents/users/$(uid)/modules/expenses/categories/$(categoryId)).data.type == 'expense'
+        && get(/databases/$(database)/documents/users/$(uid)/modules/expenses/categories/$(categoryId)).data.isArchived == false;
+    }
+
+    function isValidBudgetData(data, uid) {
+      return data.keys().hasOnly(allowedBudgetKeys())
+        && data.keys().hasAll(allowedBudgetKeys())
+        && isValidString(data.monthKey)
+        && isValidString(data.categoryId)
+        && isActiveExpenseCategory(uid, data.categoryId)
+        && data.limitMinor is int
+        && data.limitMinor > 0
+        && data.alertThreshold is int
+        && data.alertThreshold >= 1
+        && data.alertThreshold <= 100;
+    }
+
+    function isValidBudgetCreate(data, uid) {
+      return isValidBudgetData(data, uid)
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    function isValidBudgetUpdate(uid) {
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'limitMinor',
+            'alertThreshold',
+            'updatedAt',
+          ])
+        && isValidBudgetData(request.resource.data, uid)
+        && request.resource.data.monthKey == resource.data.monthKey
+        && request.resource.data.categoryId == resource.data.categoryId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    // =========================
     // Monthly stats
     // users/{uid}/modules/expenses/monthlyStats/{monthKey}
     // =========================
@@ -551,6 +606,18 @@ service cloud.firestore {
             && isValidTransactionCreate(request.resource.data);
 
           allow update, delete: if false;
+        }
+
+        match /budgets/{budgetId} {
+          allow read: if isOwner(uid);
+
+          allow create: if isOwner(uid)
+            && isValidBudgetCreate(request.resource.data, uid);
+
+          allow update: if isOwner(uid)
+            && isValidBudgetUpdate(uid);
+
+          allow delete: if false;
         }
 
         match /monthlyStats/{monthKey} {
