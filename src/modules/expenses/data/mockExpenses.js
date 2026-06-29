@@ -1,38 +1,3 @@
-export const mockBudgets = [
-  {
-    id: 'budget-food',
-    category: 'An uong',
-    amount: 2100000,
-    limit: 3000000,
-    color: '#f4a340',
-    icon: 'utensils',
-  },
-  {
-    id: 'budget-home',
-    category: 'Nha cua',
-    amount: 1200000,
-    limit: 2000000,
-    color: '#4f93d7',
-    icon: 'home',
-  },
-  {
-    id: 'budget-shopping',
-    category: 'Mua sam',
-    amount: 900000,
-    limit: 1500000,
-    color: '#56b879',
-    icon: 'bag',
-  },
-  {
-    id: 'budget-fun',
-    category: 'Giai tri',
-    amount: 500000,
-    limit: 1000000,
-    color: '#9b7bd8',
-    icon: 'game',
-  },
-]
-
 export const expenseNavItems = [
   { id: 'dashboard', label: '', icon: 'home' },
   { id: 'transactions', label: '', icon: 'swap' },

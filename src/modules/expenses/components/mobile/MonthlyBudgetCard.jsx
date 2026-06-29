@@ -1,12 +1,22 @@
 import ProgressBar from "../shared/ProgressBar";
 import { formatCurrency } from "../../utils/formatCurrency";
-import { calculateMonthlyBudgetTotals } from "../../utils/expenseCalculations";
+import {
+    calculateMonthlyBudgetTotals,
+    getBudgetUsageStatus,
+} from "../../utils/expenseCalculations";
+
+const budgetStatusColors = {
+    exceeded: "#dc1717",
+    warning: "#d98c00",
+};
 
 export default function MonthlyBudgetCard({ budgets = [] }) {
     const { spent, limit, percentage } = calculateMonthlyBudgetTotals(budgets);
+    const status = getBudgetUsageStatus({ amount: spent, limit });
+    const statusColor = budgetStatusColors[status];
 
     return (
-        <section className="monthly-budget-card">
+        <section className={`monthly-budget-card monthly-budget-card--${status}`}>
             <h2>Ngân sách tháng</h2>
 
             <div className="monthly-budget-card__summary">
@@ -17,7 +27,7 @@ export default function MonthlyBudgetCard({ budgets = [] }) {
                 <strong>{percentage}%</strong>
             </div>
 
-            <ProgressBar max={limit} value={spent} />
+            <ProgressBar color={statusColor} max={limit} value={spent} />
         </section>
     );
 }

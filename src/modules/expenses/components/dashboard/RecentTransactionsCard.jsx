@@ -13,7 +13,6 @@ export default function RecentTransactionsCard({
     const hiddenTransaction = transactions.slice(limit);
     return (
         <SectionCard
-            actionLabel="Xem tất cả"
             className={`recent-transactions-card recent-transactions-card--${variant}`}
             title="Giao dịch gần đây"
         >

@@ -26,7 +26,6 @@ export default function CategorySpendingCard({
 
     return (
         <SectionCard
-            actionLabel="Xem chi tiết"
             className={`category-spending-card category-spending-card--${variant}`}
             title="Chi tiêu theo danh mục"
         >

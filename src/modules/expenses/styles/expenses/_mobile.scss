@@ -166,6 +166,14 @@
   font-size: 14px;
 }
 
+.monthly-budget-card--warning .monthly-budget-card__summary>strong {
+  color: #a86a00;
+}
+
+.monthly-budget-card--exceeded .monthly-budget-card__summary>strong {
+  color: #dc1717;
+}
+
 .monthly-budget-card__summary p>strong {
   font-size: 13px;
 }
