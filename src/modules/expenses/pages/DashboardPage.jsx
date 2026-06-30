@@ -1,153 +1,135 @@
-import { useEffect, useRef, useState } from 'react'
-import ExpenseBottomNav from '../components/layout/ExpenseBottomNav'
-import MobileDashboardView from '../components/mobile/MobileDashboardView'
-import WebDashboardView from '../components/web/WebDashboardView'
-import AddTransactionPage from './AddTransactionPage'
-import BudgetPage from './BudgetPage'
-import SettingsPage from './SettingsPage'
-import TransactionsPage from './TransactionsPage'
-import { expenseNavItems } from '../data/mockExpenses'
-import {
-    calculateTrend,
-    getEmptyMonthlyStats,
-    getPreviousMonthKey,
-} from '../utils/monthlyStatsUtils'
-import '../styles/expenses.scss'
+import { useEffect, useRef, useState } from "react";
+import ExpenseBottomNav from "../components/layout/ExpenseBottomNav";
+import MobileDashboardView from "../components/mobile/MobileDashboardView";
+import WebDashboardView from "../components/web/WebDashboardView";
+import AddTransactionPage from "./AddTransactionPage";
+import BudgetPage from "./BudgetPage";
+import SettingsPage from "./SettingsPage";
+import TransactionsPage from "./TransactionsPage";
+import { expenseNavItems } from "../data/mockExpenses";
+import { calculateTrend, getEmptyMonthlyStats, getPreviousMonthKey } from "../utils/monthlyStatsUtils";
+import "../styles/expenses.scss";
 
-const expenseThemes = ['sage', 'fjord', 'clay', 'blossom', 'vintage', 'retro']
-const expenseCurrencies = ['VND', 'USD']
+const expenseThemes = ["sage", "fjord", "clay", "blossom", "vintage", "retro"];
+const expenseCurrencies = ["VND", "USD"];
 const expenseSummaryItems = [
     {
-        id: 'balance',
-        label: 'Tổng số dư',
-        tone: 'positive',
-        icon: 'eye',
+        id: "balance",
+        label: "Tổng số dư",
+        tone: "positive",
+        icon: "eye",
     },
     {
-        id: 'income',
-        label: 'Tổng thu nhập',
-        tone: 'positive',
-        icon: 'wallet',
+        id: "income",
+        label: "Tổng thu nhập",
+        tone: "positive",
+        icon: "wallet",
     },
     {
-        id: 'expense',
-        label: 'Tổng chi tiêu',
-        tone: 'danger',
-        icon: 'card',
+        id: "expense",
+        label: "Tổng chi tiêu",
+        tone: "danger",
+        icon: "card",
     },
     {
-        id: 'saving',
-        label: 'Tiết kiệm',
-        tone: 'warning',
-        icon: 'saving',
+        id: "saving",
+        label: "Tiết kiệm",
+        tone: "warning",
+        icon: "saving",
     },
-]
+];
 
 function getCurrentMonthKey() {
-    const today = new Date()
-    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const today = new Date();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
 
-    return `${today.getFullYear()}-${month}`
+    return `${today.getFullYear()}-${month}`;
 }
 
 function getInitialSettings(initialSettings) {
     return {
-        currency: expenseCurrencies.includes(initialSettings?.currency)
-            ? initialSettings.currency
-            : 'VND',
-        hideBalance:
-            typeof initialSettings?.hideBalance === 'boolean'
-                ? initialSettings.hideBalance
-                : false,
+        currency: expenseCurrencies.includes(initialSettings?.currency) ? initialSettings.currency : "VND",
+        hideBalance: typeof initialSettings?.hideBalance === "boolean" ? initialSettings.hideBalance : false,
         notificationsEnabled:
-            typeof initialSettings?.notificationsEnabled === 'boolean'
-                ? initialSettings.notificationsEnabled
-                : true,
-        theme: expenseThemes.includes(initialSettings?.theme)
-            ? initialSettings.theme
-            : expenseThemes[0],
-    }
+            typeof initialSettings?.notificationsEnabled === "boolean" ? initialSettings.notificationsEnabled : true,
+        theme: expenseThemes.includes(initialSettings?.theme) ? initialSettings.theme : expenseThemes[0],
+    };
 }
 
 export default function DashboardPage({ initialSettings, onLogout, user }) {
-    const [activeMobilePage, setActiveMobilePage] = useState('dashboard')
-    const [areThemeTransitionsEnabled, setAreThemeTransitionsEnabled] =
-        useState(false)
-    const [settings, setSettings] = useState(() =>
-        getInitialSettings(initialSettings),
-    )
-    const [settingsError, setSettingsError] = useState('')
-    const confirmedSettingsRef = useRef(settings)
-    const settingRevisionsRef = useRef({})
-    const settingsRef = useRef(settings)
-    const settingsWriteQueueRef = useRef(Promise.resolve())
-    const [categories, setCategories] = useState([])
-    const [monthlyStats, setMonthlyStats] = useState(() =>
-        getEmptyMonthlyStats(getCurrentMonthKey()),
-    )
+    const [activeMobilePage, setActiveMobilePage] = useState("dashboard");
+    const [areThemeTransitionsEnabled, setAreThemeTransitionsEnabled] = useState(false);
+    const [settings, setSettings] = useState(() => getInitialSettings(initialSettings));
+    const [settingsError, setSettingsError] = useState("");
+    const confirmedSettingsRef = useRef(settings);
+    const settingRevisionsRef = useRef({});
+    const settingsRef = useRef(settings);
+    const settingsWriteQueueRef = useRef(Promise.resolve());
+    const [categories, setCategories] = useState([]);
+    const [monthlyStats, setMonthlyStats] = useState(() => getEmptyMonthlyStats(getCurrentMonthKey()));
     const [previousMonthlyStats, setPreviousMonthlyStats] = useState(() =>
         getEmptyMonthlyStats(getPreviousMonthKey(getCurrentMonthKey())),
-    )
-    const [wallets, setWallets] = useState([])
-    const [transactions, setTransactions] = useState([])
-    const [budgetLimits, setBudgetLimits] = useState([])
-    const currentMonthKey = getCurrentMonthKey()
-    const previousMonthKey = getPreviousMonthKey(currentMonthKey)
+    );
+    const [wallets, setWallets] = useState([]);
+    const [transactions, setTransactions] = useState([]);
+    const [budgetLimits, setBudgetLimits] = useState([]);
+    const currentMonthKey = getCurrentMonthKey();
+    const previousMonthKey = getPreviousMonthKey(currentMonthKey);
 
     useEffect(() => {
         const frameId = window.requestAnimationFrame(() => {
-            setAreThemeTransitionsEnabled(true)
-        })
+            setAreThemeTransitionsEnabled(true);
+        });
 
-        return () => window.cancelAnimationFrame(frameId)
-    }, [])
+        return () => window.cancelAnimationFrame(frameId);
+    }, []);
 
     useEffect(() => {
-        let isCancelled = false
+        let isCancelled = false;
 
-        import('../api/categoriesRepository')
+        import("../api/categoriesRepository")
             .then(({ getExpenseCategories }) => getExpenseCategories(user.uid))
             .then((nextCategories) => {
                 if (!isCancelled) {
-                    setCategories(nextCategories)
+                    setCategories(nextCategories);
                 }
             })
             .catch(() => {
                 if (!isCancelled) {
-                    setCategories([])
+                    setCategories([]);
                 }
-            })
+            });
 
         return () => {
-            isCancelled = true
-        }
-    }, [user.uid])
+            isCancelled = true;
+        };
+    }, [user.uid]);
 
     useEffect(() => {
-        let isCancelled = false
+        let isCancelled = false;
 
-        import('../api/walletsRepository')
+        import("../api/walletsRepository")
             .then(({ getExpenseWallets }) => getExpenseWallets(user.uid))
             .then((nextWallets) => {
                 if (!isCancelled) {
-                    setWallets(nextWallets)
+                    setWallets(nextWallets);
                 }
             })
             .catch(() => {
                 if (!isCancelled) {
-                    setWallets([])
+                    setWallets([]);
                 }
-            })
+            });
 
         return () => {
-            isCancelled = true
-        }
-    }, [user.uid])
+            isCancelled = true;
+        };
+    }, [user.uid]);
 
     useEffect(() => {
-        let isCancelled = false
+        let isCancelled = false;
 
-        import('../api/monthlyStatsRepository')
+        import("../api/monthlyStatsRepository")
             .then(({ getExpenseMonthlyStats }) =>
                 Promise.all([
                     getExpenseMonthlyStats(user.uid, currentMonthKey),
@@ -156,96 +138,84 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             )
             .then(([nextMonthlyStats, nextPreviousMonthlyStats]) => {
                 if (!isCancelled) {
-                    setMonthlyStats(nextMonthlyStats)
-                    setPreviousMonthlyStats(nextPreviousMonthlyStats)
+                    setMonthlyStats(nextMonthlyStats);
+                    setPreviousMonthlyStats(nextPreviousMonthlyStats);
                 }
             })
             .catch(() => {
                 if (!isCancelled) {
-                    setMonthlyStats(getEmptyMonthlyStats(currentMonthKey))
-                    setPreviousMonthlyStats(getEmptyMonthlyStats(previousMonthKey))
+                    setMonthlyStats(getEmptyMonthlyStats(currentMonthKey));
+                    setPreviousMonthlyStats(getEmptyMonthlyStats(previousMonthKey));
                 }
-            })
+            });
 
         return () => {
-            isCancelled = true
-        }
-    }, [currentMonthKey, previousMonthKey, user.uid])
+            isCancelled = true;
+        };
+    }, [currentMonthKey, previousMonthKey, user.uid]);
 
     useEffect(() => {
-        let isCancelled = false
+        let isCancelled = false;
 
-        import('../api/budgetsRepository')
-            .then(({ getExpenseBudgets }) =>
-                getExpenseBudgets(user.uid, currentMonthKey),
-            )
+        import("../api/budgetsRepository")
+            .then(({ getExpenseBudgets }) => getExpenseBudgets(user.uid, currentMonthKey))
             .then((nextBudgets) => {
                 if (!isCancelled) {
-                    setBudgetLimits(nextBudgets)
+                    setBudgetLimits(nextBudgets);
                 }
             })
             .catch(() => {
                 if (!isCancelled) {
-                    setBudgetLimits([])
+                    setBudgetLimits([]);
                 }
-            })
+            });
 
         return () => {
-            isCancelled = true
-        }
-    }, [currentMonthKey, user.uid])
+            isCancelled = true;
+        };
+    }, [currentMonthKey, user.uid]);
 
     useEffect(() => {
-        let isCancelled = false
+        let isCancelled = false;
 
-        import('../api/transactionsRepository')
+        import("../api/transactionsRepository")
             .then(({ getExpenseTransactions }) => getExpenseTransactions(user.uid))
             .then((nextTransactions) => {
                 if (!isCancelled) {
-                    setTransactions(nextTransactions)
+                    setTransactions(nextTransactions);
                 }
             })
             .catch(() => {
                 if (!isCancelled) {
-                    setTransactions([])
+                    setTransactions([]);
                 }
-            })
+            });
 
         return () => {
-            isCancelled = true
-        }
-    }, [user.uid])
+            isCancelled = true;
+        };
+    }, [user.uid]);
 
-    const monthlyIncome = monthlyStats.incomeMinor ?? 0
-    const monthlyExpense = monthlyStats.expenseMinor ?? 0
-    const monthlySaving = monthlyStats.netMinor ?? monthlyIncome - monthlyExpense
-    const previousMonthlyIncome = previousMonthlyStats.incomeMinor ?? 0
-    const previousMonthlyExpense = previousMonthlyStats.expenseMinor ?? 0
-    const previousMonthlySaving =
-        previousMonthlyStats.netMinor
-        ?? previousMonthlyIncome - previousMonthlyExpense
-    const categorySpendingById = monthlyStats.categoryExpenseMinor ?? {}
-    const categoriesById = new Map(
-        categories.map((category) => [category.id, category]),
-    )
+    const monthlyIncome = monthlyStats.incomeMinor ?? 0;
+    const monthlyExpense = monthlyStats.expenseMinor ?? 0;
+    const monthlySaving = monthlyStats.netMinor ?? monthlyIncome - monthlyExpense;
+    const previousMonthlyIncome = previousMonthlyStats.incomeMinor ?? 0;
+    const previousMonthlyExpense = previousMonthlyStats.expenseMinor ?? 0;
+    const previousMonthlySaving = previousMonthlyStats.netMinor ?? previousMonthlyIncome - previousMonthlyExpense;
+    const categorySpendingById = monthlyStats.categoryExpenseMinor ?? {};
+    const categoriesById = new Map(categories.map((category) => [category.id, category]));
     const categorySpending = categories
-        .filter((category) => category.type === 'expense')
+        .filter((category) => category.type === "expense")
         .map((category) => ({
             ...category,
             amount: categorySpendingById[category.id] ?? 0,
             percentage:
-                monthlyExpense > 0
-                    ? Math.round(
-                        ((categorySpendingById[category.id] ?? 0)
-                            / monthlyExpense)
-                        * 100,
-                    )
-                    : 0,
+                monthlyExpense > 0 ? Math.round(((categorySpendingById[category.id] ?? 0) / monthlyExpense) * 100) : 0,
         }))
-        .filter((category) => category.amount > 0)
+        .filter((category) => category.amount > 0);
     const budgets = budgetLimits
         .map((budget) => {
-            const category = categoriesById.get(budget.categoryId)
+            const category = categoriesById.get(budget.categoryId);
 
             return {
                 id: budget.id,
@@ -254,231 +224,217 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 amount: categorySpendingById[budget.categoryId] ?? 0,
                 limit: budget.limitMinor,
                 alertThreshold: budget.alertThreshold,
-                color: category?.color ?? '#b8bec8',
-                icon: category?.icon ?? 'more',
-            }
+                color: category?.color ?? "#b8bec8",
+                icon: category?.icon ?? "more",
+            };
         })
-        .filter((budget) => budget.limit > 0)
-    const totalWalletBalance = wallets.reduce(
-        (total, wallet) => total + wallet.balance,
-        0,
-    )
+        .filter((budget) => budget.limit > 0);
+    const totalWalletBalance = wallets.reduce((total, wallet) => total + wallet.balance, 0);
     const summary = expenseSummaryItems.map((item) => {
-        if (item.id === 'balance') {
+        if (item.id === "balance") {
             return {
                 ...item,
                 trend: 0,
                 value: totalWalletBalance,
-            }
+            };
         }
 
-        if (item.id === 'income') {
+        if (item.id === "income") {
             return {
                 ...item,
                 trend: calculateTrend(monthlyIncome, previousMonthlyIncome),
                 value: monthlyIncome,
-            }
+            };
         }
 
-        if (item.id === 'expense') {
+        if (item.id === "expense") {
             return {
                 ...item,
                 trend: calculateTrend(monthlyExpense, previousMonthlyExpense),
                 value: monthlyExpense,
-            }
+            };
         }
 
-        if (item.id === 'saving') {
+        if (item.id === "saving") {
             return {
                 ...item,
                 trend: calculateTrend(monthlySaving, previousMonthlySaving),
                 value: monthlySaving,
-            }
+            };
         }
 
-        return item
-    })
+        return item;
+    });
 
     const handleSettingChange = (key, nextValue) => {
         if (nextValue === settingsRef.current[key]) {
-            return
+            return;
         }
 
-        const revision = (settingRevisionsRef.current[key] ?? 0) + 1
-        settingRevisionsRef.current[key] = revision
+        const revision = (settingRevisionsRef.current[key] ?? 0) + 1;
+        settingRevisionsRef.current[key] = revision;
         settingsRef.current = {
             ...settingsRef.current,
             [key]: nextValue,
-        }
+        };
 
-        setSettings(settingsRef.current)
-        setSettingsError('')
+        setSettings(settingsRef.current);
+        setSettingsError("");
 
         const writePromise = settingsWriteQueueRef.current
-            .catch(() => { })
+            .catch(() => {})
             .then(async () => {
-                const { updateExpenseSettings } = await import(
-                    '../api/expenseSettingsRepository'
-                )
+                const { updateExpenseSettings } = await import("../api/expenseSettingsRepository");
 
                 await updateExpenseSettings(user.uid, {
                     [key]: nextValue,
-                })
+                });
                 confirmedSettingsRef.current = {
                     ...confirmedSettingsRef.current,
                     [key]: nextValue,
-                }
-            })
+                };
+            });
 
-        settingsWriteQueueRef.current = writePromise
+        settingsWriteQueueRef.current = writePromise;
 
         writePromise.catch(() => {
             if (settingRevisionsRef.current[key] === revision) {
                 settingsRef.current = {
                     ...settingsRef.current,
                     [key]: confirmedSettingsRef.current[key],
-                }
-                setSettings(settingsRef.current)
-                setSettingsError(
-                    'Không thể lưu cài đặt. Vui lòng kiểm tra kết nối và thử lại.',
-                )
+                };
+                setSettings(settingsRef.current);
+                setSettingsError("Không thể lưu cài đặt. Vui lòng kiểm tra kết nối và thử lại.");
             }
-        })
-    }
+        });
+    };
 
     const handleThemeChange = (nextTheme) => {
         if (expenseThemes.includes(nextTheme)) {
-            handleSettingChange('theme', nextTheme)
+            handleSettingChange("theme", nextTheme);
         }
-    }
+    };
 
     const handleToggleTheme = () => {
-        const currentIndex = expenseThemes.indexOf(settingsRef.current.theme)
-        const nextIndex = (currentIndex + 1) % expenseThemes.length
+        const currentIndex = expenseThemes.indexOf(settingsRef.current.theme);
+        const nextIndex = (currentIndex + 1) % expenseThemes.length;
 
-        handleThemeChange(expenseThemes[nextIndex])
-    }
+        handleThemeChange(expenseThemes[nextIndex]);
+    };
 
     const handleLogout = async () => {
-        await settingsWriteQueueRef.current
-        await onLogout()
-    }
+        await settingsWriteQueueRef.current;
+        await onLogout();
+    };
 
     const handleMobileNavigate = (pageId) => {
         if (
-            pageId === 'dashboard' ||
-            pageId === 'transactions' ||
-            pageId === 'add' ||
-            pageId === 'budget' ||
-            pageId === 'settings'
+            pageId === "dashboard" ||
+            pageId === "transactions" ||
+            pageId === "add" ||
+            pageId === "budget" ||
+            pageId === "settings"
         ) {
-            setActiveMobilePage(pageId)
+            setActiveMobilePage(pageId);
         }
-    }
+    };
 
     const handleAddTransaction = async (transaction) => {
-        const { createExpenseTransaction } = await import(
-            '../api/transactionsRepository'
-        )
-        const result = await createExpenseTransaction(user.uid, transaction)
+        const { createExpenseTransaction } = await import("../api/transactionsRepository");
+        const result = await createExpenseTransaction(user.uid, transaction);
 
-        setTransactions((currentTransactions) => [
-            result.transaction,
-            ...currentTransactions,
-        ])
+        setTransactions((currentTransactions) => [result.transaction, ...currentTransactions]);
         setWallets((currentWallets) =>
             currentWallets.map((wallet) =>
                 Object.hasOwn(result.walletBalanceUpdates, wallet.id)
                     ? {
-                        ...wallet,
-                        balance: result.walletBalanceUpdates[wallet.id],
-                    }
+                          ...wallet,
+                          balance: result.walletBalanceUpdates[wallet.id],
+                      }
                     : wallet,
             ),
-        )
+        );
         if (result.monthlyStats?.monthKey === currentMonthKey) {
-            setMonthlyStats(result.monthlyStats)
+            setMonthlyStats(result.monthlyStats);
         }
-        setActiveMobilePage('transactions')
-    }
+        setActiveMobilePage("transactions");
+    };
 
     const handleSaveBudget = async (budget) => {
-        const { upsertExpenseBudget } = await import('../api/budgetsRepository')
+        const { upsertExpenseBudget } = await import("../api/budgetsRepository");
         const result = await upsertExpenseBudget(user.uid, {
             ...budget,
             monthKey: currentMonthKey,
-        })
+        });
 
         setBudgetLimits((currentBudgets) => {
             const existingBudgetIndex = currentBudgets.findIndex(
                 (currentBudget) =>
-                    currentBudget.monthKey === result.monthKey
-                    && currentBudget.categoryId === result.categoryId,
-            )
+                    currentBudget.monthKey === result.monthKey && currentBudget.categoryId === result.categoryId,
+            );
 
             if (existingBudgetIndex === -1) {
-                return [...currentBudgets, result]
+                return [...currentBudgets, result];
             }
 
             return currentBudgets.map((currentBudget, index) =>
                 index === existingBudgetIndex ? result : currentBudget,
-            )
-        })
-    }
+            );
+        });
+    };
 
     const handleDeleteBudget = async (budget) => {
-        const { deleteExpenseBudget } = await import('../api/budgetsRepository')
+        const { deleteExpenseBudget } = await import("../api/budgetsRepository");
         const result = await deleteExpenseBudget(user.uid, {
             ...budget,
             monthKey: currentMonthKey,
-        })
+        });
 
         setBudgetLimits((currentBudgets) =>
             currentBudgets.filter(
                 (currentBudget) =>
-                    currentBudget.monthKey !== result.monthKey
-                    || currentBudget.categoryId !== result.categoryId,
+                    currentBudget.monthKey !== result.monthKey || currentBudget.categoryId !== result.categoryId,
             ),
-        )
-    }
+        );
+    };
 
     const renderMobilePage = () => {
-        if (activeMobilePage === 'add') {
+        if (activeMobilePage === "add") {
             return (
                 <AddTransactionPage
                     categories={categories}
-                    onCancel={() => setActiveMobilePage('dashboard')}
+                    onCancel={() => setActiveMobilePage("dashboard")}
                     onSubmit={handleAddTransaction}
                     wallets={wallets}
                 />
-            )
+            );
         }
 
-        if (activeMobilePage === 'transactions') {
-            return <TransactionsPage transactions={transactions} />
+        if (activeMobilePage === "transactions") {
+            return <TransactionsPage transactions={transactions} />;
         }
 
-        if (activeMobilePage === 'budget') {
+        if (activeMobilePage === "budget") {
             return (
                 <BudgetPage
                     budgets={budgets}
                     categories={categories}
                     monthKey={currentMonthKey}
-                    onBack={() => setActiveMobilePage('dashboard')}
+                    onBack={() => setActiveMobilePage("dashboard")}
                     onDeleteBudget={handleDeleteBudget}
                     onSaveBudget={handleSaveBudget}
                 />
-            )
+            );
         }
 
-        if (activeMobilePage === 'settings') {
+        if (activeMobilePage === "settings") {
             return (
                 <SettingsPage
                     currency={settings.currency}
                     hideBalance={settings.hideBalance}
                     notificationsEnabled={settings.notificationsEnabled}
                     onLogout={handleLogout}
-                    onManageBudget={() => setActiveMobilePage('budget')}
+                    onManageBudget={() => setActiveMobilePage("budget")}
                     onSettingChange={handleSettingChange}
                     onThemeChange={handleThemeChange}
                     settingsError={settingsError}
@@ -486,35 +442,30 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                     user={user}
                     wallets={wallets}
                 />
-            )
+            );
         }
 
         return (
             <MobileDashboardView
                 budgets={budgets}
                 categorySpending={categorySpending}
-                onManageBudget={() => setActiveMobilePage('budget')}
+                onManageBudget={() => setActiveMobilePage("budget")}
                 onToggleTheme={handleToggleTheme}
                 summary={summary}
                 theme={settings.theme}
                 transactions={transactions}
                 user={user}
             />
-        )
-    }
+        );
+    };
 
     return (
         <div
-            className={`expenses-page expenses-dashboard-page${areThemeTransitionsEnabled ? ' is-theme-ready' : ''
-                }`}
+            className={`expenses-page expenses-dashboard-page${areThemeTransitionsEnabled ? " is-theme-ready" : ""}`}
             data-theme={settings.theme}
         >
             {renderMobilePage()}
-            <ExpenseBottomNav
-                activeId={activeMobilePage}
-                items={expenseNavItems}
-                onNavigate={handleMobileNavigate}
-            />
+            <ExpenseBottomNav activeId={activeMobilePage} items={expenseNavItems} onNavigate={handleMobileNavigate} />
             <WebDashboardView
                 budgets={budgets}
                 categories={categories}
@@ -532,5 +483,5 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 wallets={wallets}
             />
         </div>
-    )
+    );
 }

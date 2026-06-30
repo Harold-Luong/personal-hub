@@ -1,9 +1,9 @@
 export const expenseNavItems = [
-  { id: 'dashboard', label: '', icon: 'home' },
-  { id: 'transactions', label: '', icon: 'swap' },
-  { id: 'budget', label: '', icon: 'wallet' },
-  { id: 'report', label: '', icon: 'chart' },
-  { id: 'settings', label: '', icon: 'settings' },
+  { id: 'dashboard', label: 'Trang chủ', icon: 'home' },
+  { id: 'transactions', label: 'Giao dịch', icon: 'swap' },
+  { id: 'budget', label: 'Ngân sách', icon: 'wallet' },
+  { id: 'report', label: 'Báo cáo', icon: 'chart' },
+  { id: 'settings', label: 'Cài đặt', icon: 'settings' },
 ]
 
 export const scandinavianCategoryColors = [
