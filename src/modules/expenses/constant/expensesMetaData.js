@@ -26,7 +26,7 @@ export const expenseNavItems = [
     {
         id: "categories",
         label: "Danh mục",
-        icon: "momo",
+        icon: "category",
         path: "/expenses/categories",
     },
     {

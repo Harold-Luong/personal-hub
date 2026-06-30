@@ -9,7 +9,7 @@ const budgetStatusColors = {
     warning: "#d98c00",
 };
 
-export default function BudgetOverviewCard({ budgets = [], onManageBudget }) {
+export default function BudgetOverviewCard({ budgets = [], onManageBudget, onSelectBudget }) {
     return (
         <SectionCard
             actionLabel={budgets.length ? "Quản lý" : "Tạo ngân sách"}
@@ -23,7 +23,12 @@ export default function BudgetOverviewCard({ budgets = [], onManageBudget }) {
                     const statusColor = budgetStatusColors[status] ?? budget.color;
 
                     return (
-                        <article className={`budget-item budget-item--${status}`} key={budget.id ?? budget.category}>
+                        <button
+                            className={`budget-item budget-item--${status}`}
+                            key={budget.id ?? budget.category}
+                            onClick={() => onSelectBudget?.(budget.categoryId)}
+                            type="button"
+                        >
                             <ExpenseIcon
                                 appearance="emoji"
                                 color={budget.color}
@@ -48,7 +53,7 @@ export default function BudgetOverviewCard({ budgets = [], onManageBudget }) {
                                 <ProgressBar color={statusColor} max={budget.limit} value={budget.amount} />
                             </div>
                             <span className="budget-item__percentage">{calculateBudgetUsagePercentage(budget)}%</span>
-                        </article>
+                        </button>
                     );
                 })
             ) : (

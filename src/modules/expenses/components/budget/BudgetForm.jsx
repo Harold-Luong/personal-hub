@@ -10,16 +10,16 @@ function getInitialCategoryId(categories, budgets, preferredCategoryId) {
         return preferredCategoryId;
     }
 
-    const budgetCategory = budgets.find((budget) => categories.some((category) => category.id === budget.categoryId));
-
-    if (budgetCategory) {
-        return budgetCategory.categoryId;
-    }
-
     const budgetCategoryIds = new Set(budgets.map((budget) => budget.categoryId));
     const categoryWithoutBudget = categories.find((category) => !budgetCategoryIds.has(category.id));
 
-    return categoryWithoutBudget?.id ?? categories[0]?.id ?? "";
+    if (categoryWithoutBudget) {
+        return categoryWithoutBudget.id;
+    }
+
+    const budgetCategory = budgets.find((budget) => categories.some((category) => category.id === budget.categoryId));
+
+    return budgetCategory?.categoryId ?? categories[0]?.id ?? "";
 }
 
 function getBudgetForCategory(budgets, categoryId) {

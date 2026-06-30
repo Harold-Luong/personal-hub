@@ -27,6 +27,7 @@ export default function WebDashboardView({
 }) {
     const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
     const [isBudgetOpen, setIsBudgetOpen] = useState(false);
+    const [selectedBudgetCategoryId, setSelectedBudgetCategoryId] = useState("");
 
     const handleAddTransaction = async (transaction) => {
         await onAddTransaction?.(transaction);
@@ -36,11 +37,28 @@ export default function WebDashboardView({
     const handleSaveBudget = async (budget) => {
         await onSaveBudget?.(budget);
         setIsBudgetOpen(false);
+        setSelectedBudgetCategoryId("");
     };
 
     const handleDeleteBudget = async (budget) => {
         await onDeleteBudget?.(budget);
         setIsBudgetOpen(false);
+        setSelectedBudgetCategoryId("");
+    };
+
+    const closeBudgetPanel = () => {
+        setIsBudgetOpen(false);
+        setSelectedBudgetCategoryId("");
+    };
+
+    const openBudgetPanel = () => {
+        setSelectedBudgetCategoryId("");
+        setIsBudgetOpen(true);
+    };
+
+    const openBudgetPanelForCategory = (categoryId) => {
+        setSelectedBudgetCategoryId(categoryId);
+        setIsBudgetOpen(true);
     };
 
     return (
@@ -67,7 +85,8 @@ export default function WebDashboardView({
                     <WebBudgetPanel
                         budgets={budgets}
                         categories={categories}
-                        onCancel={() => setIsBudgetOpen(false)}
+                        initialCategoryId={selectedBudgetCategoryId}
+                        onCancel={closeBudgetPanel}
                         onDelete={handleDeleteBudget}
                         onSubmit={handleSaveBudget}
                     />
@@ -75,7 +94,11 @@ export default function WebDashboardView({
                 <div className="web-dashboard-view__grid">
                     <CategorySpendingCard categories={categorySpending} limit={5} />
                     <RecentTransactionsCard transactions={transactions} limit={10} />
-                    <BudgetOverviewCard budgets={budgets} onManageBudget={() => setIsBudgetOpen(true)} />
+                    <BudgetOverviewCard
+                        budgets={budgets}
+                        onManageBudget={openBudgetPanel}
+                        onSelectBudget={openBudgetPanelForCategory}
+                    />
                     <WalletCard wallets={wallets} />
                 </div>
             </main>
