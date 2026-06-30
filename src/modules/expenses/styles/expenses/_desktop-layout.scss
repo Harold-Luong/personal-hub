@@ -2,7 +2,8 @@
     background: color-mix(in srgb, var(--expense-surface-solid) 72%, transparent);
     border-right: 1px solid var(--expense-border);
     display: grid;
-    grid-template-rows: auto auto 1fr auto;
+    grid-template-rows: auto auto auto;
+    align-content: start;
     padding: 28px;
 }
 
@@ -29,11 +30,10 @@
 
 .expense-sidebar__profile {
     background: color-mix(in srgb, var(--expense-surface-solid) 86%, transparent);
-    border: 1px solid var(--expense-border);
     border-radius: 8px;
     display: grid;
     gap: 7px;
-    margin-bottom: 28px;
+    margin-bottom: 14px;
     padding: 16px;
 }
 
@@ -66,6 +66,7 @@
 }
 
 .expense-sidebar nav button {
+    align-self: flex-start;
     align-items: center;
     background: transparent;
     border-radius: 8px;
@@ -80,30 +81,6 @@
     background: var(--expense-active-soft);
     color: var(--expense-active-strong);
     font-weight: 800;
-}
-
-.expense-sidebar__upgrade {
-    background: linear-gradient(135deg, color-mix(in srgb, var(--expense-surface-solid) 86%, var(--expense-active-soft)), var(--expense-active-soft));
-    border: 1px solid var(--expense-border);
-    border-radius: 8px;
-    padding: 18px;
-}
-
-.expense-sidebar__upgrade p {
-    color: var(--expense-muted);
-    font-size: 13px;
-    line-height: 1.45;
-}
-
-.expense-sidebar__upgrade button {
-    background: var(--expense-active-strong);
-    border: 0;
-    border-radius: 7px;
-    color: white;
-    font: inherit;
-    font-weight: 800;
-    padding: 10px 14px;
-    width: 100%;
 }
 
 .expense-header {
