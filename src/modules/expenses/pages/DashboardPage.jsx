@@ -6,38 +6,9 @@ import AddTransactionPage from "./AddTransactionPage";
 import BudgetPage from "./BudgetPage";
 import SettingsPage from "./SettingsPage";
 import TransactionsPage from "./TransactionsPage";
-import { expenseNavItems } from "../data/mockExpenses";
+import { expenseCurrencies, expenseNavItems, expenseSummaryItems, expenseThemes } from "../constant/expensesMetaData";
 import { calculateTrend, getEmptyMonthlyStats, getPreviousMonthKey } from "../utils/monthlyStatsUtils";
 import "../styles/expenses.scss";
-
-const expenseThemes = ["sage", "fjord", "clay", "blossom", "vintage", "retro"];
-const expenseCurrencies = ["VND", "USD"];
-const expenseSummaryItems = [
-    {
-        id: "balance",
-        label: "Tổng số dư",
-        tone: "positive",
-        icon: "eye",
-    },
-    {
-        id: "income",
-        label: "Tổng thu nhập",
-        tone: "positive",
-        icon: "wallet",
-    },
-    {
-        id: "expense",
-        label: "Tổng chi tiêu",
-        tone: "danger",
-        icon: "card",
-    },
-    {
-        id: "saving",
-        label: "Tiết kiệm",
-        tone: "warning",
-        icon: "saving",
-    },
-];
 
 function getCurrentMonthKey() {
     const today = new Date();

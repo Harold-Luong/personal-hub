@@ -1,21 +1,7 @@
-import { useState } from 'react'
-import {
-    BellIcon,
-    LogoutIcon,
-    SettingsIcon,
-    ThemeIcon,
-    WalletIcon,
-} from '../../icon/ExpenseIcons'
-import MobilePageHeader from './MobilePageHeader'
-
-const themeOptions = [
-    { id: 'sage', label: 'Sage', color: '#6b8f71', accent: '#2f7246' },
-    { id: 'fjord', label: 'Fjord', color: '#8fa6ac', accent: '#3f7280' },
-    { id: 'clay', label: 'Clay', color: '#c97964', accent: '#9f5947' },
-    { id: 'blossom', label: 'Blossom', color: '#d77fa1', accent: '#ad5278' },
-    { id: 'vintage', label: 'Vintage', color: '#87966b', accent: '#ae8b52' },
-    { id: 'retro', label: 'Retro', color: '#d2673d', accent: '#14706c' },
-]
+import { useState } from "react";
+import { BellIcon, LogoutIcon, SettingsIcon, ThemeIcon, WalletIcon } from "../../icon/ExpenseIcons";
+import { expenseThemeOptions } from "../../constant/expensesMetaData";
+import MobilePageHeader from "./MobilePageHeader";
 
 function SettingsSwitch({ checked, description, label, onChange }) {
     return (
@@ -27,7 +13,7 @@ function SettingsSwitch({ checked, description, label, onChange }) {
             <button
                 aria-checked={checked}
                 aria-label={label}
-                className={`mobile-settings-view__switch${checked ? ' is-active' : ''}`}
+                className={`mobile-settings-view__switch${checked ? " is-active" : ""}`}
                 onClick={() => onChange(!checked)}
                 role="switch"
                 type="button"
@@ -35,7 +21,7 @@ function SettingsSwitch({ checked, description, label, onChange }) {
                 <span />
             </button>
         </div>
-    )
+    );
 }
 
 export default function MobileSettingsView({
@@ -51,59 +37,48 @@ export default function MobileSettingsView({
     user,
     wallets = [],
 }) {
-    const [logoutError, setLogoutError] = useState('')
-    const [isSigningOut, setIsSigningOut] = useState(false)
-    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-    const [failedProfilePhotoUrl, setFailedProfilePhotoUrl] = useState('')
-    const profileName = user?.displayName || user?.email || 'Tài khoản'
-    const profilePhotoUrl = user?.photoURL || ''
-    const shouldShowProfilePhoto =
-        profilePhotoUrl && failedProfilePhotoUrl !== profilePhotoUrl
+    const [logoutError, setLogoutError] = useState("");
+    const [isSigningOut, setIsSigningOut] = useState(false);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [failedProfilePhotoUrl, setFailedProfilePhotoUrl] = useState("");
+    const profileName = user?.displayName || user?.email || "Tài khoản";
+    const profilePhotoUrl = user?.photoURL || "";
+    const shouldShowProfilePhoto = profilePhotoUrl && failedProfilePhotoUrl !== profilePhotoUrl;
     const avatarLabel = profileName
         .split(/\s+/)
         .filter(Boolean)
         .slice(0, 2)
         .map((part) => part[0])
-        .join('')
-        .toUpperCase()
+        .join("")
+        .toUpperCase();
 
     const handleLogout = async () => {
-        setLogoutError('')
-        setIsSigningOut(true)
+        setLogoutError("");
+        setIsSigningOut(true);
 
         try {
-            await onLogout?.()
+            await onLogout?.();
         } catch {
-            setLogoutError('Không thể đăng xuất. Vui lòng thử lại.')
-            setIsSigningOut(false)
+            setLogoutError("Không thể đăng xuất. Vui lòng thử lại.");
+            setIsSigningOut(false);
         }
-    }
+    };
 
     return (
         <main className="mobile-settings-view">
-            <MobilePageHeader
-                className="mobile-settings-view__header"
-                title="Cài đặt"
-                titleTag="h1"
-            />
+            <MobilePageHeader className="mobile-settings-view__header" title="Cài đặt" titleTag="h1" />
 
             <section className="mobile-settings-view__profile section-card">
                 <span className="mobile-settings-view__avatar" aria-hidden="true">
                     {shouldShowProfilePhoto ? (
-                        <img
-                            alt=""
-                            onError={() =>
-                                setFailedProfilePhotoUrl(profilePhotoUrl)
-                            }
-                            src={profilePhotoUrl}
-                        />
+                        <img alt="" onError={() => setFailedProfilePhotoUrl(profilePhotoUrl)} src={profilePhotoUrl} />
                     ) : (
-                        avatarLabel || 'TK'
+                        avatarLabel || "TK"
                     )}
                 </span>
                 <span className="mobile-settings-view__profile-copy">
                     <strong>{profileName}</strong>
-                    <small>{user?.email || 'Quản lý tài chính cá nhân'}</small>
+                    <small>{user?.email || "Quản lý tài chính cá nhân"}</small>
                 </span>
                 <span className="mobile-settings-view__status">Cá nhân</span>
             </section>
@@ -126,15 +101,15 @@ export default function MobileSettingsView({
                 </div>
 
                 <div className="mobile-settings-view__themes section-card">
-                    {themeOptions.map((themeOption) => (
+                    {expenseThemeOptions.map((themeOption) => (
                         <button
                             aria-pressed={theme === themeOption.id}
-                            className={theme === themeOption.id ? 'is-active' : ''}
+                            className={theme === themeOption.id ? "is-active" : ""}
                             key={themeOption.id}
                             onClick={() => onThemeChange?.(themeOption.id)}
                             style={{
-                                '--settings-theme-accent': themeOption.accent,
-                                '--settings-theme-color': themeOption.color,
+                                "--settings-theme-accent": themeOption.accent,
+                                "--settings-theme-color": themeOption.color,
                             }}
                             type="button"
                         >
@@ -161,17 +136,13 @@ export default function MobileSettingsView({
                         checked={notificationsEnabled}
                         description="Nhắc nhở ngân sách và giao dịch"
                         label="Thông báo"
-                        onChange={(value) =>
-                            onSettingChange?.('notificationsEnabled', value)
-                        }
+                        onChange={(value) => onSettingChange?.("notificationsEnabled", value)}
                     />
                     <SettingsSwitch
                         checked={hideBalance}
                         description="Ẩn số dư khi mở ứng dụng"
                         label="Ẩn số dư"
-                        onChange={(value) =>
-                            onSettingChange?.('hideBalance', value)
-                        }
+                        onChange={(value) => onSettingChange?.("hideBalance", value)}
                     />
                     <label className="mobile-settings-view__preference">
                         <span>
@@ -180,12 +151,7 @@ export default function MobileSettingsView({
                         </span>
                         <select
                             aria-label="Đơn vị tiền tệ"
-                            onChange={(event) =>
-                                onSettingChange?.(
-                                    'currency',
-                                    event.target.value,
-                                )
-                            }
+                            onChange={(event) => onSettingChange?.("currency", event.target.value)}
                             value={currency}
                         >
                             <option value="VND">VND</option>
@@ -257,8 +223,8 @@ export default function MobileSettingsView({
             <button
                 className="mobile-settings-view__logout"
                 onClick={() => {
-                    setLogoutError('')
-                    setShowLogoutConfirm(true)
+                    setLogoutError("");
+                    setShowLogoutConfirm(true);
                 }}
                 type="button"
             >
@@ -274,7 +240,7 @@ export default function MobileSettingsView({
                     className="mobile-settings-view__dialog-backdrop"
                     onClick={() => {
                         if (!isSigningOut) {
-                            setShowLogoutConfirm(false)
+                            setShowLogoutConfirm(false);
                         }
                     }}
                     role="presentation"
@@ -297,24 +263,16 @@ export default function MobileSettingsView({
                             </p>
                         ) : null}
                         <div className="mobile-settings-view__dialog-actions">
-                            <button
-                                disabled={isSigningOut}
-                                onClick={() => setShowLogoutConfirm(false)}
-                                type="button"
-                            >
+                            <button disabled={isSigningOut} onClick={() => setShowLogoutConfirm(false)} type="button">
                                 Hủy
                             </button>
-                            <button
-                                disabled={isSigningOut}
-                                onClick={handleLogout}
-                                type="button"
-                            >
-                                {isSigningOut ? 'Đang thoát...' : 'Đăng xuất'}
+                            <button disabled={isSigningOut} onClick={handleLogout} type="button">
+                                {isSigningOut ? "Đang thoát..." : "Đăng xuất"}
                             </button>
                         </div>
                     </div>
                 </div>
             ) : null}
         </main>
-    )
+    );
 }

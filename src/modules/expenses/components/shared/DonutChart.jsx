@@ -18,11 +18,7 @@ export default function DonutChart({ categories = [], children }) {
             className="category-spending-card__chart"
             style={{ "--chart-stops": stops || "var(--expense-border) 0% 100%" }}
         >
-            {children ? (
-                <div className="category-spending-card__chart-center">
-                    {children}
-                </div>
-            ) : null}
+            {children ? <div className="category-spending-card__chart-center">{children}</div> : null}
         </div>
     );
 }

@@ -42,7 +42,7 @@ Một số dữ liệu hiện vẫn là dữ liệu dẫn xuất/projection:
 
 - Category spending trên dashboard được tính từ `monthlyStats.categoryExpenseMinor`.
 - `budget.amount` là số tiền đã chi, không phải cấu hình ngân sách.
-Các giá trị dẫn xuất này không được coi là nguồn sự thật.
+  Các giá trị dẫn xuất này không được coi là nguồn sự thật.
 
 ## 3. Các quyết định chính
 
@@ -78,7 +78,7 @@ tốc độ đọc. Hai loại dữ liệu này phải có khả năng rebuild t
 Không dùng số thực cho tiền.
 
 ```js
-amountMinor: 150000
+amountMinor: 150000;
 ```
 
 Với VND, `amountMinor` chính là số tiền VND. Tên field vẫn có hậu tố `Minor`
@@ -571,18 +571,18 @@ Firestore không có join như SQL. Vì vậy:
 
 ## 7. Dữ liệu gốc và dữ liệu dẫn xuất
 
-| Dữ liệu | Nguồn sự thật | Cách lấy |
-| --- | --- | --- |
-| Transaction history | `transactions` | Query theo thời gian |
-| Wallet metadata | `wallets` | Đọc collection wallets |
-| Wallet balance | Projection trên wallet | Cập nhật cùng transaction |
-| Category metadata | `categories` | Đọc collection categories |
-| Monthly income/expense | `monthlyStats` | Projection từ transactions |
-| Category spending | `monthlyStats.categoryExpenseMinor` | Projection |
-| Budget limit | `budgets` | Đọc theo `monthKey` |
-| Budget spent | `monthlyStats` | Kết hợp theo `categoryId` |
-| Dashboard summary | Wallets + current/previous stats | Dựng view model |
-| Theme/preferences | `modules/expenses/settings/main` | Firestore + local cache |
+| Dữ liệu                | Nguồn sự thật                       | Cách lấy                   |
+| ---------------------- | ----------------------------------- | -------------------------- |
+| Transaction history    | `transactions`                      | Query theo thời gian       |
+| Wallet metadata        | `wallets`                           | Đọc collection wallets     |
+| Wallet balance         | Projection trên wallet              | Cập nhật cùng transaction  |
+| Category metadata      | `categories`                        | Đọc collection categories  |
+| Monthly income/expense | `monthlyStats`                      | Projection từ transactions |
+| Category spending      | `monthlyStats.categoryExpenseMinor` | Projection                 |
+| Budget limit           | `budgets`                           | Đọc theo `monthKey`        |
+| Budget spent           | `monthlyStats`                      | Kết hợp theo `categoryId`  |
+| Dashboard summary      | Wallets + current/previous stats    | Dựng view model            |
+| Theme/preferences      | `modules/expenses/settings/main`    | Firestore + local cache    |
 
 ## 8. Dashboard view model
 
@@ -985,7 +985,7 @@ Không dùng offset vì các document bị bỏ qua vẫn làm tăng chi phí v�
 Firestore Standard không phù hợp với full-text substring search như:
 
 ```js
-transaction.title.includes(searchTerm)
+transaction.title.includes(searchTerm);
 ```
 
 Thiết kế theo giai đoạn:
@@ -1011,16 +1011,16 @@ Không nên tạo mảng mọi prefix/token trong transaction document nếu ch�
 
 Các index chính:
 
-| Collection | Fields |
-| --- | --- |
-| `transactions` | `status ASC`, `occurredAt DESC` |
-| `transactions` | `monthKey ASC`, `status ASC`, `occurredAt DESC` |
+| Collection     | Fields                                                      |
+| -------------- | ----------------------------------------------------------- |
+| `transactions` | `status ASC`, `occurredAt DESC`                             |
+| `transactions` | `monthKey ASC`, `status ASC`, `occurredAt DESC`             |
 | `transactions` | `monthKey ASC`, `status ASC`, `type ASC`, `occurredAt DESC` |
-| `transactions` | `categoryId ASC`, `status ASC`, `occurredAt DESC` |
-| `transactions` | `walletIds ARRAY`, `status ASC`, `occurredAt DESC` |
-| `budgets` | `monthKey ASC`, `categoryId ASC` |
-| `wallets` | `isArchived ASC`, `order ASC` |
-| `categories` | `type ASC`, `isArchived ASC`, `sortOrder ASC` |
+| `transactions` | `categoryId ASC`, `status ASC`, `occurredAt DESC`           |
+| `transactions` | `walletIds ARRAY`, `status ASC`, `occurredAt DESC`          |
+| `budgets`      | `monthKey ASC`, `categoryId ASC`                            |
+| `wallets`      | `isArchived ASC`, `order ASC`                               |
+| `categories`   | `type ASC`, `isArchived ASC`, `sortOrder ASC`               |
 
 Chỉ thêm index khi có query thực tế sử dụng. Cấu hình index phải được commit
 vào `firestore.indexes.json`.
@@ -1231,11 +1231,7 @@ Mỗi hook trả về contract thống nhất:
 
 ```js
 {
-  data,
-  isLoading,
-  error,
-  isFromCache,
-  refresh
+    (data, isLoading, error, isFromCache, refresh);
 }
 ```
 

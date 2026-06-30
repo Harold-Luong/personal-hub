@@ -1,9 +1,6 @@
 import ProgressBar from "../shared/ProgressBar";
 import { formatCurrency } from "../../utils/formatCurrency";
-import {
-    calculateMonthlyBudgetTotals,
-    getBudgetUsageStatus,
-} from "../../utils/expenseCalculations";
+import { calculateMonthlyBudgetTotals, getBudgetUsageStatus } from "../../utils/expenseCalculations";
 
 const budgetStatusColors = {
     exceeded: "#dc1717",

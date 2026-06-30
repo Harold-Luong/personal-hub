@@ -1,37 +1,37 @@
 :root {
-  --sans: Inter, ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+    --sans: Inter, ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
+    --mono: ui-monospace, Consolas, monospace;
 
-  background: #f3f4f3;
-  color: #18231c;
-  font: 16px/145% var(--sans);
-  font-synthesis: none;
-  letter-spacing: 0;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+    background: #f3f4f3;
+    color: #18231c;
+    font: 16px/145% var(--sans);
+    font-synthesis: none;
+    letter-spacing: 0;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 body {
-  margin: 0;
+    margin: 0;
 }
 
 button,
 input,
 select,
 textarea {
-  font: inherit;
+    font: inherit;
 }
 
 button {
-  letter-spacing: 0;
+    letter-spacing: 0;
 }
 
 #root {
-  min-height: 100svh;
-  width: 100%;
+    min-height: 100svh;
+    width: 100%;
 }

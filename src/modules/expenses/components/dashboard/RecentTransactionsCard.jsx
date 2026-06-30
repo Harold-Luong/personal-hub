@@ -2,14 +2,8 @@ import HiddenItems from "../shared/HiddenItems";
 import SectionCard from "../shared/SectionCard";
 import TransactionList from "../transaction/TransactionList";
 
-export default function RecentTransactionsCard({
-    limit,
-    transactions = [],
-    variant = "desktop",
-}) {
-    const visibleTransactions = limit
-        ? transactions.slice(0, limit)
-        : transactions;
+export default function RecentTransactionsCard({ limit, transactions = [], variant = "desktop" }) {
+    const visibleTransactions = limit ? transactions.slice(0, limit) : transactions;
     const hiddenTransaction = transactions.slice(limit);
     return (
         <SectionCard

@@ -6,10 +6,7 @@ export default function MobilePageHeader({
     title,
     titleTag: TitleTag = "p",
 }) {
-    const headerClassName = [
-        "mobile-dashboard-view__header",
-        className,
-    ].filter(Boolean).join(" ");
+    const headerClassName = ["mobile-dashboard-view__header", className].filter(Boolean).join(" ");
 
     return (
         <header className={headerClassName}>
@@ -21,11 +18,7 @@ export default function MobilePageHeader({
                     </>
                 )}
             </div>
-            {actions ? (
-                <div className="mobile-dashboard-view__header-actions">
-                    {actions}
-                </div>
-            ) : null}
+            {actions ? <div className="mobile-dashboard-view__header-actions">{actions}</div> : null}
         </header>
     );
 }

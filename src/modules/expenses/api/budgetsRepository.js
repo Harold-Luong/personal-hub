@@ -8,26 +8,26 @@ import {
     runTransaction,
     serverTimestamp,
     where,
-} from 'firebase/firestore'
-import { firestore } from '../../../lib/firebase/firestore'
+} from "firebase/firestore";
+import { firestore } from "../../../lib/firebase/firestore";
 
 function getBudgetsCollectionRef(uid) {
     if (!uid) {
-        throw new Error('A Firebase Authentication uid is required.')
+        throw new Error("A Firebase Authentication uid is required.");
     }
 
     return collection(
         firestore,
-        'users',
+        "users",
         uid,
-        'modules',
-        'expenses',
-        'budgets',
-    )
+        "modules",
+        "expenses",
+        "budgets",
+    );
 }
 
 function mapBudget(documentSnapshot) {
-    const data = documentSnapshot.data()
+    const data = documentSnapshot.data();
 
     return {
         id: documentSnapshot.id,
@@ -37,83 +37,87 @@ function mapBudget(documentSnapshot) {
         alertThreshold: data.alertThreshold ?? 80,
         createdAt: data.createdAt,
         updatedAt: data.updatedAt,
-    }
+    };
 }
 
 function getBudgetRef(uid, monthKey, categoryId) {
     if (!uid) {
-        throw new Error('A Firebase Authentication uid is required.')
+        throw new Error("A Firebase Authentication uid is required.");
     }
 
     if (!monthKey) {
-        throw new Error('A month key is required.')
+        throw new Error("A month key is required.");
     }
 
     if (!categoryId) {
-        throw new Error('A category id is required.')
+        throw new Error("A category id is required.");
     }
 
-    return doc(getBudgetsCollectionRef(uid), `${monthKey}_${categoryId}`)
+    return doc(getBudgetsCollectionRef(uid), `${monthKey}_${categoryId}`);
 }
 
 function toPositiveInteger(value, label) {
-    const numberValue = Math.round(Math.abs(Number(value)))
+    const numberValue = Math.round(Math.abs(Number(value)));
 
     if (!Number.isSafeInteger(numberValue) || numberValue <= 0) {
-        throw new Error(`${label} must be a positive integer.`)
+        throw new Error(`${label} must be a positive integer.`);
     }
 
-    return numberValue
+    return numberValue;
 }
 
 function normalizeAlertThreshold(value) {
-    const numberValue = Math.round(Number(value ?? 80))
+    const numberValue = Math.round(Number(value ?? 80));
 
-    if (!Number.isSafeInteger(numberValue) || numberValue < 1 || numberValue > 100) {
-        throw new Error('Budget alert threshold must be between 1 and 100.')
+    if (
+        !Number.isSafeInteger(numberValue) ||
+        numberValue < 1 ||
+        numberValue > 100
+    ) {
+        throw new Error("Budget alert threshold must be between 1 and 100.");
     }
 
-    return numberValue
+    return numberValue;
 }
 
 export async function getExpenseBudgets(uid, monthKey) {
     if (!monthKey) {
-        throw new Error('A month key is required.')
+        throw new Error("A month key is required.");
     }
 
     const budgetsQuery = query(
         getBudgetsCollectionRef(uid),
-        where('monthKey', '==', monthKey),
-        orderBy('categoryId', 'asc'),
-    )
-    const snapshot = await getDocsFromServer(budgetsQuery)
+        where("monthKey", "==", monthKey),
+        orderBy("categoryId", "asc"),
+    );
+    const snapshot = await getDocsFromServer(budgetsQuery);
 
     return snapshot.docs
         .map(mapBudget)
-        .filter((budget) => budget.limitMinor > 0)
+        .filter((budget) => budget.limitMinor > 0);
 }
 
 export async function upsertExpenseBudget(uid, input) {
-    const monthKey = input?.monthKey
-    const categoryId = input?.categoryId
+    const monthKey = input?.monthKey;
+    const categoryId = input?.categoryId;
     const limitMinor = toPositiveInteger(
         input?.limitMinor ?? input?.limit,
-        'Budget limit',
-    )
-    const alertThreshold = normalizeAlertThreshold(input?.alertThreshold)
-    const budgetRef = getBudgetRef(uid, monthKey, categoryId)
+        "Budget limit",
+    );
+    const alertThreshold = normalizeAlertThreshold(input?.alertThreshold);
+    const budgetRef = getBudgetRef(uid, monthKey, categoryId);
 
     await runTransaction(firestore, async (transaction) => {
-        const snapshot = await transaction.get(budgetRef)
-        const timestamp = serverTimestamp()
+        const snapshot = await transaction.get(budgetRef);
+        const timestamp = serverTimestamp();
 
         if (snapshot.exists()) {
             transaction.update(budgetRef, {
                 limitMinor,
                 alertThreshold,
                 updatedAt: timestamp,
-            })
-            return
+            });
+            return;
         }
 
         transaction.set(budgetRef, {
@@ -123,8 +127,8 @@ export async function upsertExpenseBudget(uid, input) {
             alertThreshold,
             createdAt: timestamp,
             updatedAt: timestamp,
-        })
-    })
+        });
+    });
 
     return {
         id: budgetRef.id,
@@ -132,19 +136,19 @@ export async function upsertExpenseBudget(uid, input) {
         categoryId,
         limitMinor,
         alertThreshold,
-    }
+    };
 }
 
 export async function deleteExpenseBudget(uid, input) {
-    const monthKey = input?.monthKey
-    const categoryId = input?.categoryId
-    const budgetRef = getBudgetRef(uid, monthKey, categoryId)
+    const monthKey = input?.monthKey;
+    const categoryId = input?.categoryId;
+    const budgetRef = getBudgetRef(uid, monthKey, categoryId);
 
-    await deleteDoc(budgetRef)
+    await deleteDoc(budgetRef);
 
     return {
         id: budgetRef.id,
         monthKey,
         categoryId,
-    }
+    };
 }

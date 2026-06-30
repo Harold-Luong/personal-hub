@@ -1,11 +1,8 @@
 import AmountText from "../shared/AmountText";
-import CategoryIcon from "../shared/CategoryIcon";
+import ExpenseIcon from "../shared/ExpenseEmoji";
 import ProgressBar from "../shared/ProgressBar";
 import SectionCard from "../shared/SectionCard";
-import {
-    calculateBudgetUsagePercentage,
-    getBudgetUsageStatus,
-} from "../../utils/expenseCalculations";
+import { calculateBudgetUsagePercentage, getBudgetUsageStatus } from "../../utils/expenseCalculations";
 
 const budgetStatusColors = {
     exceeded: "#dc1717",
@@ -23,15 +20,11 @@ export default function BudgetOverviewCard({ budgets = [], onManageBudget }) {
             {budgets.length ? (
                 budgets.map((budget) => {
                     const status = getBudgetUsageStatus(budget);
-                    const statusColor =
-                        budgetStatusColors[status] ?? budget.color;
+                    const statusColor = budgetStatusColors[status] ?? budget.color;
 
                     return (
-                        <article
-                            className={`budget-item budget-item--${status}`}
-                            key={budget.id ?? budget.category}
-                        >
-                            <CategoryIcon
+                        <article className={`budget-item budget-item--${status}`} key={budget.id ?? budget.category}>
+                            <ExpenseIcon
                                 appearance="emoji"
                                 color={budget.color}
                                 icon={budget.icon}
@@ -42,14 +35,9 @@ export default function BudgetOverviewCard({ budgets = [], onManageBudget }) {
                                     <strong>{budget.category}</strong>
                                     <p className="budget-item__amounts">
                                         <span className="budget-item__spent">
-                                            <AmountText
-                                                amount={budget.amount}
-                                            />
+                                            <AmountText amount={budget.amount} />
                                         </span>
-                                        <span
-                                            aria-hidden="true"
-                                            className="budget-item__separator"
-                                        >
+                                        <span aria-hidden="true" className="budget-item__separator">
                                             /
                                         </span>
                                         <span className="budget-item__limit">
@@ -57,22 +45,14 @@ export default function BudgetOverviewCard({ budgets = [], onManageBudget }) {
                                         </span>
                                     </p>
                                 </div>
-                                <ProgressBar
-                                    color={statusColor}
-                                    max={budget.limit}
-                                    value={budget.amount}
-                                />
+                                <ProgressBar color={statusColor} max={budget.limit} value={budget.amount} />
                             </div>
-                            <span className="budget-item__percentage">
-                                {calculateBudgetUsagePercentage(budget)}%
-                            </span>
+                            <span className="budget-item__percentage">{calculateBudgetUsagePercentage(budget)}%</span>
                         </article>
                     );
                 })
             ) : (
-                <p className="budget-overview-card__empty">
-                    Chưa tạo ngân sách cho tháng này.
-                </p>
+                <p className="budget-overview-card__empty">Chưa tạo ngân sách cho tháng này.</p>
             )}
         </SectionCard>
     );

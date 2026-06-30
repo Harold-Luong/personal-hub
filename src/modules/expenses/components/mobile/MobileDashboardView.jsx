@@ -17,16 +17,11 @@ export default function MobileDashboardView({
     user,
 }) {
     const balance = summary.find((item) => item.id === "balance")?.value ?? 0;
-    const balanceTrend =
-        summary.find((item) => item.id === "balance")?.trend ?? 0;
+    const balanceTrend = summary.find((item) => item.id === "balance")?.trend ?? 0;
     const income = summary.find((item) => item.id === "income")?.value ?? 0;
-    const incomeTrend =
-        summary.find((item) => item.id === "income")?.trend ?? 0;
-    const expense = Math.abs(
-        summary.find((item) => item.id === "expense")?.value ?? 0,
-    );
-    const expenseTrend =
-        summary.find((item) => item.id === "expense")?.trend ?? 0;
+    const incomeTrend = summary.find((item) => item.id === "income")?.trend ?? 0;
+    const expense = Math.abs(summary.find((item) => item.id === "expense")?.value ?? 0);
+    const expenseTrend = summary.find((item) => item.id === "expense")?.trend ?? 0;
 
     return (
         <div className="mobile-dashboard-view">
@@ -41,11 +36,7 @@ export default function MobileDashboardView({
                         >
                             <ThemeIcon size={22} />
                         </button>
-                        <button
-                            aria-label="Thông báo"
-                            className="mobile-dashboard-view__notification"
-                            type="button"
-                        >
+                        <button aria-label="Thông báo" className="mobile-dashboard-view__notification" type="button">
                             <BellIcon size={22} />
                         </button>
                     </>
@@ -53,8 +44,7 @@ export default function MobileDashboardView({
                 subtitle={formatDate(new Date())}
                 title={
                     <>
-                        Xin chào, {user?.displayName || user?.email}{" "}
-                        <span aria-hidden="true">👋</span>
+                        Xin chào, {user?.displayName || user?.email} <span aria-hidden="true">👋</span>
                     </>
                 }
             />
@@ -67,20 +57,9 @@ export default function MobileDashboardView({
                 income={income}
                 incomeTrend={incomeTrend}
             />
-            <MonthlyBudgetCard
-                budgets={budgets}
-                onManageBudget={onManageBudget}
-            />
-            <CategorySpendingCard
-                limit={5}
-                categories={categorySpending}
-                variant="mobile"
-            />
-            <RecentTransactionsCard
-                limit={5}
-                transactions={transactions}
-                variant="mobile"
-            />
+            <MonthlyBudgetCard budgets={budgets} onManageBudget={onManageBudget} />
+            <CategorySpendingCard limit={5} categories={categorySpending} variant="mobile" />
+            <RecentTransactionsCard limit={5} transactions={transactions} variant="mobile" />
         </div>
     );
 }
