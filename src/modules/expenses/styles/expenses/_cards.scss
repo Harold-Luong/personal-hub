@@ -386,8 +386,26 @@
 }
 
 .budget-item {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
   grid-template-columns: auto minmax(0, 1fr) auto;
   min-width: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.budget-item:hover .budget-item__copy strong,
+.budget-item:focus-visible .budget-item__copy strong {
+  color: var(--expense-active-strong);
+}
+
+.budget-item:focus-visible {
+  border-radius: 8px;
+  outline: 3px solid color-mix(in srgb, var(--expense-active-color) 22%, transparent);
+  outline-offset: 4px;
 }
 
 .budget-item__body {

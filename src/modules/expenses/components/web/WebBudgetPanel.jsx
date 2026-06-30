@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { XIcon } from "../../icon/ExpenseIcons";
 import BudgetForm from "../budget/BudgetForm";
 
-export default function WebBudgetPanel({ budgets, categories, onCancel, onDelete, onSubmit }) {
+export default function WebBudgetPanel({ budgets, categories, initialCategoryId, onCancel, onDelete, onSubmit }) {
     useEffect(() => {
         const previousOverflow = document.body.style.overflow;
 
@@ -45,6 +45,7 @@ export default function WebBudgetPanel({ budgets, categories, onCancel, onDelete
                 <BudgetForm
                     budgets={budgets}
                     categories={categories}
+                    initialCategoryId={initialCategoryId}
                     onCancel={onCancel}
                     onDelete={onDelete}
                     onSubmit={onSubmit}
