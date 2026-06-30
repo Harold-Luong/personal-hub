@@ -15,6 +15,7 @@ export default function WebDashboardView({
     categories,
     categorySpending,
     navItems,
+    onNavigate,
     onAddTransaction,
     onDeleteBudget,
     onDeleteWallet,
@@ -22,6 +23,7 @@ export default function WebDashboardView({
     onSaveBudget,
     onSaveWallet,
     onToggleTheme,
+    onViewTransactions,
     summary,
     theme,
     transactions,
@@ -86,7 +88,7 @@ export default function WebDashboardView({
 
     return (
         <div className="web-dashboard-view">
-            <ExpenseSidebar items={navItems} user={user} />
+            <ExpenseSidebar activeId="dashboard" items={navItems} onNavigate={onNavigate} user={user} />
             <main className="web-dashboard-view__main">
                 <ExpenseHeader
                     onAddTransactionClick={() => setIsAddTransactionOpen(true)}
@@ -125,7 +127,7 @@ export default function WebDashboardView({
                 ) : null}
                 <div className="web-dashboard-view__grid">
                     <CategorySpendingCard categories={categorySpending} limit={5} />
-                    <RecentTransactionsCard transactions={transactions} limit={10} />
+                    <RecentTransactionsCard limit={10} onViewAll={onViewTransactions} transactions={transactions} />
                     <BudgetOverviewCard
                         budgets={budgets}
                         onManageBudget={openBudgetPanel}

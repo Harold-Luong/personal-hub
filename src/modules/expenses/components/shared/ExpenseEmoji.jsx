@@ -58,7 +58,7 @@ const emojiMap = {
     category: "\u{1F3F7}\uFE0F", // 🏷️
 };
 
-export default function ExpenseIcon({ appearance = "auto", className = "", icon = "more", label, color }) {
+export default function ExpenseEmoji({ appearance = "auto", className = "", icon = "more", label, color }) {
     const hasEmojiIcon = Object.hasOwn(emojiMap, icon);
     const resolvedAppearance = appearance === "auto" ? (hasEmojiIcon ? "emoji" : "label") : appearance;
     const icons = resolvedAppearance === "emoji" ? emojiMap : iconMap;
