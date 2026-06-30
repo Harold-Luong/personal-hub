@@ -1,10 +1,5 @@
-import {
-    HomeIcon,
-    PlusIcon,
-    ReportIcon,
-    SettingsIcon,
-    TransactionIcon,
-} from "../../icon/ExpenseIcons";
+import { HomeIcon, PlusIcon, ReportIcon, SettingsIcon, TransactionIcon } from "../../icon/ExpenseIcons";
+import { expenseBottomNavOrder } from "../../constant/expensesMetaData";
 
 const bottomNavIconMap = {
     dashboard: HomeIcon,
@@ -13,34 +8,17 @@ const bottomNavIconMap = {
     settings: SettingsIcon,
 };
 
-const bottomNavOrder = ["dashboard", "transactions", "report", "settings"];
-const bottomNavLabelMap = {
-    dashboard: "Tổng quan",
-    transactions: "Giao dịch",
-    report: "Báo cáo",
-    settings: "Cài đặt",
-};
-
-export default function ExpenseBottomNav({
-    items = [],
-    activeId = "dashboard",
-    onNavigate,
-}) {
-    const navItems = bottomNavOrder
-        .map((id) => items.find((item) => item.id === id))
-        .filter(Boolean);
+export default function ExpenseBottomNav({ items = [], activeId = "dashboard", onNavigate }) {
+    const navItems = expenseBottomNavOrder.map((id) => items.find((item) => item.id === id)).filter(Boolean);
     const leftItems = navItems.slice(0, 2);
     const rightItems = navItems.slice(2);
 
     const renderNavItem = (item) => {
-        const Icon =
-            bottomNavIconMap[item.id] ??
-            bottomNavIconMap[item.icon] ??
-            HomeIcon;
+        const Icon = bottomNavIconMap[item.id] ?? bottomNavIconMap[item.icon] ?? HomeIcon;
 
         return (
             <button
-                aria-label={item.label || bottomNavLabelMap[item.id]}
+                aria-label={item.label}
                 className={`expense-bottom-nav__item${item.id === activeId ? " is-active" : ""}`}
                 key={item.id}
                 onClick={() => onNavigate?.(item.id)}

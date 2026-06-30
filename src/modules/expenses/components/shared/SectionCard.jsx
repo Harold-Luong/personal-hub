@@ -1,10 +1,4 @@
-export default function SectionCard({
-    actionLabel = "Xem tất cả",
-    children,
-    className = "",
-    onAction,
-    title,
-}) {
+export default function SectionCard({ actionLabel = "Xem tất cả", children, className = "", onAction, title }) {
     return (
         <section className={`section-card ${className}`.trim()}>
             {title || actionLabel ? (

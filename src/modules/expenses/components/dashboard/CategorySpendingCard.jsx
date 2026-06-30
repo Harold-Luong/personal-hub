@@ -1,27 +1,19 @@
 import AmountText from "../shared/AmountText";
-import CategoryIcon from "../shared/CategoryIcon";
+import ExpenseIcon from "../shared/ExpenseEmoji";
 import HiddenItems from "../shared/HiddenItems";
 import ProgressBar from "../shared/ProgressBar";
 import SectionCard from "../shared/SectionCard";
 import DonutChart from "../shared/DonutChart";
 
-export default function CategorySpendingCard({
-    categories = [],
-    limit,
-    variant = "desktop",
-}) {
+export default function CategorySpendingCard({ categories = [], limit, variant = "desktop" }) {
     const sortedCategories = [...categories].sort(
-        (firstCategory, secondCategory) =>
-            (secondCategory.percentage ?? 0) - (firstCategory.percentage ?? 0),
+        (firstCategory, secondCategory) => (secondCategory.percentage ?? 0) - (firstCategory.percentage ?? 0),
     );
     const visibleCategories = limit ? sortedCategories.slice(0, limit) : sortedCategories;
     const hiddenCategories = sortedCategories.slice(limit);
     const shouldShowDonut = variant === "desktop";
     const totalAmount = shouldShowDonut
-        ? sortedCategories.reduce(
-              (total, category) => total + (category.amount ?? 0),
-              0,
-          )
+        ? sortedCategories.reduce((total, category) => total + (category.amount ?? 0), 0)
         : 0;
 
     return (
@@ -41,7 +33,7 @@ export default function CategorySpendingCard({
             <div className="category-spending-card__list">
                 {visibleCategories.map((category) => (
                     <div className="category-row" key={category.id}>
-                        <CategoryIcon
+                        <ExpenseIcon
                             appearance="emoji"
                             color={category.color}
                             icon={category.icon}
@@ -49,27 +41,17 @@ export default function CategorySpendingCard({
                         />
                         <div className="category-row__body">
                             <div>
-                                <span className="category-row__name">
-                                    {category.name}
-                                </span>
+                                <span className="category-row__name">{category.name}</span>
                                 <span className="category-row__amount">
                                     <AmountText amount={category.amount} />
                                 </span>
                             </div>
-                            <ProgressBar
-                                color={category.color}
-                                value={category.percentage}
-                            />
+                            <ProgressBar color={category.color} value={category.percentage} />
                         </div>
-                        <small className="category-row__percentage">
-                            {category.percentage}%
-                        </small>
+                        <small className="category-row__percentage">{category.percentage}%</small>
                     </div>
                 ))}
-                <HiddenItems
-                    hiddenItems={hiddenCategories}
-                    showHiddenAmount={true}
-                />
+                <HiddenItems hiddenItems={hiddenCategories} showHiddenAmount={true} />
             </div>
         </SectionCard>
     );

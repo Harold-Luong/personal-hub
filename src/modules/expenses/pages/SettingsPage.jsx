@@ -1,4 +1,4 @@
-import MobileSettingsView from '../components/mobile/MobileSettingsView'
+import MobileSettingsView from "../components/mobile/MobileSettingsView";
 
 export default function SettingsPage({
     currency,
@@ -27,5 +27,5 @@ export default function SettingsPage({
             user={user}
             wallets={wallets}
         />
-    )
+    );
 }

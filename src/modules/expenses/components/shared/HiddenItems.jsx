@@ -10,10 +10,7 @@ export default function HiddenItems({
         return null;
     }
 
-    const hiddenTotalAmount = hiddenItems.reduce(
-        (total, item) => total + (item.amount ?? 0),
-        0,
-    );
+    const hiddenTotalAmount = hiddenItems.reduce((total, item) => total + (item.amount ?? 0), 0);
 
     return (
         <div className="hidden-items">

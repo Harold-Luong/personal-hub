@@ -1,71 +1,71 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react";
 
 const initialState = {
     error: null,
-    phase: 'idle',
+    phase: "idle",
     requestKey: null,
     settings: null,
-}
+};
 
 export default function useEnsureExpenseSettings(user) {
-    const [attempt, setAttempt] = useState(0)
-    const [state, setState] = useState(initialState)
-    const uid = user?.uid ?? null
-    const requestKey = uid ? `${uid}:${attempt}` : null
+    const [attempt, setAttempt] = useState(0);
+    const [state, setState] = useState(initialState);
+    const uid = user?.uid ?? null;
+    const requestKey = uid ? `${uid}:${attempt}` : null;
 
     useEffect(() => {
         if (!uid) {
-            return
+            return;
         }
 
-        let isCancelled = false
+        let isCancelled = false;
 
-        import('../api/expenseSettingsRepository')
+        import("../api/expenseSettingsRepository")
             .then(async ({ ensureUserDataInitialized, getExpenseSettings }) => {
-                const existingSettings = await getExpenseSettings(uid)
+                const existingSettings = await getExpenseSettings(uid);
 
                 if (existingSettings) {
-                    ensureUserDataInitialized(user).catch(() => {})
+                    ensureUserDataInitialized(user).catch(() => {});
 
-                    return existingSettings
+                    return existingSettings;
                 }
 
                 if (!isCancelled) {
                     setState({
                         error: null,
-                        phase: 'initializing',
+                        phase: "initializing",
                         requestKey,
                         settings: null,
-                    })
+                    });
                 }
 
-                return ensureUserDataInitialized(user)
+                return ensureUserDataInitialized(user);
             })
             .then((settings) => {
                 if (!isCancelled) {
                     setState({
                         error: null,
-                        phase: 'ready',
+                        phase: "ready",
                         requestKey,
                         settings,
-                    })
+                    });
                 }
             })
             .catch((error) => {
                 if (!isCancelled) {
                     setState({
                         error,
-                        phase: 'error',
+                        phase: "error",
                         requestKey,
                         settings: null,
-                    })
+                    });
                 }
-            })
+            });
 
         return () => {
-            isCancelled = true
-        }
-    }, [requestKey, uid, user])
+            isCancelled = true;
+        };
+    }, [requestKey, uid, user]);
 
     if (!uid) {
         return {
@@ -73,17 +73,17 @@ export default function useEnsureExpenseSettings(user) {
             isLoading: false,
             retry: () => {},
             settings: null,
-        }
+        };
     }
 
-    const isCurrentRequest = state.requestKey === requestKey
-    const status = isCurrentRequest ? state.phase : 'loading'
+    const isCurrentRequest = state.requestKey === requestKey;
+    const status = isCurrentRequest ? state.phase : "loading";
 
     return {
         error: isCurrentRequest ? state.error : null,
-        isLoading: status === 'loading' || status === 'initializing',
+        isLoading: status === "loading" || status === "initializing",
         retry: () => setAttempt((currentAttempt) => currentAttempt + 1),
         settings: isCurrentRequest ? state.settings : null,
         status,
-    }
+    };
 }

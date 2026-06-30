@@ -15,14 +15,8 @@ export default function BalanceHeroCard({
         sparklinePath,
         sparklineEndY,
     } = getBalanceTrendVisual(balanceTrend);
-    const {
-        direction: incomeTrendDirection,
-        symbol: incomeTrendSymbol,
-    } = getBalanceTrendVisual(incomeTrend);
-    const {
-        direction: expenseTrendDirection,
-        symbol: expenseTrendSymbol,
-    } = getBalanceTrendVisual(expenseTrend);
+    const { direction: incomeTrendDirection, symbol: incomeTrendSymbol } = getBalanceTrendVisual(incomeTrend);
+    const { direction: expenseTrendDirection, symbol: expenseTrendSymbol } = getBalanceTrendVisual(expenseTrend);
 
     return (
         <section className="balance-hero-card">
@@ -56,9 +50,7 @@ export default function BalanceHeroCard({
                     <strong>
                         <AmountText amount={income} />
                     </strong>
-                    <span
-                        className={`balance-hero-card__trend ${incomeTrendDirection}`}
-                    >
+                    <span className={`balance-hero-card__trend ${incomeTrendDirection}`}>
                         {incomeTrendSymbol} {Math.abs(incomeTrend)}%
                     </span>
                 </div>

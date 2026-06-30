@@ -1,12 +1,7 @@
-import MobilePageHeader from './MobilePageHeader'
-import TransactionForm from '../transaction/TransactionForm'
+import MobilePageHeader from "./MobilePageHeader";
+import TransactionForm from "../transaction/TransactionForm";
 
-export default function MobileAddTransactionView({
-    categories,
-    onCancel,
-    onSubmit,
-    wallets,
-}) {
+export default function MobileAddTransactionView({ categories, onCancel, onSubmit, wallets }) {
     return (
         <main className="mobile-add-transaction-view">
             <MobilePageHeader
@@ -20,11 +15,7 @@ export default function MobileAddTransactionView({
                 titleTag="h1"
             />
 
-            <TransactionForm
-                categories={categories}
-                onSubmit={onSubmit}
-                wallets={wallets}
-            />
+            <TransactionForm categories={categories} onSubmit={onSubmit} wallets={wallets} />
         </main>
-    )
+    );
 }

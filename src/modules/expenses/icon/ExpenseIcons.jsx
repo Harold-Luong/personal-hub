@@ -23,23 +23,13 @@ export const TransactionIcon = ({ size = 24 }) => (
 
 export const PlusIcon = ({ size = 24 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path
-            d="M12 5v14M5 12h14"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-        />
+        <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
 );
 
 export const XIcon = ({ size = 24 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path
-            d="m6 6 12 12M18 6 6 18"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-        />
+        <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
     </svg>
 );
 
@@ -50,11 +40,7 @@ export const WalletIcon = ({ size = 24 }) => (
             stroke="currentColor"
             strokeWidth="1.8"
         />
-        <path
-            d="M16 12h4v4h-4a2 2 0 1 1 0-4Z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-        />
+        <path d="M16 12h4v4h-4a2 2 0 1 1 0-4Z" stroke="currentColor" strokeWidth="1.8" />
     </svg>
 );
 
@@ -62,18 +48,8 @@ export const BudgetIcon = WalletIcon;
 
 export const ReportIcon = ({ size = 24 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path
-            d="M5 19V9M12 19V5M19 19v-7"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-        />
-        <path
-            d="M4 19h16"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-        />
+        <path d="M5 19V9M12 19V5M19 19v-7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M4 19h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
 );
 
@@ -86,13 +62,7 @@ export const SettingsIcon = ({ size = 24 }) => (
             strokeLinecap="round"
             strokeLinejoin="round"
         />
-        <circle
-            cx="12"
-            cy="12"
-            r="3.25"
-            stroke="currentColor"
-            strokeWidth="1.8"
-        />
+        <circle cx="12" cy="12" r="3.25" stroke="currentColor" strokeWidth="1.8" />
     </svg>
 );
 
@@ -105,12 +75,7 @@ export const BellIcon = ({ size = 24 }) => (
             strokeLinecap="round"
             strokeLinejoin="round"
         />
-        <path
-            d="M14 20a2.2 2.2 0 0 1-4 0"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-        />
+        <path d="M14 20a2.2 2.2 0 0 1-4 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
 );
 
@@ -134,19 +99,8 @@ export const ThemeIcon = ({ size = 24 }) => (
 
 export const SearchIcon = ({ size = 24 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <circle
-            cx="11"
-            cy="11"
-            r="6.5"
-            stroke="currentColor"
-            strokeWidth="1.8"
-        />
-        <path
-            d="m16 16 4 4"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-        />
+        <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.8" />
+        <path d="m16 16 4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
 );
 
@@ -187,52 +141,22 @@ export const FoodIcon = ({ size = 24 }) => (
 
 export const HomeCategoryIcon = ({ size = 24 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path
-            d="M4 11 12 5l8 6v9H4v-9Z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-        />
+        <path d="M4 11 12 5l8 6v9H4v-9Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
         <path d="M10 20v-6h4v6" stroke="currentColor" strokeWidth="1.8" />
     </svg>
 );
 
 export const ShoppingIcon = ({ size = 24 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path
-            d="M6 8h12l-1 12H7L6 8Z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-        />
-        <path
-            d="M9 8a3 3 0 0 1 6 0"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-        />
+        <path d="M6 8h12l-1 12H7L6 8Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        <path d="M9 8a3 3 0 0 1 6 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
 );
 
 export const TransportIcon = ({ size = 24 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-        <path
-            d="M5 13h14l-1.5-5h-11L5 13Z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-        />
-        <path
-            d="M7 17h.01M17 17h.01"
-            stroke="currentColor"
-            strokeWidth="3"
-            strokeLinecap="round"
-        />
-        <path
-            d="M6 13v4h12v-4"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-        />
+        <path d="M5 13h14l-1.5-5h-11L5 13Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+        <path d="M7 17h.01M17 17h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+        <path d="M6 13v4h12v-4" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
     </svg>
 );

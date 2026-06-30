@@ -2,13 +2,7 @@ import { useEffect } from "react";
 import { XIcon } from "../../icon/ExpenseIcons";
 import BudgetForm from "../budget/BudgetForm";
 
-export default function WebBudgetPanel({
-    budgets,
-    categories,
-    onCancel,
-    onDelete,
-    onSubmit,
-}) {
+export default function WebBudgetPanel({ budgets, categories, onCancel, onDelete, onSubmit }) {
     useEffect(() => {
         const previousOverflow = document.body.style.overflow;
 
