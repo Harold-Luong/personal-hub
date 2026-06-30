@@ -315,8 +315,7 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
-.category-row__body>div,
-.wallet-item {
+.category-row__body>div {
   align-items: center;
   display: flex;
   gap: 12px;
@@ -329,7 +328,7 @@
 
 .category-row__name,
 .budget-item strong,
-.wallet-item span,
+.wallet-item>span strong,
 .transaction-item strong {
   font-size: 14px;
 }
@@ -483,9 +482,40 @@
 }
 
 .wallet-item {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
   grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 0;
+  text-align: left;
+  width: 100%;
 }
 
-.wallet-item strong {
+.wallet-item>span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.wallet-item>span strong {
+  color: var(--expense-heading);
+  line-height: 1.2;
+}
+
+.wallet-item>span small,
+.wallet-card__empty {
+  color: var(--expense-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.wallet-item>strong {
   font-size: 14px;
+  justify-self: end;
+}
+
+.wallet-card__empty {
+  margin: 0;
 }

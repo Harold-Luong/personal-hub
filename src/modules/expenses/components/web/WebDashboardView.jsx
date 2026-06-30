@@ -8,6 +8,7 @@ import ExpenseHeader from "../layout/ExpenseHeader";
 import ExpenseSidebar from "../layout/ExpenseSidebar";
 import WebAddTransactionPanel from "./WebAddTransactionPanel";
 import WebBudgetPanel from "./WebBudgetPanel";
+import WebWalletPanel from "./WebWalletPanel";
 
 export default function WebDashboardView({
     budgets,
@@ -16,8 +17,10 @@ export default function WebDashboardView({
     navItems,
     onAddTransaction,
     onDeleteBudget,
-    onSaveBudget,
+    onDeleteWallet,
     onLogout,
+    onSaveBudget,
+    onSaveWallet,
     onToggleTheme,
     summary,
     theme,
@@ -27,23 +30,13 @@ export default function WebDashboardView({
 }) {
     const [isAddTransactionOpen, setIsAddTransactionOpen] = useState(false);
     const [isBudgetOpen, setIsBudgetOpen] = useState(false);
+    const [isWalletOpen, setIsWalletOpen] = useState(false);
     const [selectedBudgetCategoryId, setSelectedBudgetCategoryId] = useState("");
+    const [selectedWalletId, setSelectedWalletId] = useState("");
 
     const handleAddTransaction = async (transaction) => {
         await onAddTransaction?.(transaction);
         setIsAddTransactionOpen(false);
-    };
-
-    const handleSaveBudget = async (budget) => {
-        await onSaveBudget?.(budget);
-        setIsBudgetOpen(false);
-        setSelectedBudgetCategoryId("");
-    };
-
-    const handleDeleteBudget = async (budget) => {
-        await onDeleteBudget?.(budget);
-        setIsBudgetOpen(false);
-        setSelectedBudgetCategoryId("");
     };
 
     const closeBudgetPanel = () => {
@@ -59,6 +52,36 @@ export default function WebDashboardView({
     const openBudgetPanelForCategory = (categoryId) => {
         setSelectedBudgetCategoryId(categoryId);
         setIsBudgetOpen(true);
+    };
+
+    const handleSaveBudget = async (budget) => {
+        await onSaveBudget?.(budget);
+        closeBudgetPanel();
+    };
+
+    const handleDeleteBudget = async (budget) => {
+        await onDeleteBudget?.(budget);
+        closeBudgetPanel();
+    };
+
+    const openWalletPanel = (walletId = "") => {
+        setSelectedWalletId(walletId);
+        setIsWalletOpen(true);
+    };
+
+    const closeWalletPanel = () => {
+        setIsWalletOpen(false);
+        setSelectedWalletId("");
+    };
+
+    const handleSaveWallet = async (wallet) => {
+        await onSaveWallet?.(wallet);
+        closeWalletPanel();
+    };
+
+    const handleDeleteWallet = async (wallet) => {
+        await onDeleteWallet?.(wallet);
+        closeWalletPanel();
     };
 
     return (
@@ -91,6 +114,15 @@ export default function WebDashboardView({
                         onSubmit={handleSaveBudget}
                     />
                 ) : null}
+                {isWalletOpen ? (
+                    <WebWalletPanel
+                        initialWalletId={selectedWalletId}
+                        onCancel={closeWalletPanel}
+                        onDelete={handleDeleteWallet}
+                        onSubmit={handleSaveWallet}
+                        wallets={wallets}
+                    />
+                ) : null}
                 <div className="web-dashboard-view__grid">
                     <CategorySpendingCard categories={categorySpending} limit={5} />
                     <RecentTransactionsCard transactions={transactions} limit={10} />
@@ -99,7 +131,11 @@ export default function WebDashboardView({
                         onManageBudget={openBudgetPanel}
                         onSelectBudget={openBudgetPanelForCategory}
                     />
-                    <WalletCard wallets={wallets} />
+                    <WalletCard
+                        onEditWallet={openWalletPanel}
+                        onManageWallet={() => openWalletPanel(wallets[0]?.id ?? null)}
+                        wallets={wallets}
+                    />
                 </div>
             </main>
         </div>

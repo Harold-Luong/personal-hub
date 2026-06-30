@@ -846,6 +846,13 @@ Cho phép sửa:
 
 Không sửa trực tiếp `balance` ngoài flow transaction/rebuild có kiểm soát.
 
+> TODO/Risk: flow edit wallet không được ghi `balance`. Nếu form edit metadata
+> vẫn submit `balance`, một form mở trước khi transaction khác cập nhật ví có
+> thể lưu lại balance cũ và ghi đè projection mới. Hiện tại chỉ hiển thị số dư
+> dạng readonly khi edit. Sau này nếu hỗ trợ sửa opening balance, phải rebuild
+> balance từ `initialBalance` và toàn bộ transactions của wallet thay vì ghi đè
+> `balance` trực tiếp.
+
 ### Điều chỉnh số dư
 
 Nếu cần sửa số dư thực tế, tạo transaction loại nội bộ `adjustment` trong
