@@ -63,10 +63,13 @@
 }
 
 .section-card {
+  align-content: start;
   background: var(--expense-surface);
   border: 1px solid var(--expense-border);
   border-radius: 8px;
   box-shadow: 0 14px 36px var(--expense-shadow);
+  display: grid;
+  gap: 16px;
   padding: 20px;
 }
 
@@ -75,13 +78,26 @@
   display: flex;
   gap: 16px;
   justify-content: space-between;
-  margin-bottom: 18px;
+  margin-bottom: 0;
+}
+
+.section-card__title {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
 }
 
 .section-card__header h2 {
   font-size: 16px;
   line-height: 1.2;
   margin: 0;
+}
+
+.section-card__title span {
+  color: var(--expense-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .section-card__header button {

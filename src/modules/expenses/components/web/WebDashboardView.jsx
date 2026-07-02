@@ -14,6 +14,7 @@ export default function WebDashboardView({
     budgets,
     categories,
     categorySpending,
+    monthLabel,
     navItems,
     onNavigate,
     onAddTransaction,
@@ -126,10 +127,11 @@ export default function WebDashboardView({
                     />
                 ) : null}
                 <div className="web-dashboard-view__grid">
-                    <CategorySpendingCard categories={categorySpending} limit={5} />
+                    <CategorySpendingCard categories={categorySpending} limit={5} monthLabel={monthLabel} />
                     <RecentTransactionsCard limit={10} onViewAll={onViewTransactions} transactions={transactions} />
                     <BudgetOverviewCard
                         budgets={budgets}
+                        monthLabel={monthLabel}
                         onManageBudget={openBudgetPanel}
                         onSelectBudget={openBudgetPanelForCategory}
                     />

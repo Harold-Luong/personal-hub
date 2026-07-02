@@ -1,9 +1,7 @@
 import { useState } from "react";
-import MonthPicker from "../shared/MonthPicker";
 import { LogoutIcon, PlusIcon, ThemeIcon } from "../../icon/ExpenseIcons";
 
 export default function ExpenseHeader({
-    month = "2026-06",
     onAddTransactionClick,
     onLogout,
     onToggleTheme,
@@ -39,7 +37,6 @@ export default function ExpenseHeader({
                     <PlusIcon size={17} />
                     <span>Thêm giao dịch</span>
                 </button>
-                <MonthPicker value={month} />
                 <button
                     aria-label="Doi giao dien"
                     className="expense-theme-toggle"

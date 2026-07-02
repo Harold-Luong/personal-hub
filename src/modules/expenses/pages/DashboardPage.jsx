@@ -9,6 +9,7 @@ import SettingsPage from "./SettingsPage";
 import TransactionsPage from "./TransactionsPage";
 import WalletPage from "./WalletPage";
 import { expenseCurrencies, expenseNavItems, expenseSummaryItems, expenseThemes } from "../constant/expensesMetaData";
+import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { calculateTrend, getEmptyMonthlyStats, getPreviousMonthKey } from "../utils/monthlyStatsUtils";
 import "../styles/expenses.scss";
 
@@ -17,6 +18,12 @@ function getCurrentMonthKey() {
     const month = String(today.getMonth() + 1).padStart(2, "0");
 
     return `${today.getFullYear()}-${month}`;
+}
+
+function getMonthLabel(monthKey) {
+    const [year, month] = monthKey.split("-");
+
+    return month && year ? `${month}/${year}` : monthKey;
 }
 
 function getInitialSettings(initialSettings) {
@@ -76,6 +83,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     const [budgetLimits, setBudgetLimits] = useState([]);
     const currentMonthKey = getCurrentMonthKey();
     const previousMonthKey = getPreviousMonthKey(currentMonthKey);
+    const currentMonthLabel = getMonthLabel(currentMonthKey);
 
     useEffect(() => {
         const frameId = window.requestAnimationFrame(() => {
@@ -205,15 +213,11 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     const previousMonthlySaving = previousMonthlyStats.netMinor ?? previousMonthlyIncome - previousMonthlyExpense;
     const categorySpendingById = monthlyStats.categoryExpenseMinor ?? {};
     const categoriesById = new Map(categories.map((category) => [category.id, category]));
-    const categorySpending = categories
-        .filter((category) => category.type === "expense")
-        .map((category) => ({
-            ...category,
-            amount: categorySpendingById[category.id] ?? 0,
-            percentage:
-                monthlyExpense > 0 ? Math.round(((categorySpendingById[category.id] ?? 0) / monthlyExpense) * 100) : 0,
-        }))
-        .filter((category) => category.amount > 0);
+    const categorySpending = getCategorySpendingByMonth({
+        categories,
+        monthKey: currentMonthKey,
+        monthlyStats,
+    });
     const budgets = budgetLimits
         .map((budget) => {
             const category = categoriesById.get(budget.categoryId);
@@ -609,6 +613,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             <MobileDashboardView
                 budgets={budgets}
                 categorySpending={categorySpending}
+                monthLabel={currentMonthLabel}
                 onManageBudget={() => showMobilePage("budget")}
                 onToggleTheme={handleToggleTheme}
                 onViewTransactions={() => navigateExpenseRoute("transactions")}
@@ -646,6 +651,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 budgets={budgets}
                 categories={categories}
                 categorySpending={categorySpending}
+                monthLabel={currentMonthLabel}
                 navItems={expenseNavItems}
                 onAddTransaction={handleAddTransaction}
                 onDeleteBudget={handleDeleteBudget}
