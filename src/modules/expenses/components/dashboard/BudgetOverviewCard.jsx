@@ -9,11 +9,12 @@ const budgetStatusColors = {
     warning: "#d98c00",
 };
 
-export default function BudgetOverviewCard({ budgets = [], onManageBudget, onSelectBudget }) {
+export default function BudgetOverviewCard({ budgets = [], monthLabel, onManageBudget, onSelectBudget }) {
     return (
         <SectionCard
             actionLabel={budgets.length ? "Quản lý" : "Tạo ngân sách"}
             className="budget-overview-card"
+            monthLabel={monthLabel}
             onAction={onManageBudget}
             title="Ngân sách của bạn"
         >

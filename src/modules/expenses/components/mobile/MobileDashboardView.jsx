@@ -9,6 +9,7 @@ import { BellIcon, ThemeIcon } from "../../icon/ExpenseIcons";
 export default function MobileDashboardView({
     budgets,
     categorySpending = [],
+    monthLabel,
     onManageBudget,
     onToggleTheme,
     onViewTransactions,
@@ -58,8 +59,13 @@ export default function MobileDashboardView({
                 income={income}
                 incomeTrend={incomeTrend}
             />
-            <MonthlyBudgetCard budgets={budgets} onManageBudget={onManageBudget} />
-            <CategorySpendingCard limit={5} categories={categorySpending} variant="mobile" />
+            <MonthlyBudgetCard budgets={budgets} monthLabel={monthLabel} onManageBudget={onManageBudget} />
+            <CategorySpendingCard
+                categories={categorySpending}
+                limit={5}
+                monthLabel={monthLabel}
+                variant="mobile"
+            />
             <RecentTransactionsCard limit={5} onViewAll={onViewTransactions} transactions={transactions} variant="mobile" />
         </div>
     );

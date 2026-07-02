@@ -205,11 +205,6 @@
   color: #dc1717;
 }
 
-.category-spending-card {
-  display: grid;
-  gap: 18px;
-}
-
 .category-spending-card--desktop {
   grid-template-columns: 1fr;
 }
@@ -370,12 +365,6 @@
 
 .transaction-item>.amount-text {
   font-weight: 800;
-}
-
-.budget-overview-card {
-  align-content: start;
-  display: grid;
-  gap: 16px;
 }
 
 .budget-overview-card__empty {
