@@ -1,76 +1,63 @@
-import { useState } from 'react'
-import {
-    loginWithEmail,
-    loginWithGoogle,
-    registerWithEmail,
-} from '../api/authRepository'
-import {
-    authPageMessages,
-    getAuthErrorMessage,
-} from '../messages/authMessages'
-import '../styles/auth.scss'
+import { useState } from "react";
+import { loginWithEmail, loginWithGoogle, registerWithEmail } from "../api/authRepository";
+import { authPageMessages, getAuthErrorMessage } from "../messages/authMessages";
+import "../styles/auth.scss";
 
 export default function AuthPage() {
-    const [mode, setMode] = useState('login')
-    const [email, setEmail] = useState('')
-    const [password, setPassword] = useState('')
-    const [error, setError] = useState('')
-    const [isSubmitting, setIsSubmitting] = useState(false)
+    const [mode, setMode] = useState("login");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const isRegisterMode = mode === 'register'
-    const modeMessages = authPageMessages.modes[mode]
+    const isRegisterMode = mode === "register";
+    const modeMessages = authPageMessages.modes[mode];
 
     const handleEmailSubmit = async (event) => {
-        event.preventDefault()
-        setError('')
-        setIsSubmitting(true)
+        event.preventDefault();
+        setError("");
+        setIsSubmitting(true);
 
         try {
             if (isRegisterMode) {
-                await registerWithEmail(email.trim(), password)
+                await registerWithEmail(email.trim(), password);
             } else {
-                await loginWithEmail(email.trim(), password)
+                await loginWithEmail(email.trim(), password);
             }
         } catch (authError) {
-            setError(getAuthErrorMessage(authError))
+            setError(getAuthErrorMessage(authError));
         } finally {
-            setIsSubmitting(false)
+            setIsSubmitting(false);
         }
-    }
+    };
 
     const handleGoogleLogin = async () => {
-        setError('')
-        setIsSubmitting(true)
+        setError("");
+        setIsSubmitting(true);
 
         try {
-            await loginWithGoogle()
+            await loginWithGoogle();
         } catch (authError) {
-            setError(getAuthErrorMessage(authError))
+            setError(getAuthErrorMessage(authError));
         } finally {
-            setIsSubmitting(false)
+            setIsSubmitting(false);
         }
-    }
+    };
 
     const switchMode = () => {
-        setMode(isRegisterMode ? 'login' : 'register')
-        setError('')
-    }
+        setMode(isRegisterMode ? "login" : "register");
+        setError("");
+    };
 
     return (
         <main className="auth-page">
             <section className="auth-card" aria-labelledby="auth-title">
-                <div className="auth-card__brand">
-                    {authPageMessages.brand}
-                </div>
+                <div className="auth-card__brand">{authPageMessages.brand}</div>
                 <h1 id="auth-title">{modeMessages.title}</h1>
-                <p className="auth-card__intro">
-                    {modeMessages.intro}
-                </p>
+                <p className="auth-card__intro">{modeMessages.intro}</p>
 
                 <form className="auth-form" onSubmit={handleEmailSubmit}>
-                    <label htmlFor="auth-email">
-                        {authPageMessages.emailLabel}
-                    </label>
+                    <label htmlFor="auth-email">{authPageMessages.emailLabel}</label>
                     <input
                         autoComplete="email"
                         id="auth-email"
@@ -81,11 +68,9 @@ export default function AuthPage() {
                         value={email}
                     />
 
-                    <label htmlFor="auth-password">
-                        {authPageMessages.passwordLabel}
-                    </label>
+                    <label htmlFor="auth-password">{authPageMessages.passwordLabel}</label>
                     <input
-                        autoComplete={isRegisterMode ? 'new-password' : 'current-password'}
+                        autoComplete={isRegisterMode ? "new-password" : "current-password"}
                         id="auth-password"
                         minLength={6}
                         onChange={(event) => setPassword(event.target.value)}
@@ -101,14 +86,8 @@ export default function AuthPage() {
                         </p>
                     )}
 
-                    <button
-                        className="auth-button auth-button--primary"
-                        disabled={isSubmitting}
-                        type="submit"
-                    >
-                        {isSubmitting
-                            ? authPageMessages.submittingButton
-                            : modeMessages.submitButton}
+                    <button className="auth-button auth-button--primary" disabled={isSubmitting} type="submit">
+                        {isSubmitting ? authPageMessages.submittingButton : modeMessages.submitButton}
                     </button>
                 </form>
 
@@ -133,5 +112,5 @@ export default function AuthPage() {
                 </p>
             </section>
         </main>
-    )
+    );
 }
