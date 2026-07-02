@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router";
 import ExpenseBottomNav from "../components/layout/ExpenseBottomNav";
 import MobileDashboardView from "../components/mobile/MobileDashboardView";
 import WebDashboardView from "../components/web/WebDashboardView";
@@ -39,9 +40,25 @@ function sortWallets(firstWallet, secondWallet) {
     );
 }
 
+const expenseRoutePaths = {
+    dashboard: "/expenses/dashboard",
+    transactions: "/expenses/transactions",
+};
+
+function getExpenseRoutePage(pathname) {
+    const normalizedPathname = pathname.replace(/\/+$/, "") || "/";
+
+    return Object.entries(expenseRoutePaths).find(([, path]) => path === normalizedPathname)?.[0] ?? "dashboard";
+}
+
 export default function DashboardPage({ initialSettings, onLogout, user }) {
-    const [activeMobilePage, setActiveMobilePage] = useState("dashboard");
-    const [activeDesktopPage, setActiveDesktopPage] = useState("dashboard");
+    const location = useLocation();
+    const navigate = useNavigate();
+    const routePage = getExpenseRoutePage(location.pathname);
+    const [mobilePageOverride, setMobilePageOverride] = useState(null);
+    const activeMobilePage =
+        mobilePageOverride?.routePath === location.pathname ? mobilePageOverride.pageId : routePage;
+    const activeDesktopPage = routePage;
     const [areThemeTransitionsEnabled, setAreThemeTransitionsEnabled] = useState(false);
     const [settings, setSettings] = useState(() => getInitialSettings(initialSettings));
     const [settingsError, setSettingsError] = useState("");
@@ -311,22 +328,41 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         await onLogout();
     };
 
+    const navigateExpenseRoute = (pageId) => {
+        const routePath = expenseRoutePaths[pageId];
+
+        if (routePath) {
+            setMobilePageOverride(null);
+            navigate(routePath);
+        }
+    };
+
+    const showMobilePage = (pageId) => {
+        setMobilePageOverride({
+            pageId,
+            routePath: location.pathname,
+        });
+    };
+
     const handleMobileNavigate = (pageId) => {
+        if (pageId === "dashboard" || pageId === "transactions") {
+            navigateExpenseRoute(pageId);
+            return;
+        }
+
         if (
-            pageId === "dashboard" ||
-            pageId === "transactions" ||
             pageId === "add" ||
             pageId === "budget" ||
             pageId === "wallets" ||
             pageId === "settings"
         ) {
-            setActiveMobilePage(pageId);
+            showMobilePage(pageId);
         }
     };
 
     const handleDesktopNavigate = (pageId) => {
         if (pageId === "dashboard" || pageId === "transactions") {
-            setActiveDesktopPage(pageId);
+            navigateExpenseRoute(pageId);
         }
     };
 
@@ -373,7 +409,14 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         if (result.monthlyStats?.monthKey === previousMonthKey) {
             setPreviousMonthlyStats(result.monthlyStats);
         }
-        setActiveMobilePage("transactions");
+
+        return result;
+    };
+
+    const handleAddMobileTransaction = async (transaction) => {
+        const result = await handleAddTransaction(transaction);
+
+        navigateExpenseRoute("transactions");
 
         return result;
     };
@@ -497,8 +540,8 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             return (
                 <AddTransactionPage
                     categories={categories}
-                    onCancel={() => setActiveMobilePage("dashboard")}
-                    onSubmit={handleAddTransaction}
+                    onCancel={() => navigateExpenseRoute("dashboard")}
+                    onSubmit={handleAddMobileTransaction}
                     wallets={wallets}
                 />
             );
@@ -525,7 +568,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                     budgets={budgets}
                     categories={categories}
                     monthKey={currentMonthKey}
-                    onBack={() => setActiveMobilePage("dashboard")}
+                    onBack={() => navigateExpenseRoute("dashboard")}
                     onDeleteBudget={handleDeleteBudget}
                     onSaveBudget={handleSaveBudget}
                 />
@@ -535,7 +578,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         if (activeMobilePage === "wallets") {
             return (
                 <WalletPage
-                    onBack={() => setActiveMobilePage("settings")}
+                    onBack={() => showMobilePage("settings")}
                     onDeleteWallet={handleDeleteWallet}
                     onSaveWallet={handleSaveWallet}
                     wallets={wallets}
@@ -550,8 +593,8 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                     hideBalance={settings.hideBalance}
                     notificationsEnabled={settings.notificationsEnabled}
                     onLogout={handleLogout}
-                    onManageBudget={() => setActiveMobilePage("budget")}
-                    onManageWallet={() => setActiveMobilePage("wallets")}
+                    onManageBudget={() => showMobilePage("budget")}
+                    onManageWallet={() => showMobilePage("wallets")}
                     onSettingChange={handleSettingChange}
                     onThemeChange={handleThemeChange}
                     settingsError={settingsError}
@@ -566,9 +609,9 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             <MobileDashboardView
                 budgets={budgets}
                 categorySpending={categorySpending}
-                onManageBudget={() => setActiveMobilePage("budget")}
+                onManageBudget={() => showMobilePage("budget")}
                 onToggleTheme={handleToggleTheme}
-                onViewTransactions={() => setActiveMobilePage("transactions")}
+                onViewTransactions={() => navigateExpenseRoute("transactions")}
                 summary={summary}
                 theme={settings.theme}
                 transactions={transactions}
@@ -612,7 +655,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 onSaveBudget={handleSaveBudget}
                 onSaveWallet={handleSaveWallet}
                 onToggleTheme={handleToggleTheme}
-                onViewTransactions={() => setActiveDesktopPage("transactions")}
+                onViewTransactions={() => navigateExpenseRoute("transactions")}
                 summary={summary}
                 theme={settings.theme}
                 transactions={transactions}
