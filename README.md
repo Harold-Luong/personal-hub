@@ -6,9 +6,11 @@ React + Vite app for personal modules. The active module is `expenses`.
 
 - Firebase Authentication session bootstrap is wired.
 - Firestore settings init is wired at `users/{uid}/modules/expenses/settings/main`.
-- Default expense data init currently creates the module root, one default wallet, and default expense/income categories.
-- Categories and wallets are read from Firestore repositories.
-- Transactions, budgets, monthly stats, and some dashboard aggregates still use mock/projection data while their repositories are being built.
+- Default expense data init creates the module root, one default cash wallet, and default expense/income categories.
+- Categories, wallets, budgets, transactions, monthly stats, and dashboard aggregates are read from Firestore repositories.
+- Transaction create/edit/void updates wallet balances and monthly stats.
+- Wallet balance edits use the current business flow: first setup updates opening balance, later balance changes create adjustment transactions.
+- Budget documents store monthly limits only; budget spending is derived from monthly stats.
 
 ## Development
 

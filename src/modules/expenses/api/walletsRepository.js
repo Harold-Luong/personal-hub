@@ -1,14 +1,21 @@
 import {
+    Timestamp,
     collection,
     doc,
     getDocsFromServer,
+    limit,
+    orderBy,
+    query,
+    runTransaction,
     serverTimestamp,
+    where,
     writeBatch,
 } from "firebase/firestore";
 import { firestore } from "../../../lib/firebase/firestore";
 
 const walletTypes = ['cash', 'bank', 'eWallet', 'card', 'saving', 'other']
 const walletCurrencies = ['VND', 'USD']
+const maxSearchTokens = 500
 const walletTypeMeta = {
     bank: { color: '#4f93d7', icon: 'bank' },
     card: { color: '#9b7bd8', icon: 'card' },
@@ -39,6 +46,34 @@ function getWalletRef(uid, walletId) {
     }
 
     return doc(getWalletsCollectionRef(uid), walletId)
+}
+
+function getTransactionsCollectionRef(uid) {
+    if (!uid) {
+        throw new Error("A Firebase Authentication uid is required.");
+    }
+
+    return collection(
+        firestore,
+        "users",
+        uid,
+        "modules",
+        "expenses",
+        "transactions",
+    )
+}
+
+async function hasActiveWalletTransactions(uid, walletId) {
+    const transactionsQuery = query(
+        getTransactionsCollectionRef(uid),
+        where("walletIds", "array-contains", walletId),
+        where("status", "==", "active"),
+        orderBy("occurredAt", "desc"),
+        limit(1),
+    )
+    const snapshot = await getDocsFromServer(transactionsQuery)
+
+    return !snapshot.empty
 }
 
 function sortWallets(firstWallet, secondWallet) {
@@ -120,6 +155,144 @@ function normalizeColor(value, fallback) {
     }
 
     return color
+}
+
+function normalizeSearchText(value) {
+    return String(value ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLocaleLowerCase("vi")
+        .replace(/\u0111/g, "d")
+        .replace(/[^\p{L}\p{N}]+/gu, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+}
+
+function getSearchTokensForValue(value) {
+    const normalizedValue = normalizeSearchText(value)
+
+    if (!normalizedValue) {
+        return []
+    }
+
+    const words = normalizedValue.split(" ").filter(Boolean)
+    const tokens = new Set(words)
+
+    words.slice(0, -1).forEach((word, index) => {
+        tokens.add(`${word} ${words[index + 1]}`)
+    })
+
+    return [...tokens]
+}
+
+function getTransactionSearchTokens({ title, note }) {
+    const searchTokens = new Set()
+    const searchValues = [title, note]
+
+    searchValues.forEach((value) => {
+        getSearchTokensForValue(value).forEach((token) => {
+            searchTokens.add(token)
+        })
+    })
+
+    return [...searchTokens].slice(0, maxSearchTokens)
+}
+
+function getLocalDateTimeParts(date = new Date()) {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    const hours = String(date.getHours()).padStart(2, "0")
+    const minutes = String(date.getMinutes()).padStart(2, "0")
+
+    return {
+        localDate: `${year}-${month}-${day}`,
+        monthKey: `${year}-${month}`,
+        time: `${hours}:${minutes}`,
+    }
+}
+
+function getTimezone() {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Bangkok"
+}
+
+function getWalletSnapshot(wallet) {
+    return {
+        name: wallet.name,
+        icon: wallet.icon ?? "wallet",
+        color: wallet.color ?? "#56b879",
+    }
+}
+
+function mapAdjustmentTransaction(id, data) {
+    const occurredAt = data.occurredAt?.toDate?.()
+    const time = occurredAt
+        ? `${String(occurredAt.getHours()).padStart(2, "0")}:${String(occurredAt.getMinutes()).padStart(2, "0")}`
+        : ""
+
+    return {
+        id,
+        adjustmentDirection: data.adjustmentDirection,
+        amount: data.adjustmentDirection === "increase" ? data.amountMinor : -data.amountMinor,
+        amountMinor: data.amountMinor,
+        category: "adjustment",
+        categoryColor: data.walletSnapshot?.color ?? "",
+        categoryId: null,
+        categoryName: "Điều chỉnh số dư",
+        currency: data.currency ?? "VND",
+        date: data.localDate,
+        fromWalletId: null,
+        fromWalletName: "",
+        icon: data.walletSnapshot?.icon ?? "wallet",
+        note: data.note ?? "",
+        status: data.status ?? "active",
+        subtitle: time,
+        time,
+        title: data.title,
+        toWalletId: null,
+        toWalletName: "",
+        type: data.type,
+        wallet: data.walletSnapshot?.icon ?? "wallet",
+        walletColor: data.walletSnapshot?.color ?? "",
+        walletId: data.walletId,
+        walletName: data.walletSnapshot?.name ?? "",
+    }
+}
+
+function createBalanceAdjustmentTransactionData({ balanceDelta, currentBalance, targetBalance, timestamp, wallet, walletId }) {
+    const now = new Date()
+    const { localDate, monthKey } = getLocalDateTimeParts(now)
+    const adjustmentDirection = balanceDelta > 0 ? "increase" : "decrease"
+    const title = adjustmentDirection === "increase" ? "Điều chỉnh tăng số dư" : "Điều chỉnh giảm số dư"
+    const note = `Cập nhật số dư ví từ ${currentBalance} thành ${targetBalance}.`
+
+    return {
+        adjustmentDirection,
+        amountMinor: Math.abs(balanceDelta),
+        categoryId: null,
+        categorySnapshot: null,
+        createdAt: timestamp,
+        currency: wallet.currency ?? "VND",
+        fromWalletId: null,
+        fromWalletSnapshot: null,
+        localDate,
+        monthKey,
+        note,
+        occurredAt: Timestamp.fromDate(now),
+        searchTokens: getTransactionSearchTokens({ title, note }),
+        status: "active",
+        timezone: getTimezone(),
+        title,
+        titleNormalized: normalizeSearchText(title),
+        toWalletId: null,
+        toWalletSnapshot: null,
+        type: "adjustment",
+        updatedAt: timestamp,
+        voidedAt: null,
+        walletId,
+        walletIds: [walletId],
+        walletSnapshot: getWalletSnapshot(wallet),
+    }
 }
 
 function getNextWalletOrder(wallets) {
@@ -211,6 +384,7 @@ export async function updateExpenseWallet(uid, input) {
     const walletId = input?.id
     const activeWallets = await getExpenseWallets(uid)
     const existingWallet = activeWallets.find((wallet) => wallet.id === walletId)
+    const hasTargetBalance = input?.balance != null || input?.currentBalance != null
 
     if (!existingWallet) {
         throw new Error('Wallet not found.')
@@ -220,33 +394,89 @@ export async function updateExpenseWallet(uid, input) {
         ...normalizeWalletInput(input, { existingWallet, includeBalance: false }),
         isDefault: existingWallet.isDefault || Boolean(input?.isDefault),
     }
+    const targetBalance = hasTargetBalance
+        ? normalizeInteger(input.balance ?? input.currentBalance, 'Target wallet balance')
+        : null
+    const shouldCreateAdjustment = hasTargetBalance
+        ? await hasActiveWalletTransactions(uid, walletId)
+        : false
     const timestamp = serverTimestamp()
-    const batch = writeBatch(firestore)
+    const walletRef = getWalletRef(uid, walletId)
 
-    if (wallet.isDefault) {
-        activeWallets.forEach((activeWallet) => {
-            if (activeWallet.id !== walletId && activeWallet.isDefault) {
-                batch.update(getWalletRef(uid, activeWallet.id), {
-                    isDefault: false,
-                    updatedAt: timestamp,
-                })
-            }
-        })
-    }
+    return runTransaction(firestore, async (firestoreTransaction) => {
+        const walletSnapshot = await firestoreTransaction.get(walletRef)
 
-    batch.update(getWalletRef(uid, walletId), {
-        ...wallet,
-        updatedAt: timestamp,
+        if (!walletSnapshot.exists()) {
+            throw new Error('Wallet not found.')
+        }
+
+        const currentWalletData = walletSnapshot.data()
+
+        if (currentWalletData.isArchived) {
+            throw new Error('Wallet is archived.')
+        }
+
+        const currentBalance = currentWalletData.balance ?? 0
+        const balanceDelta = hasTargetBalance ? targetBalance - currentBalance : 0
+        const walletUpdate = {
+            ...wallet,
+            updatedAt: timestamp,
+        }
+        let adjustmentTransaction = null
+
+        if (balanceDelta !== 0 && shouldCreateAdjustment) {
+            const transactionRef = doc(getTransactionsCollectionRef(uid))
+            const transactionData = createBalanceAdjustmentTransactionData({
+                balanceDelta,
+                currentBalance,
+                targetBalance,
+                timestamp,
+                wallet: {
+                    ...currentWalletData,
+                    ...wallet,
+                },
+                walletId,
+            })
+
+            walletUpdate.balance = targetBalance
+            firestoreTransaction.set(transactionRef, transactionData)
+            adjustmentTransaction = mapAdjustmentTransaction(transactionRef.id, transactionData)
+        } else if (balanceDelta !== 0) {
+            walletUpdate.balance = targetBalance
+            walletUpdate.initialBalance = targetBalance
+        }
+
+        if (wallet.isDefault) {
+            activeWallets.forEach((activeWallet) => {
+                if (activeWallet.id !== walletId && activeWallet.isDefault) {
+                    firestoreTransaction.update(getWalletRef(uid, activeWallet.id), {
+                        isDefault: false,
+                        updatedAt: timestamp,
+                    })
+                }
+            })
+        }
+
+        firestoreTransaction.update(walletRef, walletUpdate)
+
+        const nextWallet = {
+            ...existingWallet,
+            ...wallet,
+            balance: balanceDelta !== 0 ? targetBalance : currentBalance,
+            initialBalance:
+                balanceDelta !== 0 && !shouldCreateAdjustment
+                    ? targetBalance
+                    : (currentWalletData.initialBalance ?? existingWallet.initialBalance ?? 0),
+            id: walletId,
+            isArchived: false,
+        }
+
+        return {
+            adjustmentTransaction,
+            wallet: nextWallet,
+            walletBalanceUpdates: balanceDelta !== 0 ? { [walletId]: targetBalance } : {},
+        }
     })
-
-    await batch.commit()
-
-    return {
-        ...existingWallet,
-        ...wallet,
-        id: walletId,
-        isArchived: false,
-    }
 }
 
 export async function upsertExpenseWallet(uid, input) {
@@ -270,9 +500,14 @@ export async function deleteExpenseWallet(uid, input) {
         throw new Error('At least one active wallet is required.')
     }
 
-    const replacementWallet = wallet.isDefault
-        ? activeWallets.find((activeWallet) => activeWallet.id !== walletId)
-        : null
+    if (wallet.isDefault) {
+        throw new Error('Choose another default wallet before archiving this wallet.')
+    }
+
+    if ((wallet.balance ?? 0) !== 0) {
+        throw new Error('Wallet balance must be zero before archiving.')
+    }
+
     const timestamp = serverTimestamp()
     const batch = writeBatch(firestore)
 
@@ -282,18 +517,10 @@ export async function deleteExpenseWallet(uid, input) {
         updatedAt: timestamp,
     })
 
-    if (replacementWallet) {
-        batch.update(getWalletRef(uid, replacementWallet.id), {
-            isDefault: true,
-            updatedAt: timestamp,
-        })
-    }
-
     await batch.commit()
 
     return {
         id: walletId,
-        replacementDefaultWalletId: replacementWallet?.id ?? null,
     }
 }
 

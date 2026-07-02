@@ -449,24 +449,31 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     const handleSaveWallet = async (wallet) => {
         const { upsertExpenseWallet } = await import("../api/walletsRepository");
         const result = await upsertExpenseWallet(user.uid, wallet);
+        const savedWallet = result.wallet ?? result;
 
         setWallets((currentWallets) => {
-            const nextWallets = result.isDefault
+            const nextWallets = savedWallet.isDefault
                 ? currentWallets.map((currentWallet) => ({
                       ...currentWallet,
-                      isDefault: currentWallet.id === result.id,
+                      isDefault: currentWallet.id === savedWallet.id,
                   }))
                 : currentWallets;
-            const existingWalletIndex = nextWallets.findIndex((currentWallet) => currentWallet.id === result.id);
+            const existingWalletIndex = nextWallets.findIndex((currentWallet) => currentWallet.id === savedWallet.id);
 
             if (existingWalletIndex === -1) {
-                return [...nextWallets, result].sort(sortWallets);
+                return [...nextWallets, savedWallet].sort(sortWallets);
             }
 
             return nextWallets
-                .map((currentWallet, index) => (index === existingWalletIndex ? result : currentWallet))
+                .map((currentWallet, index) => (index === existingWalletIndex ? savedWallet : currentWallet))
                 .sort(sortWallets);
         });
+
+        if (result.adjustmentTransaction) {
+            setTransactions((currentTransactions) =>
+                sortTransactionList([result.adjustmentTransaction, ...currentTransactions]).slice(0, 10),
+            );
+        }
     };
 
     const handleDeleteWallet = async (wallet) => {

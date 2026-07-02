@@ -7,25 +7,17 @@ import { XIcon } from "../icon/ExpenseIcons";
 
 const walletTypeLabels = {
     bank: "Ngân hàng",
-    card: "Thẻ",
+    card: "Thẻ tín dụng",
     cash: "Tiền mặt",
     eWallet: "Ví điện tử",
-    other: "Khác",
     saving: "Tiết kiệm",
+    other: "Khác",
 };
 
-export default function WalletPage({
-    onBack,
-    onDeleteWallet,
-    onSaveWallet,
-    wallets = [],
-}) {
+export default function WalletPage({ onBack, onDeleteWallet, onSaveWallet, wallets = [] }) {
     const [selectedWalletId, setSelectedWalletId] = useState("");
     const [isFormOpen, setIsFormOpen] = useState(false);
-    const totalBalance = wallets.reduce(
-        (total, wallet) => total + (wallet.balance ?? 0),
-        0,
-    );
+    const totalBalance = wallets.reduce((total, wallet) => total + (wallet.balance ?? 0), 0);
 
     useEffect(() => {
         if (!isFormOpen) {
@@ -69,11 +61,7 @@ export default function WalletPage({
         <main className="mobile-wallet-page">
             <MobilePageHeader
                 actions={
-                    <button
-                        className="mobile-wallet-page__header-action"
-                        onClick={onBack}
-                        type="button"
-                    >
+                    <button className="mobile-wallet-page__header-action" onClick={onBack} type="button">
                         Cài đặt
                     </button>
                 }
@@ -146,14 +134,8 @@ export default function WalletPage({
                 >
                     <div className="mobile-wallet-page__sheet">
                         <header className="mobile-wallet-page__sheet-header">
-                            <h2 id="mobile-wallet-form-title">
-                                {selectedWalletId ? "Sửa ví" : "Tạo ví"}
-                            </h2>
-                            <button
-                                aria-label="Đóng"
-                                onClick={closeForm}
-                                type="button"
-                            >
+                            <h2 id="mobile-wallet-form-title">{selectedWalletId ? "Sửa ví" : "Tạo ví"}</h2>
+                            <button aria-label="Đóng" onClick={closeForm} type="button">
                                 <XIcon size={18} />
                             </button>
                         </header>
