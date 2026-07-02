@@ -230,9 +230,17 @@ function getTransactionSubtitle(data) {
     return [time, `${day}/${month}`].filter(Boolean).join(" ");
 }
 
+function isAdjustmentIncrease(data) {
+    return data.adjustmentDirection === "increase";
+}
+
 function getSignedAmount(data) {
     if (data.type === "income") {
         return data.amountMinor;
+    }
+
+    if (data.type === "adjustment") {
+        return isAdjustmentIncrease(data) ? data.amountMinor : -data.amountMinor;
     }
 
     return -data.amountMinor;
@@ -251,16 +259,19 @@ function mapTransactionData(id, data) {
     const categoryName =
         data.type === "transfer"
             ? "Chuyển khoản"
-            : (data.categorySnapshot?.name ?? data.categoryId ?? "");
+            : data.type === "adjustment"
+                ? "Điều chỉnh số dư"
+                : (data.categorySnapshot?.name ?? data.categoryId ?? "");
 
     return {
         id,
         type: data.type,
         amount: getSignedAmount(data),
         amountMinor: data.amountMinor,
-        category: data.categoryId ?? "transfer",
+        adjustmentDirection: data.adjustmentDirection,
+        category: data.categoryId ?? data.type,
         categoryId: data.categoryId,
-        categoryColor: data.categorySnapshot?.color ?? "",
+        categoryColor: data.categorySnapshot?.color ?? data.walletSnapshot?.color ?? "",
         walletColor: data.walletSnapshot?.color ?? "",
         categoryName: categoryName,
         currency: data.currency ?? "VND",
@@ -268,7 +279,7 @@ function mapTransactionData(id, data) {
             data.categorySnapshot?.icon ??
             data.fromWalletSnapshot?.icon ??
             data.walletSnapshot?.icon ??
-            "transfer",
+            (data.type === "adjustment" ? "wallet" : "transfer"),
         title: data.title,
         subtitle: getTransactionSubtitle(data),
         date: data.localDate,
@@ -380,6 +391,10 @@ function applyTransactionToMonthlyStats(
     return nextStats;
 }
 
+function transactionAffectsMonthlyStats(transactionData) {
+    return transactionData.type !== "adjustment";
+}
+
 function addWalletDelta(walletDeltas, walletId, delta) {
     if (!walletId || !delta) {
         return;
@@ -398,6 +413,15 @@ function addTransactionWalletDeltas(walletDeltas, transactionData, direction) {
 
     if (transactionData.type === "expense") {
         addWalletDelta(walletDeltas, transactionData.walletId, -amountDelta);
+        return;
+    }
+
+    if (transactionData.type === "adjustment") {
+        addWalletDelta(
+            walletDeltas,
+            transactionData.walletId,
+            isAdjustmentIncrease(transactionData) ? amountDelta : -amountDelta,
+        );
         return;
     }
 
@@ -426,6 +450,40 @@ function createTransactionDataFromInput({
 
     if (!title) {
         throw new Error("Transaction title is required.");
+    }
+
+    if (input.type === "adjustment") {
+        const adjustmentDirection = input.adjustmentDirection === "increase" ? "increase" : "decrease";
+
+        return {
+            type: input.type,
+            adjustmentDirection,
+            amountMinor,
+            currency: wallet.currency ?? "VND",
+            title,
+            titleNormalized: normalizeText(title),
+            searchTokens: getTransactionSearchTokens({
+                input,
+            }),
+            note,
+            categoryId: null,
+            walletId: input.walletId,
+            fromWalletId: null,
+            toWalletId: null,
+            walletIds: [input.walletId],
+            occurredAt,
+            localDate: input.date,
+            monthKey,
+            timezone: getTimezone(),
+            categorySnapshot: null,
+            walletSnapshot: getWalletSnapshot(wallet),
+            fromWalletSnapshot: null,
+            toWalletSnapshot: null,
+            status: "active",
+            createdAt,
+            updatedAt: timestamp,
+            voidedAt: null,
+        };
     }
 
     if (input.type === "transfer") {
@@ -592,7 +650,52 @@ export async function createExpenseTransaction(uid, input) {
         let nextMonthlyStats;
         let transactionData;
 
-        if (input.type === "transfer") {
+        if (input.type === "adjustment") {
+            const walletRef = getWalletRef(uid, input.walletId);
+            const walletSnapshot = await firestoreTransaction.get(walletRef);
+            const wallet = getSnapshotData(walletSnapshot, "Wallet");
+            const adjustmentDirection = input.adjustmentDirection === "increase" ? "increase" : "decrease";
+            const balanceDelta = adjustmentDirection === "increase" ? amountMinor : -amountMinor;
+            const nextBalance = (wallet.balance ?? 0) + balanceDelta;
+
+            transactionData = {
+                type: input.type,
+                adjustmentDirection,
+                amountMinor,
+                currency: wallet.currency ?? "VND",
+                title,
+                titleNormalized: normalizeText(title),
+                searchTokens: getTransactionSearchTokens({
+                    input,
+                }),
+                note,
+                categoryId: null,
+                walletId: input.walletId,
+                fromWalletId: null,
+                toWalletId: null,
+                walletIds: [input.walletId],
+                occurredAt,
+                localDate: input.date,
+                monthKey,
+                timezone: getTimezone(),
+                categorySnapshot: null,
+                walletSnapshot: getWalletSnapshot(wallet),
+                fromWalletSnapshot: null,
+                toWalletSnapshot: null,
+                status: "active",
+                createdAt: timestamp,
+                updatedAt: timestamp,
+                voidedAt: null,
+            };
+
+            firestoreTransaction.set(transactionRef, transactionData);
+            firestoreTransaction.update(walletRef, {
+                balance: nextBalance,
+                updatedAt: timestamp,
+            });
+
+            walletBalanceUpdates[input.walletId] = nextBalance;
+        } else if (input.type === "transfer") {
             const fromWalletRef = getWalletRef(uid, input.fromWalletId);
             const toWalletRef = getWalletRef(uid, input.toWalletId);
 
@@ -776,7 +879,12 @@ export async function updateExpenseTransaction(uid, transactionId, input) {
         let fromWallet;
         let toWallet;
 
-        if (input.type === "transfer") {
+        if (input.type === "adjustment") {
+            const walletRef = getWalletRef(uid, input.walletId);
+            const walletSnapshot = await firestoreTransaction.get(walletRef);
+
+            wallet = getSnapshotData(walletSnapshot, "Wallet");
+        } else if (input.type === "transfer") {
             const fromWalletRef = getWalletRef(uid, input.fromWalletId);
             const toWalletRef = getWalletRef(uid, input.toWalletId);
             const [fromWalletSnapshot, toWalletSnapshot] = await Promise.all([
@@ -808,7 +916,10 @@ export async function updateExpenseTransaction(uid, transactionId, input) {
             toWallet,
         });
         const affectedMonthKeys = [
-            ...new Set([currentTransactionData.monthKey, nextTransactionData.monthKey].filter(Boolean)),
+            ...new Set([
+                transactionAffectsMonthlyStats(currentTransactionData) ? currentTransactionData.monthKey : null,
+                transactionAffectsMonthlyStats(nextTransactionData) ? nextTransactionData.monthKey : null,
+            ].filter(Boolean)),
         ];
         const monthlyStatsRefs = new Map(
             affectedMonthKeys.map((monthKey) => [monthKey, getMonthlyStatsRef(uid, monthKey)]),
@@ -824,26 +935,30 @@ export async function updateExpenseTransaction(uid, transactionId, input) {
         );
         const walletDeltas = {};
 
-        nextMonthlyStatsByMonth.set(
-            currentTransactionData.monthKey,
-            applyTransactionToMonthlyStats(
+        if (transactionAffectsMonthlyStats(currentTransactionData)) {
+            nextMonthlyStatsByMonth.set(
                 currentTransactionData.monthKey,
-                nextMonthlyStatsByMonth.get(currentTransactionData.monthKey),
-                currentTransactionData,
-                -1,
-                timestamp,
-            ),
-        );
-        nextMonthlyStatsByMonth.set(
-            nextTransactionData.monthKey,
-            applyTransactionToMonthlyStats(
+                applyTransactionToMonthlyStats(
+                    currentTransactionData.monthKey,
+                    nextMonthlyStatsByMonth.get(currentTransactionData.monthKey),
+                    currentTransactionData,
+                    -1,
+                    timestamp,
+                ),
+            );
+        }
+        if (transactionAffectsMonthlyStats(nextTransactionData)) {
+            nextMonthlyStatsByMonth.set(
                 nextTransactionData.monthKey,
-                nextMonthlyStatsByMonth.get(nextTransactionData.monthKey),
-                nextTransactionData,
-                1,
-                timestamp,
-            ),
-        );
+                applyTransactionToMonthlyStats(
+                    nextTransactionData.monthKey,
+                    nextMonthlyStatsByMonth.get(nextTransactionData.monthKey),
+                    nextTransactionData,
+                    1,
+                    timestamp,
+                ),
+            );
+        }
 
         addTransactionWalletDeltas(walletDeltas, currentTransactionData, -1);
         addTransactionWalletDeltas(walletDeltas, nextTransactionData, 1);
@@ -905,24 +1020,29 @@ export async function voidExpenseTransaction(uid, transactionId) {
             throw new Error("Only active transactions can be deleted.");
         }
 
-        const monthlyStatsRef = getMonthlyStatsRef(uid, transactionData.monthKey);
+        const shouldUpdateMonthlyStats = transactionAffectsMonthlyStats(transactionData);
+        const monthlyStatsRef = shouldUpdateMonthlyStats ? getMonthlyStatsRef(uid, transactionData.monthKey) : null;
         const walletDeltas = {};
 
         addTransactionWalletDeltas(walletDeltas, transactionData, -1);
 
         const affectedWalletIds = Object.keys(walletDeltas).filter((walletId) => walletDeltas[walletId] !== 0);
         const walletRefs = new Map(affectedWalletIds.map((walletId) => [walletId, getWalletRef(uid, walletId)]));
-        const [monthlyStatsSnapshot, ...walletSnapshots] = await Promise.all([
-            firestoreTransaction.get(monthlyStatsRef),
-            ...affectedWalletIds.map((walletId) => firestoreTransaction.get(walletRefs.get(walletId))),
-        ]);
-        const nextMonthlyStats = applyTransactionToMonthlyStats(
-            transactionData.monthKey,
-            getMonthlyStatsData(transactionData.monthKey, monthlyStatsSnapshot.data()),
-            transactionData,
-            -1,
-            timestamp,
+        const monthlyStatsSnapshot = shouldUpdateMonthlyStats
+            ? await firestoreTransaction.get(monthlyStatsRef)
+            : null;
+        const walletSnapshots = await Promise.all(
+            affectedWalletIds.map((walletId) => firestoreTransaction.get(walletRefs.get(walletId))),
         );
+        const nextMonthlyStats = shouldUpdateMonthlyStats
+            ? applyTransactionToMonthlyStats(
+                transactionData.monthKey,
+                getMonthlyStatsData(transactionData.monthKey, monthlyStatsSnapshot.data()),
+                transactionData,
+                -1,
+                timestamp,
+            )
+            : null;
         const walletBalanceUpdates = {};
 
         affectedWalletIds.forEach((walletId, index) => {
@@ -944,7 +1064,9 @@ export async function voidExpenseTransaction(uid, transactionId) {
             },
             { merge: true },
         );
-        firestoreTransaction.set(monthlyStatsRef, nextMonthlyStats);
+        if (shouldUpdateMonthlyStats) {
+            firestoreTransaction.set(monthlyStatsRef, nextMonthlyStats);
+        }
         affectedWalletIds.forEach((walletId) => {
             firestoreTransaction.update(walletRefs.get(walletId), {
                 balance: walletBalanceUpdates[walletId],
@@ -953,9 +1075,11 @@ export async function voidExpenseTransaction(uid, transactionId) {
         });
 
         return {
-            monthlyStatsUpdates: {
-                [transactionData.monthKey]: nextMonthlyStats,
-            },
+            monthlyStatsUpdates: shouldUpdateMonthlyStats
+                ? {
+                    [transactionData.monthKey]: nextMonthlyStats,
+                }
+                : {},
             transactionId,
             walletBalanceUpdates,
         };

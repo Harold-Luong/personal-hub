@@ -71,6 +71,10 @@ function getTransactionCategoryLabel(transaction) {
         return "Chuyển khoản";
     }
 
+    if (transaction.type === "adjustment") {
+        return "Điều chỉnh số dư";
+    }
+
     return transaction.categoryName || transaction.category || "-";
 }
 
@@ -199,7 +203,7 @@ function TransactionSummary({ transactions }) {
                 totals.income += transaction.amountMinor ?? Math.abs(transaction.amount ?? 0);
             } else if (transaction.type === "transfer") {
                 totals.transfer += transaction.amountMinor ?? Math.abs(transaction.amount ?? 0);
-            } else {
+            } else if (transaction.type === "expense") {
                 totals.expense += transaction.amountMinor ?? Math.abs(transaction.amount ?? 0);
             }
 
@@ -232,6 +236,7 @@ function TransactionRow({ onDelete, onEdit, transaction }) {
     const walletLabel = getTransactionWalletLabel(transaction);
     const categoryLabel = getTransactionCategoryLabel(transaction);
     const { dateLabel, dateTime, timeLabel } = getTransactionDateParts(transaction);
+    const canEdit = transaction.type !== "adjustment";
 
     return (
         <article className="transactions-page__row" role="row">
@@ -283,9 +288,11 @@ function TransactionRow({ onDelete, onEdit, transaction }) {
                 <AmountText amount={transaction.amount} showSign />
             </div>
             <div className="transactions-page__actions" role="cell">
-                <button aria-label={`Sửa ${transaction.title}`} onClick={() => onEdit(transaction)} type="button">
-                    <EditIcon size={16} />
-                </button>
+                {canEdit ? (
+                    <button aria-label={`Sửa ${transaction.title}`} onClick={() => onEdit(transaction)} type="button">
+                        <EditIcon size={16} />
+                    </button>
+                ) : null}
                 <button
                     aria-label={`Xóa ${transaction.title}`}
                     className="is-danger"

@@ -70,7 +70,8 @@ export const expenseThemeOptions = [
 
 export const expenseCurrencies = ["VND", "USD"];
 
-export const transactionTypeIds = ["expense", "income", "transfer"];
+export const editableTransactionTypeIds = ["expense", "income", "transfer"];
+export const transactionTypeIds = [...editableTransactionTypeIds, "adjustment"];
 
 export const transactionTypeMeta = {
     expense: {
@@ -85,13 +86,17 @@ export const transactionTypeMeta = {
         label: "Chuyển khoản",
         tone: "transfer",
     },
+    adjustment: {
+        label: "Điều chỉnh",
+        tone: "neutral",
+    },
     default: {
         label: "Giao dịch",
         tone: "expense",
     },
 };
 
-export const transactionTypeOptions = transactionTypeIds.map((id) => ({
+export const transactionTypeOptions = editableTransactionTypeIds.map((id) => ({
     id,
     label: transactionTypeMeta[id].label,
 }));
@@ -125,7 +130,10 @@ export const expenseSummaryItems = [
 
 export const expenseTransactionFilters = [
     { id: "all", label: "Tất cả" },
-    ...transactionTypeOptions,
+    ...transactionTypeIds.map((id) => ({
+        id,
+        label: transactionTypeMeta[id].label,
+    })),
 ];
 
 export const colorsFallback = ["#2f80ed", "#f28c28", "#2ead59", "#7a52d1", "#e24f95", "#2cb7bc", "#9a6bf1"];

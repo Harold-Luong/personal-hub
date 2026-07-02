@@ -16,7 +16,8 @@ dựng từ projection để đọc nhanh.
 Mục tiêu của thiết kế:
 
 - Dữ liệu tài chính được tách riêng theo từng người dùng.
-- Transaction là nguồn dữ liệu gốc duy nhất cho thu, chi và chuyển khoản.
+- Transaction là nguồn dữ liệu gốc duy nhất cho thu, chi, chuyển khoản và điều
+  chỉnh số dư.
 - Dashboard đọc nhanh mà không phải tải toàn bộ lịch sử giao dịch.
 - Các thay đổi liên quan đến số dư và thống kê được cập nhật nguyên tử.
 - Dữ liệu vẫn nhất quán khi tạo, sửa hoặc hủy giao dịch.
@@ -44,6 +45,52 @@ Một số dữ liệu hiện vẫn là dữ liệu dẫn xuất/projection:
 - `budget.amount` là số tiền đã chi, không phải cấu hình ngân sách.
   Các giá trị dẫn xuất này không được coi là nguồn sự thật.
 
+### 2.1 Bản đồ nghiệp vụ hiện tại
+
+Module expenses đang dùng các nguồn dữ liệu chính sau:
+
+- `wallets`: metadata ví và projection `balance`.
+- `transactions`: lịch sử thay đổi tiền; đây là nguồn sự thật cho thu, chi,
+  chuyển khoản và điều chỉnh số dư.
+- `monthlyStats`: projection theo tháng để dashboard/report đọc nhanh.
+- `budgets`: cấu hình hạn mức theo tháng và expense category.
+- `categories`: metadata danh mục, được snapshot vào transaction khi tạo/sửa.
+- `settings/main`: theme, currency, timezone, default wallet và tùy chọn UI.
+
+Quan hệ nghiệp vụ quan trọng:
+
+- Một expense/income transaction tham chiếu một wallet qua `walletId` và một
+  category qua `categoryId`.
+- Một transfer transaction tham chiếu hai wallet qua `fromWalletId` và
+  `toWalletId`.
+- Một adjustment transaction tham chiếu một wallet qua `walletId`, có
+  `adjustmentDirection` để xác định tăng hoặc giảm số dư.
+- `walletIds` là mảng denormalized để query lịch sử theo ví, bao gồm cả transfer
+  và adjustment.
+- Transaction lưu snapshot wallet/category để lịch sử vẫn hiển thị đúng sau khi
+  wallet/category đổi tên, đổi màu hoặc bị archive.
+- Budget không giữ số đã chi. UI ghép `budgets.limitMinor` với
+  `monthlyStats.categoryExpenseMinor[categoryId]` để tính phần trăm sử dụng.
+
+Luồng tiền hiện tại:
+
+1. Tạo expense: tạo transaction, trừ `wallet.balance`, tăng
+   `monthlyStats.expenseMinor`, tăng spending của category.
+2. Tạo income: tạo transaction, cộng `wallet.balance`, tăng
+   `monthlyStats.incomeMinor`, tăng income của category.
+3. Tạo transfer: tạo transaction, trừ ví nguồn, cộng ví đích, không đổi
+   income/expense report.
+4. Sửa transaction: đảo toàn bộ tác động cũ, áp tác động mới, cập nhật wallet và
+   monthlyStats liên quan.
+5. Xóa transaction: không xóa document; chuyển `status` sang `voided` và đảo tác
+   động tài chính.
+6. Sửa số dư ví chưa có active transaction: cập nhật `initialBalance` và
+   `balance`, không tạo transaction.
+7. Sửa số dư ví đã có active transaction: tạo transaction `adjustment`, cập nhật
+   `wallet.balance`, không đổi `monthlyStats`.
+8. Archive wallet: chỉ cho archive ví không phải default, không phải ví active
+   cuối cùng và có `balance == 0`.
+
 ## 3. Các quyết định chính
 
 ### 3.1 Phạm vi dữ liệu theo user
@@ -69,6 +116,7 @@ Transactions là nguồn dữ liệu gốc cho:
 - Chi tiêu theo danh mục.
 - Mức sử dụng ngân sách.
 - Báo cáo theo ngày, tháng và năm.
+- Adjustment số dư cần audit nhưng không thuộc income/expense report.
 
 `wallet.balance` và `monthlyStats` là projection được lưu để tăng
 tốc độ đọc. Hai loại dữ liệu này phải có khả năng rebuild từ transactions.
@@ -105,10 +153,12 @@ Tạo, sửa hoặc hủy transaction phải cập nhật cùng lúc:
 
 - Transaction document.
 - Số dư wallet liên quan.
-- Monthly statistics liên quan.
+- Monthly statistics liên quan nếu transaction thuộc income/expense/transfer.
 
-Các thao tác này được thực hiện trong Firestore transaction ở trusted backend,
-khuyến nghị dùng Firebase Callable Cloud Functions.
+Implementation hiện tại thực hiện các thao tác này trong repository client bằng
+Firestore `runTransaction`/batch và được ràng buộc bởi Firestore Security Rules.
+Nếu chuyển sang backend/Callable Function sau này, contract nghiệp vụ vẫn giữ
+nguyên.
 
 ## 4. Cấu trúc Firestore
 
@@ -260,22 +310,29 @@ Quy tắc:
 - Số dư tổng của user bằng tổng `balance` của các wallet đang hoạt
   động, tùy quy tắc có tính credit wallet hay không.
 
-#### Wallet archive balance policy - PR wallet follow-up
+#### Wallet balance và archive policy
 
-Sau PR transaction filter, transaction cu co the tiep tuc tham chieu wallet da
-archive thong qua `walletIds` va snapshot trong transaction. PR wallet sau can
-chot ro chinh sach so du khi archive wallet:
+`wallet.balance` là projection hiện tại, không phải lịch sử. Code chỉ thay đổi
+projection này qua các flow nghiệp vụ có kiểm soát:
 
-- Wallet da archive khong duoc tinh vao tong so du hien tai cua dashboard.
-- Transaction lich su van giu `walletId`, `walletIds`, `walletSnapshot`,
-  `fromWalletSnapshot` va `toWalletSnapshot` de audit va filter duoc.
-- Void transaction cu van duoc phep dao delta vao wallet goc, ke ca wallet do
-  da archive, mien la wallet document van ton tai.
-- Create transaction moi hoac update transaction sang wallet da archive phai bi
-  chan.
-- Khuyen nghi cho PR wallet: khong cho archive wallet neu `balance != 0`, hoac
-  bat user chon wallet active de nhan phan so du con lai truoc khi archive.
-  Cach nay giup tong tien active khong bien mat khi user xoa wallet.
+- Tạo wallet mới: `balance = initialBalance`.
+- Sửa balance của wallet chưa có active transaction: cập nhật trực tiếp
+  `initialBalance` và `balance`; đây là bước thiết lập số dư ban đầu.
+- Sửa balance của wallet đã có active transaction: tạo transaction
+  `adjustment` với `adjustmentDirection`, rồi cập nhật `balance`.
+- Expense/income/transfer/void transaction: cập nhật balance bằng delta.
+
+Archive wallet hiện tại có các điều kiện bắt buộc:
+
+- Không phải wallet default.
+- Không phải wallet active cuối cùng.
+- `balance == 0`.
+- Không hard-delete document; chỉ set `isArchived = true`.
+
+Wallet đã archive không được dùng để tạo transaction mới hoặc update transaction
+sang wallet đó. Transaction lịch sử vẫn giữ `walletId`, `walletIds`,
+`walletSnapshot`, `fromWalletSnapshot` và `toWalletSnapshot` để audit, filter và
+hiển thị lịch sử.
 
 ### 5.4 Category
 
@@ -373,6 +430,7 @@ Các loại transaction:
 expense
 income
 transfer
+adjustment
 ```
 
 #### Expense transaction
@@ -436,6 +494,34 @@ Tác động:
 - Không tính là income hoặc expense.
 - Không ảnh hưởng ngân sách.
 - Hai wallet phải khác nhau và cùng currency trong phiên bản đầu.
+
+#### Adjustment transaction
+
+Adjustment là transaction nội bộ dùng khi user sửa số dư hiện tại của một ví đã
+có active transaction. Nó giữ audit trail cho chênh lệch số dư nhưng không được
+tính là thu nhập hoặc chi tiêu.
+
+```js
+{
+  type: "adjustment",
+  adjustmentDirection: "increase",
+  amountMinor: 200000,
+  categoryId: null,
+  walletId: "wallet-cash",
+  walletIds: ["wallet-cash"],
+  fromWalletId: null,
+  toWalletId: null
+}
+```
+
+Tác động:
+
+- `adjustmentDirection: "increase"` cộng `amountMinor` vào wallet.
+- `adjustmentDirection: "decrease"` trừ `amountMinor` khỏi wallet.
+- Không đổi `monthlyStats.incomeMinor`.
+- Không đổi `monthlyStats.expenseMinor`.
+- Không ảnh hưởng budget spent.
+- Có thể void để đảo tác động balance.
 
 `walletIds` là field denormalized để query lịch sử của một wallet bằng
 `array-contains`.
@@ -538,6 +624,8 @@ Quy tắc:
 
 - Chỉ tính transaction có `status == "active"`.
 - Transfer không ảnh hưởng income, expense hoặc net.
+- Adjustment không ảnh hưởng income, expense, net, category aggregate hoặc
+  `transactionCount` trong `monthlyStats`.
 - `netMinor = incomeMinor - expenseMinor`.
 - Statistics phải được cập nhật cùng transaction mutation.
 - Có admin job hoặc script để rebuild statistics khi cần.
@@ -571,6 +659,9 @@ Transfer Transaction
  ├── N - 1 Source Wallet
  └── N - 1 Destination Wallet
 
+Adjustment Transaction
+ └── N - 1 Wallet
+
 Budget
  └── N - 1 Expense Category
 
@@ -596,6 +687,7 @@ Firestore không có join như SQL. Vì vậy:
 | Category metadata      | `categories`                        | Đọc collection categories  |
 | Monthly income/expense | `monthlyStats`                      | Projection từ transactions |
 | Category spending      | `monthlyStats.categoryExpenseMinor` | Projection                 |
+| Balance adjustment     | `transactions` type `adjustment`    | Không tính vào stats       |
 | Budget limit           | `budgets`                           | Đọc theo `monthKey`        |
 | Budget spent           | `monthlyStats`                      | Kết hợp theo `categoryId`  |
 | Dashboard summary      | Wallets + current/previous stats    | Dựng view model            |
@@ -819,6 +911,9 @@ Ví dụ đổi expense từ tháng 5 sang tháng 6:
 - Tăng expense và category aggregate tháng 6.
 - Balance hiện tại không đổi nếu amount và wallet không đổi.
 
+Với transaction `adjustment`, flow sửa chỉ đảo/apply balance delta. Nó không tạo
+hoặc cập nhật `monthlyStats` vì adjustment không phải income/expense.
+
 ## 14. Flow hủy giao dịch
 
 Không xóa document trong flow thông thường.
@@ -828,7 +923,7 @@ Backend transaction:
 1. Đọc transaction.
 2. Nếu đã `voided`, trả kết quả idempotent.
 3. Đảo tác động balance.
-4. Đảo tác động monthly stats.
+4. Đảo tác động monthly stats nếu transaction ảnh hưởng stats.
 5. Cập nhật:
 
 ```js
@@ -842,6 +937,9 @@ Backend transaction:
 Transaction voided không xuất hiện trong danh sách mặc định nhưng có thể hiển
 thị trong lịch sử kiểm toán.
 
+Với transaction `adjustment`, void chỉ đảo tác động balance và không động tới
+`monthlyStats`.
+
 ## 15. Flow wallet
 
 ### Tạo wallet
@@ -849,8 +947,10 @@ thị trong lịch sử kiểm toán.
 1. Validate name, type và currency.
 2. Tạo wallet với opening balance.
 3. Đặt `balance = initialBalance`.
-4. Không tạo income transaction cho opening balance, trừ khi sản phẩm muốn
-   hiển thị nó như một giao dịch điều chỉnh.
+4. Ví do user tạo thêm dùng Firestore auto ID.
+5. Ví mặc định khi bootstrap lần đầu hiện dùng id cố định `wallet-cash` để init
+   idempotent.
+6. Không tạo income transaction cho opening balance.
 
 ### Sửa wallet
 
@@ -859,26 +959,55 @@ Cho phép sửa:
 - Name.
 - Icon.
 - Color.
+- Type.
+- Currency.
+- Default flag.
 - Sort order.
+- Số dư hiện tại theo rule bên dưới.
 
-Không sửa trực tiếp `balance` ngoài flow transaction/rebuild có kiểm soát.
+Khi user đổi số dư hiện tại:
 
-> TODO/Risk: flow edit wallet không được ghi `balance`. Nếu form edit metadata
-> vẫn submit `balance`, một form mở trước khi transaction khác cập nhật ví có
-> thể lưu lại balance cũ và ghi đè projection mới. Hiện tại chỉ hiển thị số dư
-> dạng readonly khi edit. Sau này nếu hỗ trợ sửa opening balance, phải rebuild
-> balance từ `initialBalance` và toàn bộ transactions của wallet thay vì ghi đè
-> `balance` trực tiếp.
+1. Repository kiểm tra wallet có active transaction chưa bằng query
+   `walletIds array-contains walletId` và `status == active`.
+2. Nếu chưa có active transaction, đây được coi là bước thiết lập ví lần đầu:
+   update trực tiếp `initialBalance = targetBalance` và
+   `balance = targetBalance`.
+3. Nếu đã có active transaction, tạo transaction `adjustment` với delta giữa
+   `targetBalance` và `currentBalance`, sau đó update `balance`.
+4. Adjustment không update `monthlyStats`, nên report thu/chi và budget spent
+   không bị sai.
 
 ### Điều chỉnh số dư
 
-Nếu cần sửa số dư thực tế, tạo transaction loại nội bộ `adjustment` trong
-phiên bản mở rộng hoặc tạo expense/income adjustment rõ ràng. Không cho client
-ghi đè balance.
+Adjustment chỉ được tạo khi sửa số dư hiện tại của wallet đã có lịch sử giao
+dịch. Ví dụ:
+
+```text
+current balance = 800000
+target balance = 1000000
+delta = +200000
+```
+
+App tạo transaction:
+
+```js
+{
+  type: "adjustment",
+  adjustmentDirection: "increase",
+  amountMinor: 200000,
+  walletId: "<walletId>"
+}
+```
+
+Nếu target thấp hơn current balance thì `adjustmentDirection = "decrease"`.
 
 ### Archive wallet
 
-- Chỉ archive nếu không còn là default wallet.
+- Không archive wallet default; user phải chọn default wallet khác trước.
+- Không archive wallet active cuối cùng.
+- Không archive wallet còn `balance != 0`; user phải chuyển hết tiền sang ví
+  khác hoặc tạo adjustment về 0 trước.
+- Khi archive, chỉ set `isArchived = true`; không hard-delete document.
 - Không cho tạo transaction mới với wallet đã archive.
 - Transaction cũ vẫn giữ wallet snapshot.
 
@@ -919,6 +1048,15 @@ Web dashboard cho tạo/cập nhật/xóa budget ngay trong modal từ
 budget trong tháng hiện tại, lần lưu tiếp theo sẽ cập nhật budget đó thay vì tạo
 document mới. Xóa budget dùng `deleteExpenseBudget()` và chỉ xóa config hạn mức,
 không ảnh hưởng transaction hoặc `monthlyStats`.
+
+Liên kết nghiệp vụ:
+
+- Expense transaction làm tăng `monthlyStats.categoryExpenseMinor[categoryId]`.
+- Budget đọc `limitMinor` từ document budget và đọc spent từ
+  `monthlyStats.categoryExpenseMinor[categoryId]`.
+- Income, transfer và adjustment không làm tăng budget spent.
+- Xóa budget chỉ xóa hạn mức; lịch sử giao dịch và category spending vẫn giữ
+  nguyên.
 
 Mobile mở `BudgetPage` từ `Cài đặt > Quản lý > Ngân sách tháng` hoặc từ card
 ngân sách trên dashboard. Trang này hiển thị tổng ngân sách tháng, danh sách
@@ -1082,29 +1220,41 @@ như filter để tự loại dữ liệu không thuộc quyền.
 
 ### Client write access
 
-Client có thể trực tiếp ghi:
+Implementation hiện tại dùng Firebase client SDK. Client chỉ nên ghi thông qua
+repository của module, để mọi mutation đi qua cùng validation và cùng flow cập
+nhật projection.
+
+Client/repository có thể ghi:
 
 - Một số field profile.
 - Expense settings đã whitelist.
 - Budget config đã validate (`monthKey`, `categoryId`, `limitMinor`, `alertThreshold`).
 - Xóa budget config của chính user.
-- Metadata không ảnh hưởng tài chính nếu rules đủ chặt.
+- Wallet metadata và archive theo rule.
+- Transaction create/update/void cùng với wallet/monthlyStats projection trong
+  Firestore transaction.
 
-Client không được trực tiếp ghi:
+Client không nên ghi ad hoc ngoài repository flow:
 
 - `wallet.balance`
 - `monthlyStats`
 - Transaction mutations có tác động tài chính
 
-### Trusted write access
+Security Rules hiện whitelist shape dữ liệu và quyền owner. Những invariant liên
+document như “archive wallet cần balance bằng 0” vẫn phải được repository/Cloud
+Function giữ nhất quán, vì Rules khó kiểm soát toàn bộ nghiệp vụ phức tạp.
 
-Các mutation tài chính đi qua Callable Cloud Functions:
+### Trusted write access tương lai
+
+Nếu chuyển mutation tài chính sang Callable Cloud Functions, các function tương
+ứng là:
 
 ```text
 createExpenseTransaction
 updateExpenseTransaction
 voidExpenseTransaction
 createTransferTransaction
+createBalanceAdjustmentTransaction
 rebuildExpenseProjections
 ```
 
@@ -1150,7 +1300,7 @@ src/
         │   ├── categoriesRepository.js
         │   ├── transactionsRepository.js
         │   ├── budgetsRepository.js
-        │   └── expenseMutations.js
+        │   └── monthlyStatsRepository.js
         ├── hooks/
         │   ├── useExpenseSettings.js
         │   ├── useExpenseDashboard.js
@@ -1165,7 +1315,8 @@ src/
 Vai trò:
 
 - `api/repositories`: biết Firestore path và query.
-- `expenseMutations`: gọi Callable Cloud Functions.
+- Repository hiện tại cũng chứa mutation client-side bằng Firestore
+  `runTransaction`/batch.
 - `hooks`: quản lý loading, error, subscription và lifecycle.
 - `mappers`: chuyển Firestore model thành UI props hiện tại.
 - `components`: chỉ render và phát user events.
@@ -1423,7 +1574,12 @@ Có thể thêm scheduled reconciliation để phát hiện chênh lệch mà kh
 - Transaction active có đúng field theo type.
 - Expense/income có một wallet và một category hợp lệ.
 - Transfer có hai wallet khác nhau và không có category.
-- Balance không được client ghi trực tiếp.
+- Adjustment có một wallet, `adjustmentDirection` hợp lệ và không có category.
+- Adjustment không ảnh hưởng income/expense/monthly category aggregate.
+- Wallet archive phải không phải default, không phải active cuối cùng và có
+  `balance == 0`.
+- Balance chỉ được cập nhật qua create/edit/void transaction, adjustment hoặc
+  setup initial balance cho wallet chưa có active transaction.
 - Monthly stats không được client ghi trực tiếp.
 - Voided transaction không ảnh hưởng balance và aggregates.
 - Category aggregate không âm sau mutation hợp lệ.
@@ -1458,10 +1614,16 @@ Có thể thêm scheduled reconciliation để phát hiện chênh lệch mà kh
 - Create expense cập nhật wallet và monthly stats.
 - Create income cập nhật wallet và monthly stats.
 - Transfer cập nhật hai wallet nhưng không đổi income/expense.
+- Edit wallet chưa có active transaction cập nhật `initialBalance` và `balance`
+  mà không tạo adjustment.
+- Edit wallet đã có active transaction tạo adjustment và không đổi
+  `monthlyStats`.
 - Edit amount cập nhật đúng delta.
 - Edit month cập nhật cả hai tháng.
 - Edit wallet cập nhật cả hai wallet.
 - Void đảo toàn bộ tác động.
+- Archive wallet bị chặn khi wallet là default, còn tiền hoặc là wallet active
+  cuối cùng.
 - Retry cùng idempotency key không tạo duplicate.
 - Mutation lỗi không để lại partial write.
 
@@ -1484,7 +1646,9 @@ Có thể thêm scheduled reconciliation để phát hiện chênh lệch mà kh
 - Refresh trang không mất dữ liệu.
 - Tháng hiện tại và tháng trước trả trend đúng.
 - Budget spent khớp category expense.
-- Không thể sửa balance hoặc monthly stats trực tiếp từ client.
+- Sửa balance ví đi đúng flow: initial setup hoặc adjustment transaction.
+- Không có mutation tài chính nào để lại wallet/monthlyStats projection lệch với
+  transaction history.
 - Emulator tests bao phủ rules và mutation quan trọng.
 
 ## 34. Ngoài phạm vi phiên bản đầu
@@ -1517,13 +1681,15 @@ phức tạp của phiên bản đầu.
 ## 36. Trạng thái
 
 ```text
-Status: Design approved for implementation planning
-Implementation: In progress
+Status: Implementation contract for current expenses module
+Implementation: Active
 Mock data removal: Financial dashboard mock data removed from runtime
 Firebase integration: Settings/categories/wallets/budgets/transactions/monthlyStats active
 Budget UI: Web budget create/update/delete modal active
+Wallet balance flow: Initial setup plus adjustment transactions active
+Wallet archive rules: Default/non-zero/last-active wallet protected
 ```
 
-Tài liệu này là contract thiết kế cho bước triển khai tiếp theo. Khi schema
-hoặc flow thay đổi, cần cập nhật README trước hoặc cùng pull request triển
-khai.
+Tài liệu này là contract nghiệp vụ và dữ liệu cho implementation hiện tại. Khi
+schema hoặc flow thay đổi, cần cập nhật README trước hoặc cùng pull request
+triển khai.

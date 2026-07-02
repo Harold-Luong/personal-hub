@@ -8,7 +8,7 @@ import {
 import { firestore } from "../../../lib/firebase/firestore";
 import { expenseCurrencies, expenseThemes } from "../constant/expensesMetaData";
 
-const defaultWalletId = "wallet-cash";
+const defaultWalletId = "default-wallet-cash";
 const defaultExpenseCategories = [
     {
         id: "food",

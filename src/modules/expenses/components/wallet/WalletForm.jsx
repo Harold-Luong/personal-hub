@@ -1,8 +1,5 @@
 import { useState } from "react";
-import {
-    formatCurrencyInput,
-    parseCurrencyInput,
-} from "../../utils/formatCurrency";
+import { formatCurrencyInput, parseCurrencyInput } from "../../utils/formatCurrency";
 
 const walletTypes = [
     { id: "cash", label: "Tiền mặt", icon: "wallet", color: "#56b879" },
@@ -14,22 +11,21 @@ const walletTypes = [
 ];
 
 const walletCurrencies = ["VND", "USD"];
-const createWalletId = "__new_wallet__";
 
 function getWalletType(type) {
     return walletTypes.find((walletType) => walletType.id === type) ?? walletTypes[0];
 }
 
 function getInitialWalletId(wallets, preferredWalletId) {
-    if (preferredWalletId === null || preferredWalletId === createWalletId) {
-        return createWalletId;
+    if (preferredWalletId === null || preferredWalletId === "") {
+        return "";
     }
 
     if (wallets.some((wallet) => wallet.id === preferredWalletId)) {
         return preferredWalletId;
     }
 
-    return wallets[0]?.id ?? createWalletId;
+    return wallets[0]?.id ?? "";
 }
 
 function getWalletForId(wallets, walletId) {
@@ -50,16 +46,8 @@ function getFormState(wallet) {
     };
 }
 
-export default function WalletForm({
-    initialWalletId,
-    onCancel,
-    onDelete,
-    onSubmit,
-    wallets = [],
-}) {
-    const [walletId, setWalletId] = useState(() =>
-        getInitialWalletId(wallets, initialWalletId),
-    );
+export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubmit, wallets = [] }) {
+    const [walletId, setWalletId] = useState(() => getInitialWalletId(wallets, initialWalletId));
     const selectedWallet = getWalletForId(wallets, walletId);
     const [formState, setFormState] = useState(() => getFormState(selectedWallet));
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,7 +55,8 @@ export default function WalletForm({
     const [submitError, setSubmitError] = useState("");
     const isEditing = Boolean(selectedWallet);
     const isWorking = isSubmitting || isDeleting;
-    const canDelete = isEditing && wallets.length > 1;
+    const hasBalance = (selectedWallet?.balance ?? 0) !== 0;
+    const canDelete = isEditing && wallets.length > 1 && !selectedWallet?.isDefault && !hasBalance;
 
     const updateFormState = (nextState) => {
         setFormState((currentState) => ({
@@ -107,20 +96,18 @@ export default function WalletForm({
         }
 
         const wallet = {
+            balance: parseCurrencyInput(formState.balance),
             color: formState.color,
             currency: formState.currency,
             icon: formState.icon,
             id: selectedWallet?.id,
             isDefault: selectedWallet?.isDefault || formState.isDefault,
-            name,
+            name: name,
             type: formState.type,
         };
 
         if (!isEditing) {
-            const balance = parseCurrencyInput(formState.balance);
-
-            wallet.balance = balance;
-            wallet.initialBalance = balance;
+            wallet.initialBalance = wallet.balance;
         }
 
         setIsSubmitting(true);
@@ -128,10 +115,8 @@ export default function WalletForm({
 
         try {
             await onSubmit?.(wallet);
-        } catch {
-            setSubmitError(
-                "Không thể lưu ví. Vui lòng kiểm tra kết nối và thử lại.",
-            );
+        } catch (error) {
+            setSubmitError(error?.message || "Không thể lưu ví. Vui lòng kiểm tra kết nối và thử lại.");
         } finally {
             setIsSubmitting(false);
         }
@@ -153,10 +138,8 @@ export default function WalletForm({
 
         try {
             await onDelete?.({ id: selectedWallet.id });
-        } catch {
-            setSubmitError(
-                "Không thể xóa ví. Vui lòng kiểm tra kết nối và thử lại.",
-            );
+        } catch (error) {
+            setSubmitError(error?.message || "Không thể xóa ví. Vui lòng kiểm tra kết nối và thử lại.");
         } finally {
             setIsDeleting(false);
         }
@@ -171,9 +154,9 @@ export default function WalletForm({
                         disabled={isWorking}
                         name="walletId"
                         onChange={handleWalletChange}
-                        value={selectedWallet?.id ?? createWalletId}
+                        value={selectedWallet?.id ?? ""}
                     >
-                        <option value={createWalletId}>Tạo ví mới</option>
+                        <option value="">Tạo ví mới</option>
                         {wallets.map((wallet) => (
                             <option key={wallet.id} value={wallet.id}>
                                 {wallet.name}
@@ -188,9 +171,7 @@ export default function WalletForm({
                         autoFocus
                         disabled={isWorking}
                         name="name"
-                        onChange={(event) =>
-                            updateFormState({ name: event.target.value })
-                        }
+                        onChange={(event) => updateFormState({ name: event.target.value })}
                         placeholder="Ví tiền mặt"
                         required
                         type="text"
@@ -201,12 +182,7 @@ export default function WalletForm({
                 <div className="wallet-form__field-row">
                     <label className="wallet-form__field">
                         <span>Loại ví</span>
-                        <select
-                            disabled={isWorking}
-                            name="type"
-                            onChange={handleTypeChange}
-                            value={formState.type}
-                        >
+                        <select disabled={isWorking} name="type" onChange={handleTypeChange} value={formState.type}>
                             {walletTypes.map((walletType) => (
                                 <option key={walletType.id} value={walletType.id}>
                                     {walletType.label}
@@ -220,9 +196,7 @@ export default function WalletForm({
                         <select
                             disabled={isWorking}
                             name="currency"
-                            onChange={(event) =>
-                                updateFormState({ currency: event.target.value })
-                            }
+                            onChange={(event) => updateFormState({ currency: event.target.value })}
                             value={formState.currency}
                         >
                             {walletCurrencies.map((currency) => (
@@ -247,7 +221,6 @@ export default function WalletForm({
                                 })
                             }
                             placeholder="0"
-                            readOnly={isEditing}
                             type="text"
                             value={formState.balance}
                         />
@@ -260,9 +233,7 @@ export default function WalletForm({
                     <input
                         disabled={isWorking}
                         name="color"
-                        onChange={(event) =>
-                            updateFormState({ color: event.target.value })
-                        }
+                        onChange={(event) => updateFormState({ color: event.target.value })}
                         type="color"
                         value={formState.color}
                     />
@@ -272,9 +243,7 @@ export default function WalletForm({
                     <input
                         checked={selectedWallet?.isDefault || formState.isDefault}
                         disabled={isWorking || selectedWallet?.isDefault}
-                        onChange={(event) =>
-                            updateFormState({ isDefault: event.target.checked })
-                        }
+                        onChange={(event) => updateFormState({ isDefault: event.target.checked })}
                         type="checkbox"
                     />
                     <span>Đặt làm ví mặc định</span>
@@ -282,13 +251,17 @@ export default function WalletForm({
 
                 <p className="wallet-form__hint">
                     {isEditing
-                        ? "Cập nhật tên, loại ví, màu sắc hoặc tiền tệ. Số dư hiện tại chỉ để xem."
+                        ? "Nếu đổi số dư hiện tại, hệ thống sẽ tạo một giao dịch điều chỉnh để giữ lịch sử."
                         : "Ví mới sẽ dùng cho giao dịch thu, chi và chuyển khoản."}
                 </p>
 
-                {submitError ? (
-                    <p className="wallet-form__error">{submitError}</p>
+                {isEditing && !canDelete ? (
+                    <p className="wallet-form__hint">
+                        Chỉ có thể xóa ví không phải mặc định, không còn số dư và không phải ví active cuối cùng.
+                    </p>
                 ) : null}
+
+                {submitError ? <p className="wallet-form__error">{submitError}</p> : null}
             </div>
 
             <div className="wallet-form__actions">
@@ -302,19 +275,10 @@ export default function WalletForm({
                         {isDeleting ? "Đang xóa..." : "Xóa ví"}
                     </button>
                 ) : null}
-                <button
-                    className="wallet-form__cancel"
-                    disabled={isWorking}
-                    onClick={onCancel}
-                    type="button"
-                >
+                <button className="wallet-form__cancel" disabled={isWorking} onClick={onCancel} type="button">
                     Hủy
                 </button>
-                <button
-                    className="wallet-form__submit"
-                    disabled={isWorking}
-                    type="submit"
-                >
+                <button className="wallet-form__submit" disabled={isWorking} type="submit">
                     {isSubmitting ? "Đang lưu..." : "Lưu ví"}
                 </button>
             </div>

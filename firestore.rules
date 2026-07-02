@@ -320,6 +320,7 @@ service cloud.firestore {
     function allowedTransactionKeys() {
       return [
         'type',
+        'adjustmentDirection',
         'amountMinor',
         'currency',
         'title',
@@ -380,6 +381,7 @@ service cloud.firestore {
         'expense',
         'income',
         'transfer',
+        'adjustment',
       ];
     }
 
@@ -419,7 +421,8 @@ service cloud.firestore {
         && isValidSnapshot(data.categorySnapshot)
         && isValidSnapshot(data.walletSnapshot)
         && data.fromWalletSnapshot == null
-        && data.toWalletSnapshot == null;
+        && data.toWalletSnapshot == null
+        && !data.keys().hasAny(['adjustmentDirection']);
     }
 
     function isValidTransferTransaction(data) {
@@ -436,7 +439,27 @@ service cloud.firestore {
         && data.categorySnapshot == null
         && data.walletSnapshot == null
         && isValidSnapshot(data.fromWalletSnapshot)
-        && isValidSnapshot(data.toWalletSnapshot);
+        && isValidSnapshot(data.toWalletSnapshot)
+        && !data.keys().hasAny(['adjustmentDirection']);
+    }
+
+    function isValidAdjustmentTransaction(data) {
+      return data.type == 'adjustment'
+        && data.adjustmentDirection in [
+          'increase',
+          'decrease',
+        ]
+        && data.categoryId == null
+        && isValidString(data.walletId)
+        && data.fromWalletId == null
+        && data.toWalletId == null
+        && data.walletIds is list
+        && data.walletIds.size() == 1
+        && data.walletIds[0] == data.walletId
+        && data.categorySnapshot == null
+        && isValidSnapshot(data.walletSnapshot)
+        && data.fromWalletSnapshot == null
+        && data.toWalletSnapshot == null;
     }
 
     function isValidTransactionCreate(data) {
@@ -461,6 +484,7 @@ service cloud.firestore {
         && (
           isValidExpenseOrIncomeTransaction(data)
           || isValidTransferTransaction(data)
+          || isValidAdjustmentTransaction(data)
         );
     }
 
@@ -488,6 +512,7 @@ service cloud.firestore {
         && (
           isValidExpenseOrIncomeTransaction(request.resource.data)
           || isValidTransferTransaction(request.resource.data)
+          || isValidAdjustmentTransaction(request.resource.data)
         );
     }
 
