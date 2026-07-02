@@ -161,12 +161,12 @@ function normalizeWalletInput(input = {}, { existingWallet, includeBalance = tru
     return wallet
 }
 
-export async function getExpenseWallets(uid) {
+export async function getExpenseWallets(uid, { includeArchived = false } = {}) {
     const snapshot = await getDocsFromServer(getWalletsCollectionRef(uid));
 
     return snapshot.docs
         .map(mapWallet)
-        .filter((wallet) => !wallet.isArchived)
+        .filter((wallet) => includeArchived || !wallet.isArchived)
         .sort(sortWallets);
 }
 

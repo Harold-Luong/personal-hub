@@ -324,6 +324,7 @@ service cloud.firestore {
         'currency',
         'title',
         'titleNormalized',
+        'searchTokens',
         'note',
         'categoryId',
         'walletId',
@@ -352,6 +353,7 @@ service cloud.firestore {
         'currency',
         'title',
         'titleNormalized',
+        'searchTokens',
         'note',
         'categoryId',
         'walletId',
@@ -391,6 +393,15 @@ service cloud.firestore {
         && isValidString(snapshot.name)
         && isValidString(snapshot.icon)
         && isValidString(snapshot.color);
+    }
+
+    function isValidSearchTokens(tokens) {
+      return tokens is list
+        && tokens.size() <= 500
+        && (
+          tokens.size() == 0
+          || tokens[0] is string
+        );
     }
 
     function isValidExpenseOrIncomeTransaction(data) {
@@ -437,6 +448,7 @@ service cloud.firestore {
         && isValidCurrency(data.currency)
         && isValidString(data.title)
         && isValidString(data.titleNormalized)
+        && isValidSearchTokens(data.searchTokens)
         && data.note is string
         && data.occurredAt is timestamp
         && isValidString(data.localDate)
@@ -450,6 +462,47 @@ service cloud.firestore {
           isValidExpenseOrIncomeTransaction(data)
           || isValidTransferTransaction(data)
         );
+    }
+
+    function isValidTransactionUpdate() {
+      return resource.data.status == 'active'
+        && resource.data.voidedAt == null
+        && request.resource.data.keys().hasOnly(allowedTransactionKeys())
+        && request.resource.data.keys().hasAll(requiredTransactionKeys())
+        && isValidTransactionType(request.resource.data.type)
+        && request.resource.data.amountMinor is int
+        && request.resource.data.amountMinor > 0
+        && isValidCurrency(request.resource.data.currency)
+        && isValidString(request.resource.data.title)
+        && isValidString(request.resource.data.titleNormalized)
+        && isValidSearchTokens(request.resource.data.searchTokens)
+        && request.resource.data.note is string
+        && request.resource.data.occurredAt is timestamp
+        && isValidString(request.resource.data.localDate)
+        && isValidString(request.resource.data.monthKey)
+        && isValidString(request.resource.data.timezone)
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.voidedAt == null
+        && (
+          isValidExpenseOrIncomeTransaction(request.resource.data)
+          || isValidTransferTransaction(request.resource.data)
+        );
+    }
+
+    function isValidTransactionVoid() {
+      return resource.data.status == 'active'
+        && resource.data.voidedAt == null
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly([
+              'status',
+              'updatedAt',
+              'voidedAt',
+            ])
+        && request.resource.data.status == 'voided'
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.voidedAt == request.time;
     }
 
     // =========================
@@ -605,7 +658,13 @@ service cloud.firestore {
           allow create: if isOwner(uid)
             && isValidTransactionCreate(request.resource.data);
 
-          allow update, delete: if false;
+          allow update: if isOwner(uid)
+            && (
+              isValidTransactionUpdate()
+              || isValidTransactionVoid()
+            );
+
+          allow delete: if false;
         }
 
         match /budgets/{budgetId} {

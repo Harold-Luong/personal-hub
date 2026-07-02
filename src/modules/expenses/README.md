@@ -260,6 +260,23 @@ Quy tắc:
 - Số dư tổng của user bằng tổng `balance` của các wallet đang hoạt
   động, tùy quy tắc có tính credit wallet hay không.
 
+#### Wallet archive balance policy - PR wallet follow-up
+
+Sau PR transaction filter, transaction cu co the tiep tuc tham chieu wallet da
+archive thong qua `walletIds` va snapshot trong transaction. PR wallet sau can
+chot ro chinh sach so du khi archive wallet:
+
+- Wallet da archive khong duoc tinh vao tong so du hien tai cua dashboard.
+- Transaction lich su van giu `walletId`, `walletIds`, `walletSnapshot`,
+  `fromWalletSnapshot` va `toWalletSnapshot` de audit va filter duoc.
+- Void transaction cu van duoc phep dao delta vao wallet goc, ke ca wallet do
+  da archive, mien la wallet document van ton tai.
+- Create transaction moi hoac update transaction sang wallet da archive phai bi
+  chan.
+- Khuyen nghi cho PR wallet: khong cho archive wallet neu `balance != 0`, hoac
+  bat user chon wallet active de nhan phan so du con lai truoc khi archive.
+  Cach nay giup tong tien active khong bien mat khi user xoa wallet.
+
 ### 5.4 Category
 
 Đường dẫn:

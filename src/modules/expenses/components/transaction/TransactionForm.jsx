@@ -1,13 +1,8 @@
 import { useState } from "react";
+import { transactionTypeOptions } from "../../constant/expensesMetaData";
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "../../utils/formatCurrency";
 import { getSignedTransactionAmount } from "../../utils/expenseCalculations";
 import { getLocalDateValue, getLocalTimeValue } from "../../utils/transactionFormUtils";
-
-const transactionTypes = [
-    { id: "expense", label: "Chi tiêu" },
-    { id: "income", label: "Thu nhập" },
-    { id: "transfer", label: "Chuyển khoản" },
-];
 
 const fallbackCategoryOptions = {
     transfer: [{ id: "transfer", name: "Chuyển khoản", icon: "transfer" }],
@@ -38,16 +33,28 @@ function getTransactionSubtitle(date, time) {
     return [time, dateLabel].filter(Boolean).join(" ");
 }
 
-export default function TransactionForm({ categories = [], onCancel, onSubmit, wallets = [] }) {
-    const [type, setType] = useState("expense");
-    const [amount, setAmount] = useState("");
-    const [title, setTitle] = useState("");
-    const [categoryId, setCategoryId] = useState(() => getCategoryOptions("expense", categories)[0]?.id ?? "");
-    const [walletId, setWalletId] = useState(wallets[0]?.id ?? "");
-    const [toWalletId, setToWalletId] = useState(wallets[1]?.id ?? "");
-    const [date, setDate] = useState(getLocalDateValue);
-    const [time, setTime] = useState(getLocalTimeValue);
-    const [note, setNote] = useState("");
+export default function TransactionForm({
+    categories = [],
+    initialTransaction,
+    onCancel,
+    onSubmit,
+    submitLabel = "Lưu giao dịch",
+    wallets = [],
+}) {
+    const initialType = initialTransaction?.type ?? "expense";
+    const [type, setType] = useState(initialType);
+    const [amount, setAmount] = useState(() =>
+        initialTransaction ? formatCurrencyInput(initialTransaction.amountMinor ?? Math.abs(initialTransaction.amount)) : "",
+    );
+    const [title, setTitle] = useState(initialTransaction?.title ?? "");
+    const [categoryId, setCategoryId] = useState(
+        () => initialTransaction?.categoryId ?? initialTransaction?.category ?? getCategoryOptions(initialType, categories)[0]?.id ?? "",
+    );
+    const [walletId, setWalletId] = useState(initialTransaction?.walletId ?? initialTransaction?.fromWalletId ?? wallets[0]?.id ?? "");
+    const [toWalletId, setToWalletId] = useState(initialTransaction?.toWalletId ?? wallets[1]?.id ?? "");
+    const [date, setDate] = useState(initialTransaction?.date ?? getLocalDateValue);
+    const [time, setTime] = useState(initialTransaction?.time ?? getLocalTimeValue);
+    const [note, setNote] = useState(initialTransaction?.note ?? "");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
 
@@ -59,7 +66,7 @@ export default function TransactionForm({ categories = [], onCancel, onSubmit, w
     const selectedToWalletId = wallets.some((wallet) => wallet.id === toWalletId && wallet.id !== selectedWalletId)
         ? toWalletId
         : (wallets.find((wallet) => wallet.id !== selectedWalletId)?.id ?? "");
-    const selectedTransactionType = transactionTypes.find((transactionType) => transactionType.id === type);
+    const selectedTransactionType = transactionTypeOptions.find((transactionType) => transactionType.id === type);
     const selectedWallet = wallets.find((wallet) => wallet.id === selectedWalletId);
     const numericAmount = parseCurrencyInput(amount);
     const currentWalletBalance = selectedWallet?.balance ?? 0;
@@ -120,7 +127,7 @@ export default function TransactionForm({ categories = [], onCancel, onSubmit, w
         <form className="transaction-form" onSubmit={handleSubmit}>
             <div className="transaction-form__content">
                 <div aria-label="Loại giao dịch" className="transaction-form__type" role="group">
-                    {transactionTypes.map((transactionType) => (
+                    {transactionTypeOptions.map((transactionType) => (
                         <button
                             aria-pressed={type === transactionType.id}
                             className={type === transactionType.id ? "is-active" : ""}
@@ -286,7 +293,7 @@ export default function TransactionForm({ categories = [], onCancel, onSubmit, w
                         </button>
                     ) : null}
                     <button className="transaction-form__submit" disabled={isSubmitting} type="submit">
-                        {isSubmitting ? "Đang lưu..." : "Lưu giao dịch"}
+                        {isSubmitting ? "Đang lưu..." : submitLabel}
                     </button>
                 </div>
             </div>

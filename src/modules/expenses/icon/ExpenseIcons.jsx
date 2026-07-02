@@ -21,6 +21,38 @@ export const TransactionIcon = ({ size = 24 }) => (
     </svg>
 );
 
+export const TransactionListIcon = ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M10 6h10M10 12h10M10 18h10" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+        <path d="M5 6h.01M5 12h.01M5 18h.01" stroke="currentColor" strokeWidth="3.4" strokeLinecap="round" />
+    </svg>
+);
+
+export const ArrowUpIcon = ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M12 19V5M6.5 10.5 12 5l5.5 5.5" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
+export const ArrowDownIcon = ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M12 5v14M6.5 13.5 12 19l5.5-5.5" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
+export const SwapIcon = ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M7 7h10m0 0-3-3m3 3-3 3M17 17H7m0 0 3 3m-3-3 3-3" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+);
+
+export const CalendarIcon = ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path d="M7 4v3M17 4v3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        <path d="M5 8h14M6 6h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    </svg>
+);
+
 export const PlusIcon = ({ size = 24 }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
         <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -158,5 +190,50 @@ export const TransportIcon = ({ size = 24 }) => (
         <path d="M5 13h14l-1.5-5h-11L5 13Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
         <path d="M7 17h.01M17 17h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
         <path d="M6 13v4h12v-4" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    </svg>
+);
+
+export const TrashIcon = ({ size = 24 }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <path
+            d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+        <path
+            d="M9 7V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    </svg>
+);
+
+export const EditIcon = ({ size = 24 }) => (
+    <svg aria-hidden="true" fill="none" height={size} viewBox="0 0 24 24" width={size}>
+        <path
+            d="m5 16.5-.75 3.25L7.5 19 18.25 8.25 15.75 5.75 5 16.5Z"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.8"
+        />
+        <path d="m14.75 6.75 2.5 2.5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+    </svg>
+);
+
+export const ChevronIcon = ({ direction = "right", size = 16 }) => (
+    <svg
+        aria-hidden="true"
+        fill="none"
+        height={size}
+        viewBox="0 0 24 24"
+        width={size}
+        style={{ transform: direction === "left" ? "rotate(180deg)" : undefined }}
+    >
+        <path d="m9 6 6 6-6 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
     </svg>
 );

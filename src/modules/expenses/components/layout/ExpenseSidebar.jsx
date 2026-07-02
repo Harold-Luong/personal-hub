@@ -1,6 +1,6 @@
 import ExpenseIcon from "../shared/ExpenseEmoji";
 
-export default function ExpenseSidebar({ items = [], activeId = "dashboard", user }) {
+export default function ExpenseSidebar({ items = [], activeId = "dashboard", onNavigate, user }) {
     const accountName = user?.displayName || user?.email || "Tài khoản";
 
     return (
@@ -15,7 +15,12 @@ export default function ExpenseSidebar({ items = [], activeId = "dashboard", use
             </section>
             <nav>
                 {items.map((item) => (
-                    <button className={item.id === activeId ? "is-active" : ""} key={item.id} type="button">
+                    <button
+                        className={item.id === activeId ? "is-active" : ""}
+                        key={item.id}
+                        onClick={() => onNavigate?.(item.id)}
+                        type="button"
+                    >
                         <ExpenseIcon icon={item.icon} label={item.label} />
                         <span>{item.label}</span>
                     </button>

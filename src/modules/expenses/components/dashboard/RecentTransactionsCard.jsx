@@ -2,12 +2,13 @@ import HiddenItems from "../shared/HiddenItems";
 import SectionCard from "../shared/SectionCard";
 import TransactionList from "../transaction/TransactionList";
 
-export default function RecentTransactionsCard({ limit, transactions = [], variant = "desktop" }) {
+export default function RecentTransactionsCard({ limit, onViewAll, transactions = [], variant = "desktop" }) {
     const visibleTransactions = limit ? transactions.slice(0, limit) : transactions;
     const hiddenTransaction = transactions.slice(limit);
     return (
         <SectionCard
             className={`recent-transactions-card recent-transactions-card--${variant}`}
+            onAction={onViewAll}
             title="Giao dịch gần đây"
         >
             <TransactionList transactions={visibleTransactions} />

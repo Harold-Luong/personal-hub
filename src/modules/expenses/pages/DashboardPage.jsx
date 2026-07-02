@@ -41,6 +41,7 @@ function sortWallets(firstWallet, secondWallet) {
 
 export default function DashboardPage({ initialSettings, onLogout, user }) {
     const [activeMobilePage, setActiveMobilePage] = useState("dashboard");
+    const [activeDesktopPage, setActiveDesktopPage] = useState("dashboard");
     const [areThemeTransitionsEnabled, setAreThemeTransitionsEnabled] = useState(false);
     const [settings, setSettings] = useState(() => getInitialSettings(initialSettings));
     const [settingsError, setSettingsError] = useState("");
@@ -162,7 +163,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         let isCancelled = false;
 
         import("../api/transactionsRepository")
-            .then(({ getExpenseTransactions }) => getExpenseTransactions(user.uid))
+            .then(({ getExpenseTransactions }) => getExpenseTransactions(user.uid, 10))
             .then((nextTransactions) => {
                 if (!isCancelled) {
                     setTransactions(nextTransactions);
@@ -323,25 +324,88 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         }
     };
 
-    const handleAddTransaction = async (transaction) => {
-        const { createExpenseTransaction } = await import("../api/transactionsRepository");
-        const result = await createExpenseTransaction(user.uid, transaction);
+    const handleDesktopNavigate = (pageId) => {
+        if (pageId === "dashboard" || pageId === "transactions") {
+            setActiveDesktopPage(pageId);
+        }
+    };
 
-        setTransactions((currentTransactions) => [result.transaction, ...currentTransactions]);
+    const sortTransactionList = (nextTransactions) =>
+        [...nextTransactions].sort((first, second) => {
+            const firstValue = `${first.date ?? ""}T${first.time ?? ""}`;
+            const secondValue = `${second.date ?? ""}T${second.time ?? ""}`;
+
+            return secondValue.localeCompare(firstValue);
+        });
+
+    const applyWalletBalanceUpdates = (walletBalanceUpdates = {}) => {
         setWallets((currentWallets) =>
             currentWallets.map((wallet) =>
-                Object.hasOwn(result.walletBalanceUpdates, wallet.id)
+                Object.hasOwn(walletBalanceUpdates, wallet.id)
                     ? {
                           ...wallet,
-                          balance: result.walletBalanceUpdates[wallet.id],
+                          balance: walletBalanceUpdates[wallet.id],
                       }
                     : wallet,
             ),
         );
+    };
+
+    const applyMonthlyStatsUpdates = (monthlyStatsUpdates = {}) => {
+        if (monthlyStatsUpdates[currentMonthKey]) {
+            setMonthlyStats(monthlyStatsUpdates[currentMonthKey]);
+        }
+
+        if (monthlyStatsUpdates[previousMonthKey]) {
+            setPreviousMonthlyStats(monthlyStatsUpdates[previousMonthKey]);
+        }
+    };
+
+    const handleAddTransaction = async (transaction) => {
+        const { createExpenseTransaction } = await import("../api/transactionsRepository");
+        const result = await createExpenseTransaction(user.uid, transaction);
+
+        setTransactions((currentTransactions) => sortTransactionList([result.transaction, ...currentTransactions]).slice(0, 10));
+        applyWalletBalanceUpdates(result.walletBalanceUpdates);
         if (result.monthlyStats?.monthKey === currentMonthKey) {
             setMonthlyStats(result.monthlyStats);
         }
+        if (result.monthlyStats?.monthKey === previousMonthKey) {
+            setPreviousMonthlyStats(result.monthlyStats);
+        }
         setActiveMobilePage("transactions");
+
+        return result;
+    };
+
+    const handleUpdateTransaction = async (transactionId, transaction) => {
+        const { updateExpenseTransaction } = await import("../api/transactionsRepository");
+        const result = await updateExpenseTransaction(user.uid, transactionId, transaction);
+
+        setTransactions((currentTransactions) =>
+            sortTransactionList(
+                currentTransactions.map((currentTransaction) =>
+                    currentTransaction.id === result.transaction.id ? result.transaction : currentTransaction,
+                ),
+            ),
+        );
+        applyWalletBalanceUpdates(result.walletBalanceUpdates);
+        applyMonthlyStatsUpdates(result.monthlyStatsUpdates);
+
+        return result;
+    };
+
+    const handleDeleteTransaction = async (transactionId) => {
+        const { voidExpenseTransaction } = await import("../api/transactionsRepository");
+        const result = await voidExpenseTransaction(user.uid, transactionId);
+
+        setTransactions((currentTransactions) =>
+            currentTransactions.filter((currentTransaction) => currentTransaction.id !== transactionId),
+        );
+        applyWalletBalanceUpdates(result.walletBalanceUpdates);
+        applyMonthlyStatsUpdates(result.monthlyStatsUpdates);
+
+        return result;
     };
 
     const handleSaveBudget = async (budget) => {
@@ -434,7 +498,18 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         }
 
         if (activeMobilePage === "transactions") {
-            return <TransactionsPage transactions={transactions} />;
+            return (
+                <TransactionsPage
+                    categories={categories}
+                    mode="mobile"
+                    onAddTransaction={handleAddTransaction}
+                    onDeleteTransaction={handleDeleteTransaction}
+                    onUpdateTransaction={handleUpdateTransaction}
+                    transactions={transactions}
+                    user={user}
+                    wallets={wallets}
+                />
+            );
         }
 
         if (activeMobilePage === "budget") {
@@ -486,10 +561,56 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 categorySpending={categorySpending}
                 onManageBudget={() => setActiveMobilePage("budget")}
                 onToggleTheme={handleToggleTheme}
+                onViewTransactions={() => setActiveMobilePage("transactions")}
                 summary={summary}
                 theme={settings.theme}
                 transactions={transactions}
                 user={user}
+            />
+        );
+    };
+
+    const renderDesktopPage = () => {
+        if (activeDesktopPage === "transactions") {
+            return (
+                <TransactionsPage
+                    categories={categories}
+                    mode="desktop"
+                    navItems={expenseNavItems}
+                    onAddTransaction={handleAddTransaction}
+                    onDeleteTransaction={handleDeleteTransaction}
+                    onLogout={handleLogout}
+                    onNavigate={handleDesktopNavigate}
+                    onToggleTheme={handleToggleTheme}
+                    onUpdateTransaction={handleUpdateTransaction}
+                    theme={settings.theme}
+                    transactions={transactions}
+                    user={user}
+                    wallets={wallets}
+                />
+            );
+        }
+
+        return (
+            <WebDashboardView
+                budgets={budgets}
+                categories={categories}
+                categorySpending={categorySpending}
+                navItems={expenseNavItems}
+                onAddTransaction={handleAddTransaction}
+                onDeleteBudget={handleDeleteBudget}
+                onDeleteWallet={handleDeleteWallet}
+                onLogout={handleLogout}
+                onNavigate={handleDesktopNavigate}
+                onSaveBudget={handleSaveBudget}
+                onSaveWallet={handleSaveWallet}
+                onToggleTheme={handleToggleTheme}
+                onViewTransactions={() => setActiveDesktopPage("transactions")}
+                summary={summary}
+                theme={settings.theme}
+                transactions={transactions}
+                user={user}
+                wallets={wallets}
             />
         );
     };
@@ -501,24 +622,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         >
             {renderMobilePage()}
             <ExpenseBottomNav activeId={activeMobilePage} items={expenseNavItems} onNavigate={handleMobileNavigate} />
-            <WebDashboardView
-                budgets={budgets}
-                categories={categories}
-                categorySpending={categorySpending}
-                navItems={expenseNavItems}
-                onAddTransaction={handleAddTransaction}
-                onDeleteBudget={handleDeleteBudget}
-                onDeleteWallet={handleDeleteWallet}
-                onLogout={handleLogout}
-                onSaveBudget={handleSaveBudget}
-                onSaveWallet={handleSaveWallet}
-                onToggleTheme={handleToggleTheme}
-                summary={summary}
-                theme={settings.theme}
-                transactions={transactions}
-                user={user}
-                wallets={wallets}
-            />
+            {renderDesktopPage()}
         </div>
     );
 }

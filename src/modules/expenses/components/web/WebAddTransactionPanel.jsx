@@ -2,7 +2,15 @@ import { useEffect } from "react";
 import { XIcon } from "../../icon/ExpenseIcons";
 import TransactionForm from "../transaction/TransactionForm";
 
-export default function WebAddTransactionPanel({ categories, onCancel, onSubmit, wallets }) {
+export default function WebAddTransactionPanel({
+    categories,
+    initialTransaction,
+    onCancel,
+    onSubmit,
+    submitLabel,
+    title = "Thêm giao dịch",
+    wallets,
+}) {
     useEffect(() => {
         const previousOverflow = document.body.style.overflow;
 
@@ -31,7 +39,7 @@ export default function WebAddTransactionPanel({ categories, onCancel, onSubmit,
         >
             <div className="web-add-transaction-panel">
                 <header className="web-add-transaction-panel__header">
-                    <h2 id="web-add-transaction-title">Thêm giao dịch</h2>
+                    <h2 id="web-add-transaction-title">{title}</h2>
                     <button
                         aria-label="Đóng"
                         className="web-add-transaction-panel__close"
@@ -42,7 +50,14 @@ export default function WebAddTransactionPanel({ categories, onCancel, onSubmit,
                         <XIcon size={18} />
                     </button>
                 </header>
-                <TransactionForm categories={categories} onCancel={onCancel} onSubmit={onSubmit} wallets={wallets} />
+                <TransactionForm
+                    categories={categories}
+                    initialTransaction={initialTransaction}
+                    onCancel={onCancel}
+                    onSubmit={onSubmit}
+                    submitLabel={submitLabel}
+                    wallets={wallets}
+                />
             </div>
         </section>
     );
