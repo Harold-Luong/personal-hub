@@ -25,9 +25,9 @@ export const expenseNavItems = [
     },
     {
         id: "categories",
-        label: "Danh mục",
+        label: "Chi tiêu",
         icon: "category",
-        path: "/expenses/categories",
+        path: "/expenses/category-spending",
     },
     {
         id: "wallets",

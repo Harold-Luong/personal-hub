@@ -6,6 +6,7 @@
     align-content: start;
     display: grid;
     gap: 22px;
+    min-width: 0;
 }
 
 .transactions-page--mobile {
@@ -157,7 +158,8 @@
     align-items: center;
     display: grid;
     gap: 18px;
-    grid-template-columns: minmax(240px, 0.72fr) minmax(620px, 1.58fr);
+    grid-template-columns: minmax(220px, 0.72fr) minmax(0, 1.58fr);
+    min-width: 0;
     padding: 20px;
 }
 
@@ -166,7 +168,7 @@
     gap: 12px;
     grid-column: 2;
     grid-row: 1;
-    grid-template-columns: minmax(140px, 0.42fr) minmax(140px, 0.42fr) minmax(150px, 0.48fr) minmax(112px, 0.32fr);
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
     min-width: 0;
 }
 
@@ -223,6 +225,8 @@
     min-width: 0;
     outline: 0;
     padding: 0 34px 0 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     width: 100%;
 }
 
@@ -273,8 +277,21 @@
 .transactions-page__list {
     display: grid;
     gap: 0;
-    overflow: hidden;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
     padding: 0;
+    scrollbar-color: color-mix(in srgb, var(--expense-active-strong) 34%, transparent) transparent;
+    scrollbar-width: thin;
+}
+
+.transactions-page__list::-webkit-scrollbar {
+    height: 6px;
+}
+
+.transactions-page__list::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--expense-active-strong) 34%, transparent);
+    border-radius: 999px;
 }
 
 .transactions-page__table-head,
@@ -571,6 +588,31 @@
     color: white;
     width: auto;
     padding: 0 14px;
+}
+
+@media (max-width: 1180px) and (min-width: 901px) {
+    .web-transactions-view {
+        grid-template-columns: 220px minmax(0, 1fr);
+    }
+
+    .web-transactions-view__main {
+        padding: 36px 20px 28px;
+    }
+
+    .transactions-page__toolbar {
+        gap: 12px;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .transactions-page__search,
+    .transactions-page__filters-panel {
+        grid-column: 1;
+    }
+
+    .transactions-page__filters-panel {
+        grid-row: 2;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
 }
 
 @media (max-width: 900px) {

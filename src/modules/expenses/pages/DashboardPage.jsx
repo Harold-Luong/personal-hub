@@ -5,26 +5,15 @@ import MobileDashboardView from "../components/mobile/MobileDashboardView";
 import WebDashboardView from "../components/web/WebDashboardView";
 import AddTransactionPage from "./AddTransactionPage";
 import BudgetPage from "./BudgetPage";
+import CategorySpendingPage from "./CategorySpendingPage";
 import SettingsPage from "./SettingsPage";
 import TransactionsPage from "./TransactionsPage";
 import WalletPage from "./WalletPage";
 import { expenseCurrencies, expenseNavItems, expenseSummaryItems, expenseThemes } from "../constant/expensesMetaData";
 import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { calculateTrend, getEmptyMonthlyStats, getPreviousMonthKey } from "../utils/monthlyStatsUtils";
+import { getCompactMonthLabel, getCurrentMonthKey } from "../utils/monthUtils";
 import "../styles/expenses.scss";
-
-function getCurrentMonthKey() {
-    const today = new Date();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-
-    return `${today.getFullYear()}-${month}`;
-}
-
-function getMonthLabel(monthKey) {
-    const [year, month] = monthKey.split("-");
-
-    return month && year ? `${month}/${year}` : monthKey;
-}
 
 function getInitialSettings(initialSettings) {
     return {
@@ -48,6 +37,7 @@ function sortWallets(firstWallet, secondWallet) {
 }
 
 const expenseRoutePaths = {
+    categories: "/expenses/category-spending",
     dashboard: "/expenses/dashboard",
     transactions: "/expenses/transactions",
 };
@@ -83,7 +73,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     const [budgetLimits, setBudgetLimits] = useState([]);
     const currentMonthKey = getCurrentMonthKey();
     const previousMonthKey = getPreviousMonthKey(currentMonthKey);
-    const currentMonthLabel = getMonthLabel(currentMonthKey);
+    const currentMonthLabel = getCompactMonthLabel(currentMonthKey);
 
     useEffect(() => {
         const frameId = window.requestAnimationFrame(() => {
@@ -349,7 +339,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     };
 
     const handleMobileNavigate = (pageId) => {
-        if (pageId === "dashboard" || pageId === "transactions") {
+        if (expenseRoutePaths[pageId]) {
             navigateExpenseRoute(pageId);
             return;
         }
@@ -365,7 +355,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     };
 
     const handleDesktopNavigate = (pageId) => {
-        if (pageId === "dashboard" || pageId === "transactions") {
+        if (expenseRoutePaths[pageId]) {
             navigateExpenseRoute(pageId);
         }
     };
@@ -566,6 +556,16 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             );
         }
 
+        if (activeMobilePage === "categories") {
+            return (
+                <CategorySpendingPage
+                    categories={categories}
+                    mode="mobile"
+                    user={user}
+                />
+            );
+        }
+
         if (activeMobilePage === "budget") {
             return (
                 <BudgetPage
@@ -616,6 +616,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 monthLabel={currentMonthLabel}
                 onManageBudget={() => showMobilePage("budget")}
                 onToggleTheme={handleToggleTheme}
+                onViewCategorySpending={() => navigateExpenseRoute("categories")}
                 onViewTransactions={() => navigateExpenseRoute("transactions")}
                 summary={summary}
                 theme={settings.theme}
@@ -646,6 +647,18 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             );
         }
 
+        if (activeDesktopPage === "categories") {
+            return (
+                <CategorySpendingPage
+                    categories={categories}
+                    mode="desktop"
+                    navItems={expenseNavItems}
+                    onNavigate={handleDesktopNavigate}
+                    user={user}
+                />
+            );
+        }
+
         return (
             <WebDashboardView
                 budgets={budgets}
@@ -661,6 +674,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 onSaveBudget={handleSaveBudget}
                 onSaveWallet={handleSaveWallet}
                 onToggleTheme={handleToggleTheme}
+                onViewCategorySpending={() => navigateExpenseRoute("categories")}
                 onViewTransactions={() => navigateExpenseRoute("transactions")}
                 summary={summary}
                 theme={settings.theme}

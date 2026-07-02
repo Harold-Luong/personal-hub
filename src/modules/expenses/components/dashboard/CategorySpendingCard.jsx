@@ -5,7 +5,13 @@ import ProgressBar from "../shared/ProgressBar";
 import SectionCard from "../shared/SectionCard";
 import DonutChart from "../shared/DonutChart";
 
-export default function CategorySpendingCard({ categories = [], limit, monthLabel, variant = "desktop" }) {
+export default function CategorySpendingCard({
+    categories = [],
+    limit,
+    monthLabel,
+    onViewAll,
+    variant = "desktop",
+}) {
     const sortedCategories = [...categories].sort(
         (firstCategory, secondCategory) => (secondCategory.percentage ?? 0) - (firstCategory.percentage ?? 0),
     );
@@ -20,6 +26,7 @@ export default function CategorySpendingCard({ categories = [], limit, monthLabe
         <SectionCard
             className={`category-spending-card category-spending-card--${variant}`}
             monthLabel={monthLabel}
+            onAction={onViewAll}
             title="Chi tiêu theo danh mục"
         >
             {shouldShowDonut ? (

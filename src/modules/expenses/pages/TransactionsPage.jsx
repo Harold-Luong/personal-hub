@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { expenseTransactionFilters, transactionTypeMeta, colorsFallback } from "../constant/expensesMetaData";
 import {
     ArrowDownIcon,
@@ -18,6 +19,7 @@ import AmountText from "../components/shared/AmountText";
 import ExpenseEmoji from "../components/shared/ExpenseEmoji";
 import WebAddTransactionPanel from "../components/web/WebAddTransactionPanel";
 import { formatCurrency } from "../utils/formatCurrency";
+import { getTransactionWalletLabel } from "../utils/transactionDisplayUtils";
 
 const pageSizeOptions = [10, 15, 20];
 const searchDebounceMs = 350; //ms
@@ -52,19 +54,6 @@ const transactionSummaryCards = [
         valueKey: "transfer",
     },
 ];
-
-function getTransactionWalletLabel(transaction) {
-    if (transaction.type === "transfer") {
-        return [
-            transaction.fromWalletName || transaction.fromWalletId,
-            transaction.toWalletName || transaction.toWalletId,
-        ]
-            .filter(Boolean)
-            .join(" -> ");
-    }
-
-    return transaction.walletName || transaction.walletId || "-";
-}
 
 function getTransactionCategoryLabel(transaction) {
     if (transaction.type === "transfer") {
@@ -112,6 +101,30 @@ function getMonthDayOptions(monthKey) {
 
 function getVisibleMonthOptions(monthKeys, currentMonthKey) {
     return [...new Set([currentMonthKey, ...monthKeys])].sort((first, second) => second.localeCompare(first));
+}
+
+function getCategoryFilterOptions(categories, activeType) {
+    return categories
+        .filter((category) => {
+            const categoryType = category.type ?? "expense";
+
+            if (activeType === "expense" || activeType === "income") {
+                return categoryType === activeType;
+            }
+
+            return categoryType === "expense" || categoryType === "income";
+        })
+        .sort((firstCategory, secondCategory) => {
+            const orderDiff =
+                (firstCategory.sortOrder ?? Number.MAX_SAFE_INTEGER) -
+                (secondCategory.sortOrder ?? Number.MAX_SAFE_INTEGER);
+
+            if (orderDiff) {
+                return orderDiff;
+            }
+
+            return firstCategory.name.localeCompare(secondCategory.name, "vi");
+        });
 }
 
 function addWalletFilterOption(optionsById, wallet, isArchived = false) {
@@ -308,6 +321,8 @@ function TransactionRow({ onDelete, onEdit, transaction }) {
 
 function TransactionsWorkspace({
     categories,
+    initialCategoryId = "all",
+    initialMonthKey = "",
     mode,
     onAddTransaction,
     onDeleteTransaction,
@@ -318,8 +333,9 @@ function TransactionsWorkspace({
     const [activeFilter, setActiveFilter] = useState("all");
     const [searchTerm, setSearchTerm] = useState("");
     const [querySearchTerm, setQuerySearchTerm] = useState("");
+    const [categoryFilter, setCategoryFilter] = useState(() => initialCategoryId || "all");
     const [walletFilter, setWalletFilter] = useState("all");
-    const [monthFilter, setMonthFilter] = useState(() => getCurrentMonthKey());
+    const [monthFilter, setMonthFilter] = useState(() => initialMonthKey || getCurrentMonthKey());
     const [dayFilter, setDayFilter] = useState("");
     const [transactionSort, setTransactionSort] = useState({ key: "date", direction: "desc" });
     const [monthOptions, setMonthOptions] = useState(() => [getCurrentMonthKey()]);
@@ -356,6 +372,10 @@ function TransactionsWorkspace({
         () => getWalletFilterOptions(wallets, userId ? historicalWallets : [], visibleTransactions),
         [historicalWallets, userId, visibleTransactions, wallets],
     );
+    const categoryFilterOptions = useMemo(
+        () => getCategoryFilterOptions(categories, activeFilter),
+        [activeFilter, categories],
+    );
     const pageStart = visibleTransactions.length ? (currentPage - 1) * pageSize + 1 : 0;
     const pageEnd = visibleTransactions.length ? pageStart + visibleTransactions.length - 1 : 0;
     const knownPageCount = currentPage + (hasNextPage ? 1 : 0);
@@ -367,6 +387,7 @@ function TransactionsWorkspace({
     const dateFilter = dayFilter ? `${dayFilterMonthKey}-${dayFilter}` : "";
     const activeFilterCount = [
         activeFilter !== "all",
+        categoryFilter !== "all",
         walletFilter !== "all",
         monthFilter !== getCurrentMonthKey(),
         Boolean(dayFilter),
@@ -512,6 +533,7 @@ function TransactionsWorkspace({
         import("../api/transactionsRepository")
             .then(({ getExpenseTransactionsPage }) =>
                 getExpenseTransactionsPage(userId, {
+                    categoryId: categoryFilter,
                     cursor: queryCursor,
                     date: dateFilter,
                     monthKey: monthFilter,
@@ -555,6 +577,7 @@ function TransactionsWorkspace({
         };
     }, [
         activeFilter,
+        categoryFilter,
         currentPage,
         dateFilter,
         monthFilter,
@@ -661,14 +684,40 @@ function TransactionsWorkspace({
                         <span className="sr-only">Lọc theo loại</span>
                         <select
                             onChange={(event) => {
+                                const nextFilter = event.target.value;
+
                                 resetPaging();
-                                setActiveFilter(event.target.value);
+                                setActiveFilter(nextFilter);
+                                setCategoryFilter((currentCategoryFilter) =>
+                                    getCategoryFilterOptions(categories, nextFilter).some(
+                                        (category) => category.id === currentCategoryFilter,
+                                    )
+                                        ? currentCategoryFilter
+                                        : "all",
+                                );
                             }}
                             value={activeFilter}
                         >
                             {expenseTransactionFilters.map((filter) => (
                                 <option key={filter.id} value={filter.id}>
                                     {filter.id === "all" ? "Tất cả loại" : filter.label}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                    <label className="transactions-page__select">
+                        <span className="sr-only">L&#7885;c theo danh m&#7909;c</span>
+                        <select
+                            onChange={(event) => {
+                                resetPaging();
+                                setCategoryFilter(event.target.value);
+                            }}
+                            value={categoryFilter}
+                        >
+                            <option value="all">T&#7845;t c&#7843; danh m&#7909;c</option>
+                            {categoryFilterOptions.map((category) => (
+                                <option key={category.id} value={category.id}>
+                                    {category.name}
                                 </option>
                             ))}
                         </select>
@@ -880,6 +929,10 @@ export default function TransactionsPage({
     user,
     wallets = [],
 }) {
+    const [searchParams] = useSearchParams();
+    const initialCategoryId = searchParams.get("categoryId") ?? "all";
+    const initialMonthKey = searchParams.get("monthKey") ?? "";
+
     if (mode === "desktop") {
         return (
             <div className="web-dashboard-view web-transactions-view">
@@ -887,6 +940,8 @@ export default function TransactionsPage({
                 <main className="web-dashboard-view__main web-transactions-view__main">
                     <TransactionsWorkspace
                         categories={categories}
+                        initialCategoryId={initialCategoryId}
+                        initialMonthKey={initialMonthKey}
                         mode={mode}
                         onAddTransaction={onAddTransaction}
                         onDeleteTransaction={onDeleteTransaction}
@@ -902,6 +957,8 @@ export default function TransactionsPage({
     return (
         <TransactionsWorkspace
             categories={categories}
+            initialCategoryId={initialCategoryId}
+            initialMonthKey={initialMonthKey}
             mode={mode}
             onAddTransaction={onAddTransaction}
             onDeleteTransaction={onDeleteTransaction}
