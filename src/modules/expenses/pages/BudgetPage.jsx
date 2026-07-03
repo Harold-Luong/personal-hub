@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
-import BudgetForm from "../components/budget/BudgetForm";
+import { useState } from "react";
+import MobileBudgetFormSheet from "../components/budget/MobileBudgetFormSheet";
 import MobilePageHeader from "../components/mobile/MobilePageHeader";
 import AmountText from "../components/shared/AmountText";
 import ExpenseIcon from "../components/shared/ExpenseEmoji";
 import ProgressBar from "../components/shared/ProgressBar";
-import { XIcon } from "../icon/ExpenseIcons";
 import {
     calculateBudgetUsagePercentage,
     calculateMonthlyBudgetTotals,
@@ -49,19 +48,6 @@ export default function BudgetPage({ budgets = [], categories = [], monthKey, on
     const summaryProgress = `${Math.min(Math.max(totals.percentage, 0), 100)}%`;
     const remainingBudget = totals.limit - totals.spent;
     const hasBudgetLimit = totals.limit > 0;
-
-    useEffect(() => {
-        if (!isFormOpen) {
-            return undefined;
-        }
-
-        const previousOverflow = document.body.style.overflow;
-        document.body.style.overflow = "hidden";
-
-        return () => {
-            document.body.style.overflow = previousOverflow;
-        };
-    }, [isFormOpen]);
 
     const closeForm = () => {
         setIsFormOpen(false);
@@ -206,34 +192,14 @@ export default function BudgetPage({ budgets = [], categories = [], monthKey, on
             </section>
 
             {isFormOpen ? (
-                <section
-                    aria-labelledby="mobile-budget-form-title"
-                    aria-modal="true"
-                    className="mobile-budget-page__sheet-backdrop"
-                    role="dialog"
-                >
-                    <div className="mobile-budget-page__sheet">
-                        <header className="mobile-budget-page__sheet-header">
-                            <h2 id="mobile-budget-form-title">
-                                {budgets.some((budget) => budget.categoryId === selectedCategoryId)
-                                    ? "Sửa ngân sách"
-                                    : "Tạo ngân sách"}
-                            </h2>
-                            <button aria-label="Đóng" onClick={closeForm} type="button">
-                                <XIcon size={18} />
-                            </button>
-                        </header>
-                        <BudgetForm
-                            key={selectedCategoryId || "budget-form"}
-                            budgets={budgets}
-                            categories={categories}
-                            initialCategoryId={selectedCategoryId}
-                            onCancel={closeForm}
-                            onDelete={handleDeleteBudget}
-                            onSubmit={handleSaveBudget}
-                        />
-                    </div>
-                </section>
+                <MobileBudgetFormSheet
+                    budgets={budgets}
+                    categories={categories}
+                    initialCategoryId={selectedCategoryId}
+                    onCancel={closeForm}
+                    onDelete={handleDeleteBudget}
+                    onSubmit={handleSaveBudget}
+                />
             ) : null}
         </main>
     );

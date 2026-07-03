@@ -1,30 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
+import MobileBudgetFormSheet from "../components/budget/MobileBudgetFormSheet";
 import ExpenseBottomNav from "../components/layout/ExpenseBottomNav";
 import MobileDashboardView from "../components/mobile/MobileDashboardView";
 import WebDashboardView from "../components/web/WebDashboardView";
+import WebBudgetPanel from "../components/web/WebBudgetPanel";
 import AddTransactionPage from "./AddTransactionPage";
 import BudgetPage from "./BudgetPage";
+import CategorySpendingPage from "./CategorySpendingPage";
 import SettingsPage from "./SettingsPage";
 import TransactionsPage from "./TransactionsPage";
 import WalletPage from "./WalletPage";
 import { expenseCurrencies, expenseNavItems, expenseSummaryItems, expenseThemes } from "../constant/expensesMetaData";
 import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { calculateTrend, getEmptyMonthlyStats, getPreviousMonthKey } from "../utils/monthlyStatsUtils";
+import { getCompactMonthLabel, getCurrentMonthKey } from "../utils/monthUtils";
 import "../styles/expenses.scss";
-
-function getCurrentMonthKey() {
-    const today = new Date();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-
-    return `${today.getFullYear()}-${month}`;
-}
-
-function getMonthLabel(monthKey) {
-    const [year, month] = monthKey.split("-");
-
-    return month && year ? `${month}/${year}` : monthKey;
-}
 
 function getInitialSettings(initialSettings) {
     return {
@@ -48,9 +39,14 @@ function sortWallets(firstWallet, secondWallet) {
 }
 
 const expenseRoutePaths = {
+    categories: "/expenses/category-spending",
     dashboard: "/expenses/dashboard",
     transactions: "/expenses/transactions",
 };
+
+function getIsMobileViewport() {
+    return typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches;
+}
 
 function getExpenseRoutePage(pathname) {
     const normalizedPathname = pathname.replace(/\/+$/, "") || "/";
@@ -78,12 +74,18 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     const [previousMonthlyStats, setPreviousMonthlyStats] = useState(() =>
         getEmptyMonthlyStats(getPreviousMonthKey(getCurrentMonthKey())),
     );
+    const currentMonthKey = getCurrentMonthKey();
+    const previousMonthKey = getPreviousMonthKey(currentMonthKey);
+    const currentMonthLabel = getCompactMonthLabel(currentMonthKey);
     const [wallets, setWallets] = useState([]);
     const [transactions, setTransactions] = useState([]);
     const [budgetLimits, setBudgetLimits] = useState([]);
-    const currentMonthKey = getCurrentMonthKey();
-    const previousMonthKey = getPreviousMonthKey(currentMonthKey);
-    const currentMonthLabel = getMonthLabel(currentMonthKey);
+    const [isBudgetPanelOpen, setIsBudgetPanelOpen] = useState(false);
+    const [budgetPanelCategoryId, setBudgetPanelCategoryId] = useState("");
+    const [budgetPanelMonthKey, setBudgetPanelMonthKey] = useState(currentMonthKey);
+    const [budgetPanelBudgets, setBudgetPanelBudgets] = useState(null);
+    const [isMobileViewport, setIsMobileViewport] = useState(getIsMobileViewport);
+    const budgetPanelCallbacksRef = useRef({});
 
     useEffect(() => {
         const frameId = window.requestAnimationFrame(() => {
@@ -91,6 +93,20 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         });
 
         return () => window.cancelAnimationFrame(frameId);
+    }, []);
+
+    useEffect(() => {
+        const mediaQuery = window.matchMedia("(max-width: 900px)");
+        const handleViewportChange = () => {
+            setIsMobileViewport(mediaQuery.matches);
+        };
+
+        handleViewportChange();
+        mediaQuery.addEventListener("change", handleViewportChange);
+
+        return () => {
+            mediaQuery.removeEventListener("change", handleViewportChange);
+        };
     }, []);
 
     useEffect(() => {
@@ -349,7 +365,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     };
 
     const handleMobileNavigate = (pageId) => {
-        if (pageId === "dashboard" || pageId === "transactions") {
+        if (expenseRoutePaths[pageId]) {
             navigateExpenseRoute(pageId);
             return;
         }
@@ -365,7 +381,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     };
 
     const handleDesktopNavigate = (pageId) => {
-        if (pageId === "dashboard" || pageId === "transactions") {
+        if (expenseRoutePaths[pageId]) {
             navigateExpenseRoute(pageId);
         }
     };
@@ -455,42 +471,87 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         return result;
     };
 
-    const handleSaveBudget = async (budget) => {
+    const handleSaveBudget = async (budget, monthKey = currentMonthKey) => {
         const { upsertExpenseBudget } = await import("../api/budgetsRepository");
         const result = await upsertExpenseBudget(user.uid, {
             ...budget,
-            monthKey: currentMonthKey,
+            monthKey,
         });
 
-        setBudgetLimits((currentBudgets) => {
-            const existingBudgetIndex = currentBudgets.findIndex(
-                (currentBudget) =>
-                    currentBudget.monthKey === result.monthKey && currentBudget.categoryId === result.categoryId,
-            );
+        if (result.monthKey === currentMonthKey) {
+            setBudgetLimits((currentBudgets) => {
+                const existingBudgetIndex = currentBudgets.findIndex(
+                    (currentBudget) =>
+                        currentBudget.monthKey === result.monthKey && currentBudget.categoryId === result.categoryId,
+                );
 
-            if (existingBudgetIndex === -1) {
-                return [...currentBudgets, result];
-            }
+                if (existingBudgetIndex === -1) {
+                    return [...currentBudgets, result];
+                }
 
-            return currentBudgets.map((currentBudget, index) =>
-                index === existingBudgetIndex ? result : currentBudget,
-            );
-        });
+                return currentBudgets.map((currentBudget, index) =>
+                    index === existingBudgetIndex ? result : currentBudget,
+                );
+            });
+        }
+
+        return result;
     };
 
-    const handleDeleteBudget = async (budget) => {
+    const handleDeleteBudget = async (budget, monthKey = currentMonthKey) => {
         const { deleteExpenseBudget } = await import("../api/budgetsRepository");
         const result = await deleteExpenseBudget(user.uid, {
             ...budget,
-            monthKey: currentMonthKey,
+            monthKey,
         });
 
-        setBudgetLimits((currentBudgets) =>
-            currentBudgets.filter(
-                (currentBudget) =>
-                    currentBudget.monthKey !== result.monthKey || currentBudget.categoryId !== result.categoryId,
-            ),
-        );
+        if (result.monthKey === currentMonthKey) {
+            setBudgetLimits((currentBudgets) =>
+                currentBudgets.filter(
+                    (currentBudget) =>
+                        currentBudget.monthKey !== result.monthKey || currentBudget.categoryId !== result.categoryId,
+                ),
+            );
+        }
+
+        return result;
+    };
+
+    const openBudgetPanel = (categoryId = "", options = {}) => {
+        budgetPanelCallbacksRef.current = {
+            onDeleteBudget: options.onDeleteBudget,
+            onSaveBudget: options.onSaveBudget,
+        };
+        setBudgetPanelCategoryId(typeof categoryId === "string" ? categoryId : "");
+        setBudgetPanelMonthKey(options.monthKey ?? currentMonthKey);
+        setBudgetPanelBudgets(Array.isArray(options.budgets) ? options.budgets : null);
+        setIsBudgetPanelOpen(true);
+    };
+
+    const closeBudgetPanel = () => {
+        budgetPanelCallbacksRef.current = {};
+        setIsBudgetPanelOpen(false);
+        setBudgetPanelCategoryId("");
+        setBudgetPanelMonthKey(currentMonthKey);
+        setBudgetPanelBudgets(null);
+    };
+
+    const handleSaveBudgetFromPanel = async (budget) => {
+        const result = await handleSaveBudget(budget, budgetPanelMonthKey);
+
+        budgetPanelCallbacksRef.current.onSaveBudget?.(result);
+        closeBudgetPanel();
+
+        return result;
+    };
+
+    const handleDeleteBudgetFromPanel = async (budget) => {
+        const result = await handleDeleteBudget(budget, budgetPanelMonthKey);
+
+        budgetPanelCallbacksRef.current.onDeleteBudget?.(result);
+        closeBudgetPanel();
+
+        return result;
     };
 
     const handleSaveWallet = async (wallet) => {
@@ -566,6 +627,17 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             );
         }
 
+        if (activeMobilePage === "categories") {
+            return (
+                <CategorySpendingPage
+                    categories={categories}
+                    mode="mobile"
+                    onManageBudget={openBudgetPanel}
+                    user={user}
+                />
+            );
+        }
+
         if (activeMobilePage === "budget") {
             return (
                 <BudgetPage
@@ -616,6 +688,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 monthLabel={currentMonthLabel}
                 onManageBudget={() => showMobilePage("budget")}
                 onToggleTheme={handleToggleTheme}
+                onViewCategorySpending={() => navigateExpenseRoute("categories")}
                 onViewTransactions={() => navigateExpenseRoute("transactions")}
                 summary={summary}
                 theme={settings.theme}
@@ -646,6 +719,19 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             );
         }
 
+        if (activeDesktopPage === "categories") {
+            return (
+                <CategorySpendingPage
+                    categories={categories}
+                    mode="desktop"
+                    navItems={expenseNavItems}
+                    onManageBudget={openBudgetPanel}
+                    onNavigate={handleDesktopNavigate}
+                    user={user}
+                />
+            );
+        }
+
         return (
             <WebDashboardView
                 budgets={budgets}
@@ -654,13 +740,14 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 monthLabel={currentMonthLabel}
                 navItems={expenseNavItems}
                 onAddTransaction={handleAddTransaction}
-                onDeleteBudget={handleDeleteBudget}
                 onDeleteWallet={handleDeleteWallet}
                 onLogout={handleLogout}
+                onManageBudget={openBudgetPanel}
                 onNavigate={handleDesktopNavigate}
-                onSaveBudget={handleSaveBudget}
                 onSaveWallet={handleSaveWallet}
+                onSelectBudget={openBudgetPanel}
                 onToggleTheme={handleToggleTheme}
+                onViewCategorySpending={() => navigateExpenseRoute("categories")}
                 onViewTransactions={() => navigateExpenseRoute("transactions")}
                 summary={summary}
                 theme={settings.theme}
@@ -679,6 +766,28 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             {renderMobilePage()}
             <ExpenseBottomNav activeId={activeMobilePage} items={expenseNavItems} onNavigate={handleMobileNavigate} />
             {renderDesktopPage()}
+            {isBudgetPanelOpen && isMobileViewport ? (
+                <MobileBudgetFormSheet
+                    key={budgetPanelCategoryId || "mobile-budget-panel"}
+                    budgets={budgetPanelBudgets ?? budgets}
+                    categories={categories}
+                    initialCategoryId={budgetPanelCategoryId}
+                    onCancel={closeBudgetPanel}
+                    onDelete={handleDeleteBudgetFromPanel}
+                    onSubmit={handleSaveBudgetFromPanel}
+                />
+            ) : null}
+            {isBudgetPanelOpen && !isMobileViewport ? (
+                <WebBudgetPanel
+                    key={budgetPanelCategoryId || "budget-panel"}
+                    budgets={budgetPanelBudgets ?? budgets}
+                    categories={categories}
+                    initialCategoryId={budgetPanelCategoryId}
+                    onCancel={closeBudgetPanel}
+                    onDelete={handleDeleteBudgetFromPanel}
+                    onSubmit={handleSaveBudgetFromPanel}
+                />
+            ) : null}
         </div>
     );
 }

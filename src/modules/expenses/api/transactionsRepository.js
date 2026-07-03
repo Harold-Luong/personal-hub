@@ -557,6 +557,7 @@ function createTransactionDataFromInput({
 
 export async function getExpenseTransactionsPage(uid, options = {}) {
     const {
+        categoryId = "all",
         cursor = null,
         date = "",
         monthKey = "all",
@@ -574,6 +575,10 @@ export async function getExpenseTransactionsPage(uid, options = {}) {
 
     if (transactionTypes.includes(type)) {
         queryConstraints.push(where("type", "==", type));
+    }
+
+    if (isActiveFilterValue(categoryId)) {
+        queryConstraints.push(where("categoryId", "==", categoryId));
     }
 
     if (isActiveFilterValue(walletId)) {

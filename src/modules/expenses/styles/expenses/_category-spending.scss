@@ -1,0 +1,1287 @@
+.category-spending-page {
+    align-content: start;
+    display: grid;
+    gap: 22px;
+}
+
+.category-spending-page--mobile {
+    display: none;
+}
+
+.web-category-spending-view__main {
+    background:
+        linear-gradient(180deg,
+            color-mix(in srgb, var(--expense-active-soft) 18%, var(--expense-surface-solid)),
+            color-mix(in srgb, var(--expense-surface-solid) 94%, white));
+}
+
+.category-spending-page__hero,
+.category-spending-page__summary,
+.category-spending-page__workspace,
+.category-spending-page__analysis {
+    min-width: 0;
+}
+
+.category-spending-page__hero {
+    align-items: end;
+    display: flex;
+    gap: 18px;
+    justify-content: space-between;
+}
+
+.category-spending-page__hero-copy {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+}
+
+.category-spending-page__hero-copy>span,
+.category-spending-page__chart header span,
+.category-spending-page__categories header span,
+.category-spending-page__detail-header>div>span,
+.category-spending-page__detail-total-copy>span,
+.category-spending-page__detail-budget-badge>span {
+    color: color-mix(in srgb, var(--expense-active-strong) 68%, var(--expense-muted));
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.category-spending-page__hero h1 {
+    color: var(--expense-heading);
+    font-size: 30px;
+    line-height: 1.1;
+    margin: 0;
+}
+
+.category-spending-page__hero p {
+    color: var(--expense-muted);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin: 0;
+}
+
+.category-spending-page__controls {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.category-spending-page button,
+.category-spending-page select {
+    font: inherit;
+}
+
+.category-spending-page button {
+    border: 0;
+    cursor: pointer;
+}
+
+.category-spending-page__select {
+    align-items: center;
+    background: var(--expense-surface-solid);
+    border: 1px solid var(--expense-border);
+    border-radius: 8px;
+    color: var(--expense-heading);
+    display: flex;
+    min-height: 44px;
+    min-width: 156px;
+    overflow: hidden;
+    position: relative;
+}
+
+.category-spending-page__select select {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 800;
+    min-height: inherit;
+    outline: 0;
+    padding: 0 34px 0 12px;
+    width: 100%;
+}
+
+.category-spending-page__select::after {
+    border-bottom: 1.5px solid currentColor;
+    border-right: 1.5px solid currentColor;
+    content: "";
+    height: 6px;
+    pointer-events: none;
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-65%) rotate(45deg);
+    width: 6px;
+}
+
+.category-spending-page__summary {
+    display: grid;
+    gap: 14px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.category-spending-page__summary-card {
+    align-items: center;
+    background: var(--expense-surface);
+    border: 1px solid var(--expense-border);
+    border-radius: 8px;
+    box-shadow: 0 10px 26px color-mix(in srgb, var(--expense-shadow) 70%, transparent);
+    display: grid;
+    gap: 7px 14px;
+    grid-template-columns: auto minmax(0, 1fr);
+    padding: 16px;
+}
+
+.category-spending-page__summary-icon {
+    align-items: center;
+    background: color-mix(in srgb, var(--expense-active-soft) 68%, var(--expense-surface-solid));
+    border: 1px solid color-mix(in srgb, var(--expense-active-strong) 10%, var(--expense-border));
+    border-radius: 8px;
+    color: var(--expense-active-strong);
+    display: inline-flex;
+    grid-row: span 2;
+    height: 46px;
+    justify-content: center;
+    width: 46px;
+}
+
+.category-spending-page__summary-card>span:not(.category-spending-page__summary-icon) {
+    color: var(--expense-muted);
+    font-size: 12px;
+    font-weight: 700;
+    grid-column: 2;
+    line-height: 1.2;
+}
+
+.category-spending-page__summary-card strong {
+    color: var(--expense-heading);
+    font-size: 18px;
+    grid-column: 2;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.category-spending-page__summary-card--expense .category-spending-page__summary-icon,
+.category-spending-page__summary-card--expense strong,
+.category-spending-page__summary-card--danger .category-spending-page__summary-icon,
+.category-spending-page__summary-card--danger strong {
+    color: #dc1717;
+}
+
+.category-spending-page__summary-card--expense .category-spending-page__summary-icon,
+.category-spending-page__summary-card--danger .category-spending-page__summary-icon {
+    background: #fff0ee;
+    border-color: #f5d9d4;
+}
+
+.category-spending-page__notice,
+.category-spending-page__empty {
+    color: var(--expense-muted);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.category-spending-page__workspace {
+    --category-spending-panel-height: min(1280px, calc(100vh - 16px));
+    align-items: stretch;
+    display: grid;
+    gap: 22px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.category-spending-page__analysis {
+    display: contents;
+}
+
+.category-spending-page__chart {
+    grid-column: 1 / -1;
+    justify-items: center;
+    min-height: 320px;
+}
+
+.category-spending-page__chart>header {
+    justify-self: stretch;
+    width: 100%;
+}
+
+.category-spending-page__categories {
+    display: grid;
+    grid-column: 1;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: var(--category-spending-panel-height);
+    overflow: hidden;
+}
+
+.category-spending-page__detail {
+    align-self: stretch;
+    container: category-detail / inline-size;
+    display: grid;
+    grid-column: 2;
+    grid-auto-rows: auto;
+    height: var(--category-spending-panel-height);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.category-spending-page__chart>header,
+.category-spending-page__categories>header,
+.category-spending-page__detail-header {
+    align-items: center;
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+}
+
+.category-spending-page__chart h2,
+.category-spending-page__categories h2,
+.category-spending-page__detail-header h2,
+.category-spending-page__transactions h3 {
+    color: var(--expense-heading);
+    font-size: 16px;
+    line-height: 1.2;
+    margin: 0;
+}
+
+.category-spending-page__chart>header strong,
+.category-spending-page__categories>header strong {
+    align-items: center;
+    background: color-mix(in srgb, var(--expense-active-soft) 72%, var(--expense-surface-solid));
+    border-radius: 999px;
+    color: var(--expense-active-strong);
+    display: inline-flex;
+    font-size: 12px;
+    height: 30px;
+    justify-content: center;
+    min-width: 30px;
+    padding: 0 10px;
+}
+
+.category-spending-page__chart .category-spending-card__chart {
+    max-width: 280px;
+    width: min(38vw, 280px);
+}
+
+.category-spending-page__chart-overview {
+    align-items: center;
+    display: grid;
+    gap: 22px;
+    grid-template-columns: minmax(220px, 0.78fr) minmax(260px, 1fr);
+    justify-self: stretch;
+    min-width: 0;
+}
+
+.category-spending-page__chart .category-spending-page__chart-overview .category-spending-card__chart {
+    justify-self: center;
+    width: min(26vw, 260px);
+}
+
+.category-spending-page__chart .category-spending-card__chart-center small {
+    color: var(--expense-muted);
+    font-size: 11px;
+    font-weight: 750;
+    line-height: 1.2;
+    text-align: center;
+}
+
+.category-spending-page__chart-breakdown {
+    display: grid;
+    gap: 9px;
+    min-width: 0;
+}
+
+.category-spending-page__chart-category {
+    align-items: center;
+    background: var(--expense-surface-solid);
+    border: 1px solid var(--expense-border);
+    border-radius: 8px;
+    color: inherit;
+    display: grid;
+    gap: 10px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    min-height: 48px;
+    padding: 8px 10px;
+    text-align: left;
+}
+
+.category-spending-page__chart-category:hover,
+.category-spending-page__chart-category:focus-visible,
+.category-spending-page__chart-category.is-selected {
+    border-color: color-mix(in srgb, var(--expense-active-strong) 48%, var(--expense-border));
+    box-shadow: 0 10px 22px color-mix(in srgb, var(--expense-active-strong) 12%, transparent);
+    outline: 0;
+}
+
+.category-spending-page__chart-category.is-selected {
+    background: color-mix(in srgb, var(--expense-active-soft) 42%, var(--expense-surface-solid));
+}
+
+.category-spending-page__chart-dot {
+    background: var(--dot-color, var(--expense-active-strong));
+    border-radius: 50%;
+    height: 9px;
+    width: 9px;
+}
+
+.category-spending-page__chart-category-copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.category-spending-page__chart-category-copy strong,
+.category-spending-page__chart-percentage {
+    color: var(--expense-heading);
+    font-size: 13px;
+    font-weight: 850;
+    line-height: 1.2;
+}
+
+.category-spending-page__chart-category-copy strong {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.category-spending-page__chart-category-copy small,
+.category-spending-page__chart-more {
+    color: var(--expense-muted);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.category-spending-page__chart-category-copy .amount-text {
+    color: inherit;
+}
+
+.category-spending-page__chart-percentage {
+    justify-self: end;
+}
+
+.category-spending-page__chart-more {
+    padding: 2px 10px 0;
+}
+
+.category-spending-page__category-list,
+.category-spending-page__transaction-list {
+    display: grid;
+    gap: 12px;
+}
+
+.category-spending-page__transactions {
+    display: grid;
+    gap: 12px;
+    grid-template-rows: auto auto;
+    min-height: auto;
+}
+
+.category-spending-page__transactions-header {
+    align-items: center;
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+}
+
+.category-spending-page__transactions-header span {
+    align-items: center;
+    background: color-mix(in srgb, var(--expense-active-soft) 68%, var(--expense-surface-solid));
+    border-radius: 999px;
+    color: var(--expense-active-strong);
+    display: inline-flex;
+    font-size: 12px;
+    font-weight: 800;
+    height: 28px;
+    justify-content: center;
+    min-width: 28px;
+    padding: 0 9px;
+}
+
+.category-spending-page__category-list {
+    align-content: start;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+    scrollbar-color: color-mix(in srgb, var(--expense-active-strong) 34%, transparent) transparent;
+    scrollbar-width: thin;
+}
+
+.category-spending-page__transaction-list {
+    align-content: start;
+    overflow: visible;
+    padding-right: 0;
+}
+
+.category-spending-page__category-list::-webkit-scrollbar,
+.category-spending-page__detail::-webkit-scrollbar {
+    width: 6px;
+}
+
+.category-spending-page__category-list::-webkit-scrollbar-thumb,
+.category-spending-page__detail::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--expense-active-strong) 34%, transparent);
+    border-radius: 999px;
+}
+
+.category-spending-page__category-row {
+    align-items: center;
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--category-color, var(--expense-active-strong)) 8%, var(--expense-surface-solid)),
+            var(--expense-surface-solid) 72%);
+    border: 1px solid color-mix(in srgb, var(--category-color, var(--expense-active-strong)) 16%, var(--expense-border));
+    border-radius: 8px;
+    color: inherit;
+    display: grid;
+    gap: 18px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    min-height: 148px;
+    overflow: hidden;
+    padding: 22px 18px 22px 24px;
+    position: relative;
+    text-align: left;
+}
+
+.category-spending-page__category-row::before {
+    background: var(--category-color, var(--expense-active-strong));
+    content: "";
+    inset: 0 auto 0 0;
+    opacity: 0;
+    position: absolute;
+    transition: opacity 160ms ease;
+    width: 4px;
+}
+
+.category-spending-page__category-row:hover,
+.category-spending-page__category-row:focus-visible,
+.category-spending-page__category-row.is-selected {
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--category-color, var(--expense-active-strong)) 13%, var(--expense-surface-solid)),
+            var(--expense-surface-solid) 74%);
+    border-color: color-mix(in srgb, var(--category-color, var(--expense-active-strong)) 52%, var(--expense-border));
+    box-shadow: 0 16px 34px color-mix(in srgb, var(--category-color, var(--expense-active-strong)) 14%, transparent);
+    outline: 0;
+}
+
+.category-spending-page__category-row.is-selected::before {
+    opacity: 1;
+}
+
+.category-spending-page__category-row.is-selected .category-spending-page__category-heading strong,
+.category-spending-page__category-row.is-selected .category-spending-page__category-amount {
+    color: var(--expense-active-strong);
+}
+
+.category-spending-page__category-row>.category-icon {
+    border-color: color-mix(in srgb, var(--category-color, var(--expense-active-strong)) 24%, var(--expense-border));
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, white 56%, transparent);
+    font-size: 30px;
+    height: 74px;
+    width: 74px;
+}
+
+.category-spending-page__category-main {
+    display: grid;
+    gap: 15px;
+    min-width: 0;
+}
+
+.category-spending-page__category-heading {
+    align-items: start;
+    display: grid;
+    gap: 14px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    justify-content: space-between;
+    min-width: 0;
+}
+
+.category-spending-page__category-title {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    min-width: 0;
+}
+
+.category-spending-page__category-title strong {
+    color: var(--expense-heading);
+    font-size: 16px;
+    line-height: 1.2;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.category-spending-page__category-heading>span,
+.category-spending-page__category-budget-amounts {
+    color: var(--expense-muted);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+    min-width: 0;
+}
+
+.category-spending-page__category-heading>span {
+    padding-top: 6px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.category-spending-page__category-row .progress-bar {
+    background: color-mix(in srgb, var(--expense-muted) 14%, transparent);
+    height: 8px;
+}
+
+.category-spending-page__category-footer {
+    align-items: end;
+    display: grid;
+    gap: 14px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-width: 0;
+}
+
+.category-spending-page__category-budget-amounts {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.category-spending-page__budget-chip {
+    background: color-mix(in srgb, var(--expense-muted) 9%, var(--expense-surface-solid));
+    border-radius: 999px;
+    color: var(--expense-muted);
+    flex: 0 0 auto;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.2;
+    padding: 6px 9px;
+}
+
+.category-spending-page__budget-chip--good {
+    background: color-mix(in srgb, var(--expense-active-soft) 74%, var(--expense-surface-solid));
+    color: color-mix(in srgb, var(--expense-active-strong) 92%, #1d321c);
+}
+
+.category-spending-page__budget-chip--warning {
+    background: #fff4d7;
+    color: #9b6a00;
+}
+
+.category-spending-page__budget-chip--danger {
+    background: #fff0ee;
+    color: #dc1717;
+}
+
+.category-spending-page__category-amount {
+    color: var(--expense-heading);
+    font-size: 16px;
+    line-height: 1.2;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.category-spending-page__category-chevron {
+    align-items: center;
+    color: color-mix(in srgb, var(--category-color, var(--expense-active-strong)) 62%, var(--expense-muted));
+    display: inline-flex;
+    justify-content: center;
+}
+
+.category-spending-page__detail {
+    gap: 18px;
+    position: sticky;
+    top: 28px;
+}
+
+.category-spending-page__detail-header .category-icon {
+    border-radius: 8px;
+    font-size: 30px;
+    height: 68px;
+    width: 68px;
+}
+
+.category-spending-page__detail-actions {
+    align-items: center;
+    display: inline-flex;
+    gap: 10px;
+}
+
+.category-spending-page__detail-close {
+    align-items: center;
+    background: color-mix(in srgb, var(--expense-active-soft) 62%, var(--expense-surface-solid));
+    border: 1px solid color-mix(in srgb, var(--expense-active-strong) 18%, var(--expense-border));
+    border-radius: 999px;
+    color: var(--expense-active-strong);
+    display: none;
+    height: 36px;
+    justify-content: center;
+    width: 36px;
+}
+
+.category-spending-page__detail-sheet-backdrop {
+    align-items: end;
+    background: rgba(28, 32, 36, 0.34);
+    display: flex;
+    inset: 0;
+    justify-content: center;
+    padding: 16px 12px calc(16px + env(safe-area-inset-bottom));
+    position: fixed;
+    z-index: 30;
+}
+
+.category-spending-page__detail-sheet-shell {
+    display: grid;
+    width: min(100%, 430px);
+}
+
+.category-spending-page__detail--sheet {
+    align-content: start;
+    background: var(--expense-surface-solid);
+    box-shadow: 0 20px 54px rgba(31, 41, 51, 0.24);
+    gap: 14px;
+    max-height: calc(100svh - 40px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 16px;
+    position: static;
+    top: auto;
+    width: 100%;
+}
+
+.category-spending-page__detail--sheet .category-spending-page__transaction-list {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+}
+
+.category-spending-page__detail--sheet .category-spending-page__detail-close {
+    display: inline-flex;
+    flex: 0 0 auto;
+}
+
+.category-spending-page__detail-total {
+    align-items: center;
+    background:
+        linear-gradient(135deg,
+            color-mix(in srgb, var(--expense-active-soft) 48%, var(--expense-surface-solid)),
+            var(--expense-surface-solid));
+    border: 1px solid color-mix(in srgb, var(--expense-active-strong) 16%, var(--expense-border));
+    border-radius: 8px;
+    display: grid;
+    gap: 18px;
+    grid-template-columns: minmax(0, 1fr) minmax(132px, 152px);
+    min-height: 150px;
+    padding: 22px 24px;
+}
+
+.category-spending-page__detail-total-copy {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+}
+
+.category-spending-page__detail-total-copy strong {
+    color: var(--expense-heading);
+    font-size: 28px;
+    line-height: 1.1;
+}
+
+.category-spending-page__detail-total-copy small {
+    color: var(--expense-muted);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.category-spending-page__detail-budget-badge {
+    align-items: center;
+    background: color-mix(in srgb, var(--expense-active-soft) 36%, var(--expense-surface-solid));
+    border: 1px solid color-mix(in srgb, var(--expense-active-strong) 12%, var(--expense-border));
+    border-radius: 8px;
+    display: grid;
+    gap: 10px;
+    justify-items: center;
+    justify-self: end;
+    min-width: 132px;
+    padding: 18px 16px;
+    text-align: center;
+    width: min(100%, 152px);
+}
+
+.category-spending-page__detail-budget-badge strong {
+    color: var(--expense-active-strong);
+    font-size: 22px;
+    line-height: 1.1;
+}
+
+.category-spending-page__detail-budget-badge--warning strong {
+    color: #9b6a00;
+}
+
+.category-spending-page__detail-budget-badge--danger strong {
+    color: #dc1717;
+}
+
+.category-spending-page__detail--unbudgeted .category-spending-page__detail-total {
+    grid-template-columns: 1fr;
+}
+
+.category-spending-page__detail-metrics {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    min-width: 0;
+}
+
+.category-spending-page__detail-metric {
+    align-content: center;
+    background: var(--expense-surface-solid);
+    border: 1px solid var(--expense-border);
+    border-radius: 8px;
+    display: grid;
+    gap: 8px;
+    justify-items: center;
+    min-height: 130px;
+    min-width: 0;
+    padding: 16px 10px;
+    text-align: center;
+}
+
+.category-spending-page__detail-metric-icon {
+    align-items: center;
+    background: color-mix(in srgb, var(--metric-color, var(--expense-active-strong)) 13%, var(--expense-surface-solid));
+    border-radius: 999px;
+    color: var(--metric-color, var(--expense-active-strong));
+    display: inline-flex;
+    height: 48px;
+    justify-content: center;
+    width: 48px;
+}
+
+.category-spending-page__detail-metric--green {
+    --metric-color: var(--expense-active-strong);
+}
+
+.category-spending-page__detail-metric--blue {
+    --metric-color: #3c86d9;
+}
+
+.category-spending-page__detail-metric--purple {
+    --metric-color: #9b5ad7;
+}
+
+.category-spending-page__detail-metric--orange {
+    --metric-color: #e47b1f;
+}
+
+.category-spending-page__detail-metric--danger {
+    --metric-color: #dc1717;
+}
+
+.category-spending-page__detail-metric-label,
+.category-spending-page__detail-metric small {
+    color: var(--expense-muted);
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.25;
+}
+
+.category-spending-page__detail-metric strong {
+    color: var(--expense-heading);
+    font-size: 14px;
+    line-height: 1.25;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.category-spending-page__detail-metric .amount-text {
+    color: inherit;
+}
+
+.category-spending-page__detail-metric--danger strong,
+.category-spending-page__detail-metric--danger .amount-text {
+    color: #dc1717;
+}
+
+@container category-detail (max-width: 520px) {
+    .category-spending-page__detail-total {
+        align-items: start;
+        grid-template-columns: 1fr;
+        min-height: 0;
+    }
+
+    .category-spending-page__detail-budget-badge {
+        align-items: center;
+        display: flex;
+        gap: 10px;
+        justify-content: space-between;
+        justify-self: stretch;
+        min-width: 0;
+        padding: 12px 14px;
+        text-align: left;
+        width: 100%;
+    }
+
+    .category-spending-page__detail-budget-badge strong {
+        font-size: 20px;
+    }
+
+    .category-spending-page__detail-metrics {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+}
+
+.category-spending-page__detail-commands {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+}
+
+.category-spending-page__manage-budget,
+.category-spending-page__view-transactions,
+.category-spending-page__load-more {
+    align-items: center;
+    border-radius: 8px;
+    display: inline-flex;
+    font-weight: 800;
+    gap: 8px;
+    justify-content: center;
+    min-height: 52px;
+    min-width: 0;
+    padding: 0 16px;
+}
+
+.category-spending-page .category-spending-page__manage-budget {
+    background: color-mix(in srgb, var(--expense-active-soft) 72%, var(--expense-surface-solid));
+    border: 1px solid color-mix(in srgb, var(--expense-active-strong) 18%, var(--expense-border));
+    color: var(--expense-active-strong);
+}
+
+.category-spending-page__view-transactions {
+    background: var(--expense-active-strong);
+    box-shadow: 0 10px 22px color-mix(in srgb, var(--expense-active-strong) 18%, transparent);
+    color: white;
+    width: 100%;
+}
+
+.category-spending-page__detail-commands > :only-child {
+    grid-column: 1 / -1;
+}
+
+.category-spending-page__manage-budget span,
+.category-spending-page__view-transactions span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+@container category-detail (max-width: 520px) {
+    .category-spending-page__detail-commands {
+        grid-template-columns: 1fr;
+    }
+}
+
+.category-spending-page__load-more {
+    background: color-mix(in srgb, var(--expense-active-soft) 64%, var(--expense-surface-solid));
+    color: var(--expense-active-strong);
+}
+
+.category-spending-page__load-more:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+.category-spending-page__transaction {
+    align-items: center;
+    background: var(--expense-surface-solid);
+    border: 1px solid var(--expense-border);
+    border-radius: 8px;
+    display: grid;
+    gap: 1px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 12px;
+}
+
+.category-spending-page__transaction-main {
+    align-items: center;
+    display: flex;
+    gap: 2px;
+    min-width: 0;
+}
+
+.category-spending-page__transaction-main>div {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.category-spending-page__transaction-main strong {
+    color: var(--expense-heading);
+    font-size: 13px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.category-spending-page__transaction-main span,
+.category-spending-page__transaction-wallet,
+.category-spending-page__transaction time {
+    color: var(--expense-muted);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.category-spending-page__transaction-wallet {
+    justify-self: end;
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.category-spending-page__transaction time {
+    align-items: center;
+    display: inline-flex;
+    gap: 6px;
+}
+
+.category-spending-page__transaction-amount {
+    justify-self: end;
+}
+
+@media (max-width: 900px) {
+    .category-spending-page--mobile {
+        align-content: start;
+        display: grid;
+        gap: 16px;
+        margin: 0 auto;
+        max-width: 430px;
+        padding: 42px 18px 92px;
+    }
+
+    .category-spending-page__hero {
+        align-items: stretch;
+        display: grid;
+        gap: 14px;
+    }
+
+    .category-spending-page__hero h1 {
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .category-spending-page__controls {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .category-spending-page__select {
+        min-height: 40px;
+        min-width: 0;
+    }
+
+    .category-spending-page__select select {
+        font-size: 12px;
+        padding-left: 10px;
+    }
+
+    .category-spending-page__summary {
+        gap: 10px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .category-spending-page__summary-card {
+        gap: 7px 10px;
+        padding: 12px;
+    }
+
+    .category-spending-page__summary-icon {
+        height: 36px;
+        width: 36px;
+    }
+
+    .category-spending-page__summary-card strong {
+        font-size: 15px;
+    }
+
+    .category-spending-page__workspace,
+    .category-spending-page__analysis {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: 1fr;
+    }
+
+    .category-spending-page__chart,
+    .category-spending-page__categories,
+    .category-spending-page__detail {
+        grid-column: auto;
+    }
+
+    .category-spending-page__chart,
+    .category-spending-page__categories,
+    .category-spending-page__detail {
+        padding: 16px;
+    }
+
+    .category-spending-page__chart {
+        min-height: 0;
+    }
+
+    .category-spending-page__chart .category-spending-card__chart {
+        width: min(68vw, 220px);
+    }
+
+    .category-spending-page__chart-overview {
+        gap: 16px;
+        grid-template-columns: 1fr;
+    }
+
+    .category-spending-page__chart .category-spending-page__chart-overview .category-spending-card__chart {
+        width: min(68vw, 220px);
+    }
+
+    .category-spending-page__categories,
+    .category-spending-page__detail {
+        height: auto;
+        max-height: none;
+        min-height: 0;
+        overflow: visible;
+        position: static;
+    }
+
+    .category-spending-page__category-list,
+    .category-spending-page__transaction-list {
+        max-height: none;
+        overflow: visible;
+        padding-right: 0;
+    }
+
+    .category-spending-page__detail-sheet-backdrop {
+        align-items: end;
+        background: rgba(28, 32, 36, 0.34);
+        display: flex;
+        inset: 0;
+        justify-content: center;
+        padding: 16px 12px calc(16px + env(safe-area-inset-bottom));
+        position: fixed;
+        z-index: 30;
+    }
+
+    .category-spending-page__detail--sheet {
+        align-content: start;
+        background: var(--expense-surface-solid);
+        box-shadow: 0 20px 54px rgba(31, 41, 51, 0.24);
+        gap: 12px;
+        max-height: calc(100svh - 40px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: 16px;
+        position: static;
+        top: auto;
+        width: min(100%, 430px);
+    }
+
+    .category-spending-page__detail--sheet .category-spending-page__transaction-list {
+        max-height: none;
+        overflow: visible;
+        padding-right: 0;
+    }
+
+    .category-spending-page__detail--sheet .category-spending-page__detail-close {
+        display: inline-flex;
+        flex: 0 0 auto;
+    }
+
+    .category-spending-page__category-row {
+        gap: 14px;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        min-height: 0;
+        padding: 16px;
+    }
+
+    .category-spending-page__category-row>.category-icon {
+        font-size: 28px;
+        height: 58px;
+        width: 58px;
+    }
+
+    .category-spending-page__category-main {
+        gap: 11px;
+    }
+
+    .category-spending-page__category-heading,
+    .category-spending-page__category-footer {
+        align-items: start;
+        display: grid;
+        gap: 8px;
+        grid-template-columns: 1fr;
+        justify-content: stretch;
+    }
+
+    .category-spending-page__category-heading>span,
+    .category-spending-page__category-amount {
+        justify-self: start;
+        padding-top: 0;
+        text-align: left;
+    }
+
+    .category-spending-page__category-title strong {
+        font-size: 16px;
+    }
+
+    .category-spending-page__budget-chip {
+        font-size: 12px;
+        padding: 6px 9px;
+    }
+
+    .category-spending-page__category-amount {
+        font-size: 16px;
+    }
+
+    .category-spending-page__detail-total {
+        align-items: start;
+        display: block;
+        gap: 12px;
+        height: auto;
+        min-height: 102px;
+        overflow: visible;
+        padding: 14px;
+    }
+
+    .category-spending-page__detail-total-copy {
+        display: grid;
+        gap: 6px;
+    }
+
+    .category-spending-page__detail-total-copy strong {
+        font-size: 24px;
+        line-height: 1.15;
+        overflow-wrap: anywhere;
+    }
+
+    .category-spending-page__detail-total-copy small {
+        overflow-wrap: anywhere;
+    }
+
+    .category-spending-page__detail-budget-badge {
+        align-items: center;
+        display: flex;
+        gap: 10px;
+        justify-content: space-between;
+        justify-items: start;
+        justify-self: stretch;
+        min-width: 0;
+        padding: 10px 12px;
+        text-align: left;
+        width: 100%;
+    }
+
+    .category-spending-page__detail--sheet .category-spending-page__detail-budget-badge {
+        display: none;
+    }
+
+    .category-spending-page__detail--sheet.category-spending-page__detail--unbudgeted .category-spending-page__detail-total {
+        display: grid;
+        min-height: 116px;
+    }
+
+    .category-spending-page__detail--sheet.category-spending-page__detail--unbudgeted .category-spending-page__detail-total-copy {
+        align-content: start;
+        min-height: 72px;
+    }
+
+    .category-spending-page__detail--sheet.category-spending-page__detail--unbudgeted .category-spending-page__detail-metrics {
+        margin-top: 0;
+    }
+
+    .category-spending-page__detail-budget-badge strong {
+        font-size: 18px;
+    }
+
+    .category-spending-page__detail-metrics {
+        gap: 8px;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .category-spending-page__detail-metric {
+        gap: 7px;
+        min-height: 112px;
+        padding: 12px 8px;
+    }
+
+    .category-spending-page__detail-metric-icon {
+        height: 42px;
+        width: 42px;
+    }
+
+    .category-spending-page__transaction {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .category-spending-page__transaction-wallet {
+        display: none;
+    }
+}
+
+@media (max-width: 1180px) and (min-width: 901px) {
+    .category-spending-page__summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .category-spending-page__workspace {
+        grid-template-columns: 1fr;
+    }
+
+    .category-spending-page__chart,
+    .category-spending-page__categories,
+    .category-spending-page__detail {
+        grid-column: auto;
+    }
+
+    .category-spending-page__categories,
+    .category-spending-page__detail {
+        height: auto;
+        max-height: none;
+        min-height: 0;
+        overflow: visible;
+        position: static;
+    }
+
+    .category-spending-page__detail-total {
+        align-items: start;
+        grid-template-columns: 1fr;
+        min-height: 0;
+    }
+
+    .category-spending-page__detail-budget-badge {
+        align-items: center;
+        display: flex;
+        gap: 10px;
+        justify-content: space-between;
+        justify-self: stretch;
+        min-width: 0;
+        text-align: left;
+        width: 100%;
+    }
+
+    .category-spending-page__category-list,
+    .category-spending-page__transaction-list {
+        max-height: none;
+        overflow: visible;
+        padding-right: 0;
+    }
+}

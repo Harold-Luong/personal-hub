@@ -58,6 +58,7 @@ export default function AppRoutes({ user }) {
                 <Route path="/" element={<Navigate replace to="/expenses/dashboard" />} />
                 <Route path="/auth" element={<Navigate replace to="/expenses/dashboard" />} />
                 <Route path="/expenses" element={<Navigate replace to="/expenses/dashboard" />} />
+                <Route path="/expenses/category-spending" element={<AuthenticatedExpenses user={user} />} />
                 <Route path="/expenses/*" element={<AuthenticatedExpenses user={user} />} />
                 <Route path="*" element={<Navigate replace to="/expenses/dashboard" />} />
             </Routes>

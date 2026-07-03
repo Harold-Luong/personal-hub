@@ -12,6 +12,7 @@ export default function MobileDashboardView({
     monthLabel,
     onManageBudget,
     onToggleTheme,
+    onViewCategorySpending,
     onViewTransactions,
     summary,
     theme = "sage",
@@ -64,6 +65,7 @@ export default function MobileDashboardView({
                 categories={categorySpending}
                 limit={5}
                 monthLabel={monthLabel}
+                onViewAll={onViewCategorySpending}
                 variant="mobile"
             />
             <RecentTransactionsCard limit={5} onViewAll={onViewTransactions} transactions={transactions} variant="mobile" />
