@@ -5,6 +5,7 @@ import AmountText from "../components/shared/AmountText";
 import DonutChart from "../components/shared/DonutChart";
 import ExpenseEmoji from "../components/shared/ExpenseEmoji";
 import ProgressBar from "../components/shared/ProgressBar";
+import SummaryCardList from "../components/shared/SummaryCardList";
 import { BudgetIcon, CalendarIcon, ChevronIcon, ReportIcon, TransactionListIcon, XIcon } from "../icon/ExpenseIcons";
 import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { formatCurrency } from "../utils/formatCurrency";
@@ -137,7 +138,7 @@ function CategorySummaryCards({ categories, monthlyStats, budgets }) {
             icon: ReportIcon,
             label: "Tổng chi",
             tone: "expense",
-            value: formatCurrency(totalExpense),
+            value: totalExpense,
         },
         {
             id: "count",
@@ -145,6 +146,7 @@ function CategorySummaryCards({ categories, monthlyStats, budgets }) {
             label: "Danh mục có chi",
             tone: "neutral",
             value: `${categories.length}`,
+            valueType: "text",
         },
         {
             id: "top",
@@ -152,6 +154,7 @@ function CategorySummaryCards({ categories, monthlyStats, budgets }) {
             label: "Cao nhất",
             tone: "good",
             value: topCategory ? topCategory.name : "-",
+            valueType: "text",
         },
         {
             id: "budget",
@@ -159,24 +162,17 @@ function CategorySummaryCards({ categories, monthlyStats, budgets }) {
             label: "Vượt ngân sách",
             tone: overBudgetCount ? "danger" : "neutral",
             value: totalBudget ? `${overBudgetCount}` : "-",
+            valueType: "text",
         },
     ];
 
     return (
-        <section className="category-spending-page__summary" aria-label="Tóm tắt chi tiêu theo danh mục">
-            {summaryCards.map(({ icon: Icon, id, label, tone, value }) => (
-                <article
-                    className={`category-spending-page__summary-card category-spending-page__summary-card--${tone}`}
-                    key={id}
-                >
-                    <span className="category-spending-page__summary-icon" aria-hidden="true">
-                        <Icon size={22} />
-                    </span>
-                    <span>{label}</span>
-                    <strong>{value}</strong>
-                </article>
-            ))}
-        </section>
+        <SummaryCardList
+            ariaLabel="Tóm tắt chi tiêu theo danh mục"
+            cardVariant="compact"
+            className="category-spending-page__summary"
+            items={summaryCards}
+        />
     );
 }
 

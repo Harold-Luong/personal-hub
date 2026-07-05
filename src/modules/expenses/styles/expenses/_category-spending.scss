@@ -120,66 +120,6 @@
     width: 6px;
 }
 
-.category-spending-page__summary {
-    display: grid;
-    gap: 14px;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.category-spending-page__summary-card {
-    align-items: center;
-    background: var(--expense-surface);
-    border: 1px solid var(--expense-border);
-    border-radius: 8px;
-    box-shadow: 0 10px 26px color-mix(in srgb, var(--expense-shadow) 70%, transparent);
-    display: grid;
-    gap: 7px 14px;
-    grid-template-columns: auto minmax(0, 1fr);
-    padding: 16px;
-}
-
-.category-spending-page__summary-icon {
-    align-items: center;
-    background: color-mix(in srgb, var(--expense-active-soft) 68%, var(--expense-surface-solid));
-    border: 1px solid color-mix(in srgb, var(--expense-active-strong) 10%, var(--expense-border));
-    border-radius: 8px;
-    color: var(--expense-active-strong);
-    display: inline-flex;
-    grid-row: span 2;
-    height: 46px;
-    justify-content: center;
-    width: 46px;
-}
-
-.category-spending-page__summary-card>span:not(.category-spending-page__summary-icon) {
-    color: var(--expense-muted);
-    font-size: 12px;
-    font-weight: 700;
-    grid-column: 2;
-    line-height: 1.2;
-}
-
-.category-spending-page__summary-card strong {
-    color: var(--expense-heading);
-    font-size: 18px;
-    grid-column: 2;
-    line-height: 1.2;
-    overflow-wrap: anywhere;
-}
-
-.category-spending-page__summary-card--expense .category-spending-page__summary-icon,
-.category-spending-page__summary-card--expense strong,
-.category-spending-page__summary-card--danger .category-spending-page__summary-icon,
-.category-spending-page__summary-card--danger strong {
-    color: #dc1717;
-}
-
-.category-spending-page__summary-card--expense .category-spending-page__summary-icon,
-.category-spending-page__summary-card--danger .category-spending-page__summary-icon {
-    background: #fff0ee;
-    border-color: #f5d9d4;
-}
-
 .category-spending-page__notice,
 .category-spending-page__empty {
     color: var(--expense-muted);
@@ -265,8 +205,8 @@
 }
 
 .category-spending-page__chart .category-spending-card__chart {
-    max-width: 280px;
-    width: min(38vw, 280px);
+    max-width: 340px;
+    width: min(34vw, 340px);
 }
 
 .category-spending-page__chart-overview {
@@ -280,7 +220,7 @@
 
 .category-spending-page__chart .category-spending-page__chart-overview .category-spending-card__chart {
     justify-self: center;
-    width: min(26vw, 260px);
+    width: min(30vw, 320px);
 }
 
 .category-spending-page__chart .category-spending-card__chart-center small {
@@ -999,25 +939,6 @@
         padding-left: 10px;
     }
 
-    .category-spending-page__summary {
-        gap: 10px;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .category-spending-page__summary-card {
-        gap: 7px 10px;
-        padding: 12px;
-    }
-
-    .category-spending-page__summary-icon {
-        height: 36px;
-        width: 36px;
-    }
-
-    .category-spending-page__summary-card strong {
-        font-size: 15px;
-    }
-
     .category-spending-page__workspace,
     .category-spending-page__analysis {
         display: grid;
@@ -1238,10 +1159,6 @@
 }
 
 @media (max-width: 1180px) and (min-width: 901px) {
-    .category-spending-page__summary {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
     .category-spending-page__workspace {
         grid-template-columns: 1fr;
     }

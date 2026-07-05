@@ -17,8 +17,8 @@ import {
 import ExpenseSidebar from "../components/layout/ExpenseSidebar";
 import AmountText from "../components/shared/AmountText";
 import ExpenseEmoji from "../components/shared/ExpenseEmoji";
+import SummaryCardList from "../components/shared/SummaryCardList";
 import WebAddTransactionPanel from "../components/web/WebAddTransactionPanel";
-import { formatCurrency } from "../utils/formatCurrency";
 import { getTransactionWalletLabel } from "../utils/transactionDisplayUtils";
 
 const pageSizeOptions = [10, 15, 20];
@@ -226,21 +226,22 @@ function TransactionSummary({ transactions }) {
         { count: 0, expense: 0, income: 0, transfer: 0 },
     );
 
+    const summaryItems = transactionSummaryCards.map(({ icon, id, label, tone, valueKey }) => ({
+        icon,
+        id,
+        label,
+        tone,
+        value: summary[valueKey],
+        valueType: valueKey === "count" ? "text" : "currency",
+    }));
+
     return (
-        <section className="transactions-page__summary" aria-label="Tóm tắt giao dịch">
-            {transactionSummaryCards.map(({ icon: Icon, id, label, tone, valueKey }) => (
-                <article
-                    className={`transactions-page__summary-card transactions-page__summary-card--${tone}`}
-                    key={id}
-                >
-                    <span className="transactions-page__summary-icon" aria-hidden="true">
-                        <Icon size={22} />
-                    </span>
-                    <span>{label}</span>
-                    <strong>{valueKey === "count" ? summary.count : formatCurrency(summary[valueKey])}</strong>
-                </article>
-            ))}
-        </section>
+        <SummaryCardList
+            ariaLabel="Tóm tắt giao dịch"
+            cardVariant="compact"
+            className="transactions-page__summary"
+            items={summaryItems}
+        />
     );
 }
 

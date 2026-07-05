@@ -92,68 +92,6 @@
     font-size: 13px;
 }
 
-.transactions-page__summary {
-    display: grid;
-    gap: 14px;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.transactions-page__summary article {
-    background: var(--expense-surface);
-    border: 1px solid var(--expense-border);
-    border-radius: 8px;
-    box-shadow: 0 10px 26px color-mix(in srgb, var(--expense-shadow) 70%, transparent);
-    align-items: center;
-    display: grid;
-    gap: 8px 14px;
-    grid-template-columns: auto minmax(0, 1fr);
-    min-width: 0;
-    padding: 16px;
-}
-
-.transactions-page__summary article>span:not(.transactions-page__summary-icon) {
-    color: var(--expense-muted);
-    font-size: 12px;
-    font-weight: 700;
-    grid-column: 2;
-}
-
-.transactions-page__summary-icon {
-    align-items: center;
-    background: color-mix(in srgb, var(--expense-active-soft) 68%, var(--expense-surface-solid));
-    border: 1px solid color-mix(in srgb, var(--expense-active-strong) 10%, var(--expense-border));
-    border-radius: 8px;
-    color: var(--expense-active-strong);
-    display: inline-flex;
-    grid-row: span 2;
-    height: 46px;
-    justify-content: center;
-    width: 46px;
-}
-
-.transactions-page__summary strong {
-    color: var(--expense-heading);
-    font-size: 18px;
-    grid-column: 2;
-    line-height: 1.2;
-    overflow-wrap: anywhere;
-}
-
-.transactions-page__summary-card--expense .transactions-page__summary-icon,
-.transactions-page__summary-card--expense strong {
-    color: #dc1717;
-}
-
-.transactions-page__summary-card--expense .transactions-page__summary-icon {
-    background: #fff0ee;
-    border-color: #f5d9d4;
-}
-
-.transactions-page__summary-card--income .transactions-page__summary-icon,
-.transactions-page__summary-card--transfer .transactions-page__summary-icon {
-    color: color-mix(in srgb, var(--expense-active-strong) 86%, #22351f);
-}
-
 .transactions-page__toolbar {
     align-items: center;
     display: grid;
@@ -658,35 +596,6 @@
     .transactions-page__hero button span {
         display: block;
         font-size: 14px;
-        font-weight: 800;
-    }
-
-    .transactions-page__summary {
-        gap: 10px;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    .transactions-page__summary article {
-        border-radius: 12px;
-        gap: 6px 10px;
-        min-height: 78px;
-        padding: 12px;
-    }
-
-    .transactions-page__summary-icon {
-        height: 36px;
-        width: 36px;
-    }
-
-    .transactions-page__summary article>span:not(.transactions-page__summary-icon) {
-        color: var(--expense-heading);
-        font-size: 13px;
-        font-weight: 700;
-        line-height: 1.2;
-    }
-
-    .transactions-page__summary strong {
-        font-size: 16px;
         font-weight: 800;
     }
 

@@ -12,10 +12,10 @@ export const expenseNavItems = [
         path: "/expenses/transactions",
     },
     {
-        id: "budgets",
-        label: "Ngân sách",
-        icon: "income",
-        path: "/expenses/budgets",
+        id: "categories",
+        label: "Chi tiêu",
+        icon: "category",
+        path: "/expenses/category-spending",
     },
     {
         id: "report",
@@ -24,10 +24,10 @@ export const expenseNavItems = [
         path: "/expenses/report",
     },
     {
-        id: "categories",
-        label: "Chi tiêu",
-        icon: "category",
-        path: "/expenses/category-spending",
+        id: "budgets",
+        label: "Ngân sách",
+        icon: "income",
+        path: "/expenses/budgets",
     },
     {
         id: "wallets",
