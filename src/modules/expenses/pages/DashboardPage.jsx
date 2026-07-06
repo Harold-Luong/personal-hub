@@ -8,6 +8,7 @@ import WebBudgetPanel from "../components/web/WebBudgetPanel";
 import AddTransactionPage from "./AddTransactionPage";
 import BudgetPage from "./BudgetPage";
 import CategorySpendingPage from "./CategorySpendingPage";
+import ReportPage from "./ReportPage";
 import SettingsPage from "./SettingsPage";
 import TransactionsPage from "./TransactionsPage";
 import WalletPage from "./WalletPage";
@@ -32,15 +33,13 @@ function sortWallets(firstWallet, secondWallet) {
         return firstWallet.isDefault ? -1 : 1;
     }
 
-    return (
-        (firstWallet.order ?? Number.MAX_SAFE_INTEGER) -
-        (secondWallet.order ?? Number.MAX_SAFE_INTEGER)
-    );
+    return (firstWallet.order ?? Number.MAX_SAFE_INTEGER) - (secondWallet.order ?? Number.MAX_SAFE_INTEGER);
 }
 
 const expenseRoutePaths = {
     categories: "/expenses/category-spending",
     dashboard: "/expenses/dashboard",
+    report: "/expenses/report",
     transactions: "/expenses/transactions",
 };
 
@@ -370,12 +369,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             return;
         }
 
-        if (
-            pageId === "add" ||
-            pageId === "budget" ||
-            pageId === "wallets" ||
-            pageId === "settings"
-        ) {
+        if (pageId === "add" || pageId === "budget" || pageId === "wallets" || pageId === "settings") {
             showMobilePage(pageId);
         }
     };
@@ -421,7 +415,9 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         const { createExpenseTransaction } = await import("../api/transactionsRepository");
         const result = await createExpenseTransaction(user.uid, transaction);
 
-        setTransactions((currentTransactions) => sortTransactionList([result.transaction, ...currentTransactions]).slice(0, 10));
+        setTransactions((currentTransactions) =>
+            sortTransactionList([result.transaction, ...currentTransactions]).slice(0, 10),
+        );
         applyWalletBalanceUpdates(result.walletBalanceUpdates);
         if (result.monthlyStats?.monthKey === currentMonthKey) {
             setMonthlyStats(result.monthlyStats);
@@ -593,8 +589,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 .filter((currentWallet) => currentWallet.id !== result.id)
                 .map((currentWallet) => ({
                     ...currentWallet,
-                    isDefault:
-                        currentWallet.id === result.replacementDefaultWalletId ? true : currentWallet.isDefault,
+                    isDefault: currentWallet.id === result.replacementDefaultWalletId ? true : currentWallet.isDefault,
                 }))
                 .sort(sortWallets),
         );
@@ -634,6 +629,18 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                     mode="mobile"
                     onManageBudget={openBudgetPanel}
                     user={user}
+                />
+            );
+        }
+
+        if (activeMobilePage === "report") {
+            return (
+                <ReportPage
+                    categories={categories}
+                    mode="mobile"
+                    onNavigate={handleMobileNavigate}
+                    user={user}
+                    wallets={wallets}
                 />
             );
         }
@@ -732,13 +739,31 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             );
         }
 
+        if (activeDesktopPage === "report") {
+            return (
+                <ReportPage
+                    categories={categories}
+                    mode="desktop"
+                    navItems={expenseNavItems}
+                    onNavigate={handleDesktopNavigate}
+                    user={user}
+                    wallets={wallets}
+                />
+            );
+        }
+
         return (
             <WebDashboardView
+                user={user}
                 budgets={budgets}
                 categories={categories}
                 categorySpending={categorySpending}
                 monthLabel={currentMonthLabel}
                 navItems={expenseNavItems}
+                transactions={transactions}
+                wallets={wallets}
+                summary={summary}
+                theme={settings.theme}
                 onAddTransaction={handleAddTransaction}
                 onDeleteWallet={handleDeleteWallet}
                 onLogout={handleLogout}
@@ -749,11 +774,6 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 onToggleTheme={handleToggleTheme}
                 onViewCategorySpending={() => navigateExpenseRoute("categories")}
                 onViewTransactions={() => navigateExpenseRoute("transactions")}
-                summary={summary}
-                theme={settings.theme}
-                transactions={transactions}
-                user={user}
-                wallets={wallets}
             />
         );
     };

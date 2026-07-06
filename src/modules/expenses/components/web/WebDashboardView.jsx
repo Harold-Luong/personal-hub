@@ -2,7 +2,7 @@ import { useState } from "react";
 import BudgetOverviewCard from "../dashboard/BudgetOverviewCard";
 import CategorySpendingCard from "../dashboard/CategorySpendingCard";
 import RecentTransactionsCard from "../dashboard/RecentTransactionsCard";
-import SummaryCardList from "../dashboard/SummaryCardList";
+import SummaryCardList from "../shared/SummaryCardList";
 import WalletCard from "../dashboard/WalletCard";
 import ExpenseHeader from "../layout/ExpenseHeader";
 import ExpenseSidebar from "../layout/ExpenseSidebar";
@@ -92,11 +92,11 @@ export default function WebDashboardView({
                 <div className="web-dashboard-view__grid">
                     <CategorySpendingCard
                         categories={categorySpending}
-                        limit={5}
+                        limit={10}
                         monthLabel={monthLabel}
                         onViewAll={onViewCategorySpending}
                     />
-                    <RecentTransactionsCard limit={10} onViewAll={onViewTransactions} transactions={transactions} />
+                    <RecentTransactionsCard limit={8} onViewAll={onViewTransactions} transactions={transactions} />
                     <BudgetOverviewCard
                         budgets={budgets}
                         monthLabel={monthLabel}

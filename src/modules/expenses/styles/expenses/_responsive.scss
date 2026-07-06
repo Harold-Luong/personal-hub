@@ -11,6 +11,7 @@
     .mobile-transactions-view,
     .mobile-add-transaction-view,
     .mobile-budget-page,
+    .mobile-report-page,
     .mobile-wallet-page,
     .mobile-settings-view {
         margin: 0 auto;
@@ -33,7 +34,7 @@
     }
 
     .category-spending-card--mobile .category-spending-card__chart {
-        width: 136px;
+        width: min(68vw, 184px);
     }
 
     .category-spending-card--mobile .hidden-items {
