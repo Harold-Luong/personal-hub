@@ -13,12 +13,15 @@ import {
     where,
 } from "firebase/firestore";
 import { firestore } from "../../../lib/firebase/firestore";
-import { transactionTypeIds as transactionTypes } from "../constant/expensesMetaData";
-
-const defaultTimezone = "Asia/Bangkok";
-const defaultTransactionPageSize = 10;
-const maxTransactionPageSize = 50;
-const maxSearchTokens = 500;
+import {
+    expenseDefaultCurrency,
+    expenseDefaultLocale,
+    expenseDefaultTimezone,
+    expenseMaxSearchTokens,
+    transactionDefaultPageSize,
+    transactionMaxPageSize,
+    transactionTypeIds as transactionTypes,
+} from "../constant/expensesMetaData";
 
 function getTransactionsCollectionRef(uid) {
     if (!uid) {
@@ -141,7 +144,7 @@ function getTransactionSearchTokens({ input }) {
         });
     });
 
-    return [...searchTokens].slice(0, maxSearchTokens);
+    return [...searchTokens].slice(0, expenseMaxSearchTokens);
 }
 
 function toPositiveInteger(value) {
@@ -169,7 +172,7 @@ function getOccurrence(date, time) {
 }
 
 function getTimezone() {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || defaultTimezone;
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || expenseDefaultTimezone;
 }
 
 function getSnapshotData(snapshot, label) {
@@ -209,7 +212,7 @@ function getTransactionTime(data) {
         return "";
     }
 
-    return date.toLocaleTimeString("vi-VN", {
+    return date.toLocaleTimeString(expenseDefaultLocale, {
         hour: "2-digit",
         hour12: false,
         minute: "2-digit",
@@ -274,7 +277,7 @@ function mapTransactionData(id, data) {
         categoryColor: data.categorySnapshot?.color ?? data.walletSnapshot?.color ?? "",
         walletColor: data.walletSnapshot?.color ?? "",
         categoryName: categoryName,
-        currency: data.currency ?? "VND",
+        currency: data.currency ?? expenseDefaultCurrency,
         icon:
             data.categorySnapshot?.icon ??
             data.fromWalletSnapshot?.icon ??
@@ -304,10 +307,10 @@ function getPageSize(pageSize) {
     const size = Number(pageSize);
 
     if (!Number.isSafeInteger(size) || size <= 0) {
-        return defaultTransactionPageSize;
+        return transactionDefaultPageSize;
     }
 
-    return Math.min(size, maxTransactionPageSize);
+    return Math.min(size, transactionMaxPageSize);
 }
 
 function isActiveFilterValue(value) {
@@ -459,7 +462,7 @@ function createTransactionDataFromInput({
             type: input.type,
             adjustmentDirection,
             amountMinor,
-            currency: wallet.currency ?? "VND",
+            currency: wallet.currency ?? expenseDefaultCurrency,
             title,
             titleNormalized: normalizeText(title),
             searchTokens: getTransactionSearchTokens({
@@ -494,7 +497,7 @@ function createTransactionDataFromInput({
         return {
             type: input.type,
             amountMinor,
-            currency: fromWallet.currency ?? "VND",
+            currency: fromWallet.currency ?? expenseDefaultCurrency,
             title,
             titleNormalized: normalizeText(title),
             searchTokens: getTransactionSearchTokens({
@@ -528,7 +531,7 @@ function createTransactionDataFromInput({
     return {
         type: input.type,
         amountMinor,
-        currency: wallet.currency ?? "VND",
+        currency: wallet.currency ?? expenseDefaultCurrency,
         title,
         titleNormalized: normalizeText(title),
         searchTokens: getTransactionSearchTokens({
@@ -561,7 +564,7 @@ export async function getExpenseTransactionsPage(uid, options = {}) {
         cursor = null,
         date = "",
         monthKey = "all",
-        pageSize = defaultTransactionPageSize,
+        pageSize = transactionDefaultPageSize,
         searchTerm = "",
         type = "all",
         walletId = "all",
@@ -667,7 +670,7 @@ export async function createExpenseTransaction(uid, input) {
                 type: input.type,
                 adjustmentDirection,
                 amountMinor,
-                currency: wallet.currency ?? "VND",
+                currency: wallet.currency ?? expenseDefaultCurrency,
                 title,
                 titleNormalized: normalizeText(title),
                 searchTokens: getTransactionSearchTokens({
@@ -732,7 +735,7 @@ export async function createExpenseTransaction(uid, input) {
             transactionData = {
                 type: input.type,
                 amountMinor: amountMinor,
-                currency: fromWallet.currency ?? "VND",
+                currency: fromWallet.currency ?? expenseDefaultCurrency,
                 title: title,
                 titleNormalized: normalizeText(title),
                 searchTokens: getTransactionSearchTokens({ input: input }),
@@ -804,7 +807,7 @@ export async function createExpenseTransaction(uid, input) {
             transactionData = {
                 type: input.type,
                 amountMinor,
-                currency: wallet.currency ?? "VND",
+                currency: wallet.currency ?? expenseDefaultCurrency,
                 title,
                 titleNormalized: normalizeText(title),
                 searchTokens: getTransactionSearchTokens({

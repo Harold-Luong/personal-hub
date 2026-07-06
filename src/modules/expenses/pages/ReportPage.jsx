@@ -11,10 +11,28 @@ import {
     XAxis,
     YAxis,
 } from "recharts";
+import { selectAuthUid, useAuthSessionStore } from "../../../stores/authSessionStore";
+import {
+    selectExpenseBudgetLimitsByMonth,
+    getExpenseMonthOptionsCacheKey,
+    selectExpenseCategories,
+    selectExpenseMonthOptionsByYear,
+    selectExpenseMonthlyStatsByMonth,
+    selectExpenseWallets,
+    useExpenseDataStore,
+} from "../../../stores/expenseDataStore";
 import MobilePageHeader from "../components/mobile/MobilePageHeader";
 import AmountText from "../components/shared/AmountText";
 import ProgressBar from "../components/shared/ProgressBar";
 import SummaryCardList from "../components/shared/SummaryCardList";
+import {
+    reportCategoryComparisonLimit,
+    reportChartSeries,
+    reportComparisonMonthCount,
+    reportSavingsTargetPercentage,
+    reportTopTransactionLimit,
+    reportTrendMonthCount,
+} from "../constant/expensesMetaData";
 import {
     ArrowDownIcon,
     ArrowUpIcon,
@@ -31,13 +49,9 @@ import {
     getCurrentMonthKey,
     getCurrentYear,
     getMonthLabel,
-    getVisibleMonthOptions,
 } from "../utils/monthUtils";
 
-const trendMonthCount = 6;
-const savingsTargetPercentage = 30;
-
-function getTrailingMonthKeys(monthKey, count = trendMonthCount) {
+function getTrailingMonthKeys(monthKey, count = reportTrendMonthCount) {
     const [year, month] = String(monthKey ?? "")
         .split("-")
         .map(Number);
@@ -297,13 +311,6 @@ function getWeekendInsight(transactions) {
     return weekdayAverage > 0 ? Math.round((weekendAverage / weekdayAverage) * 10) / 10 : 0;
 }
 
-const reportChartSeries = {
-    amount: "Chi tiêu",
-    average: "Trung bình chi tiêu",
-    expense: "Chi tiêu",
-    income: "Thu nhập",
-};
-
 function ReportChartTooltip({ active, label, payload }) {
     if (!active || !payload?.length) {
         return null;
@@ -474,11 +481,11 @@ function getCategoryComparisonChartGroups(rows) {
     const decreases = rows
         .filter((row) => row.change < 0)
         .sort((firstRow, secondRow) => secondRow.absoluteChange - firstRow.absoluteChange)
-        .slice(0, 3);
+        .slice(0, reportCategoryComparisonLimit);
     const increases = rows
         .filter((row) => row.change > 0)
         .sort((firstRow, secondRow) => secondRow.absoluteChange - firstRow.absoluteChange)
-        .slice(0, 3);
+        .slice(0, reportCategoryComparisonLimit);
 
     return { decreases, increases };
 }
@@ -600,36 +607,56 @@ function ReportHeatmap({ days }) {
 }
 
 function ReportWorkspace({
-    categories = [],
+    categories: controlledCategories,
     mode = "mobile",
     monthOptions: controlledMonthOptions,
-    onMonthOptionsChange,
     onNavigate,
     onSelectedMonthChange,
     selectedMonth: controlledSelectedMonth,
-    user,
-    wallets = [],
+    wallets: controlledWallets,
 }) {
+    const uid = useAuthSessionStore(selectAuthUid);
+    const storeCategories = useExpenseDataStore(selectExpenseCategories);
+    const storeWallets = useExpenseDataStore(selectExpenseWallets);
+    const budgetLimitsByMonth = useExpenseDataStore(selectExpenseBudgetLimitsByMonth);
+    const monthlyStatsByMonth = useExpenseDataStore(selectExpenseMonthlyStatsByMonth);
+    const monthOptionsByYear = useExpenseDataStore(selectExpenseMonthOptionsByYear);
+    const loadExpenseBudgets = useExpenseDataStore((state) => state.loadExpenseBudgets);
+    const loadExpenseMonthlyStats = useExpenseDataStore((state) => state.loadExpenseMonthlyStats);
+    const loadExpenseMonthOptions = useExpenseDataStore((state) => state.loadExpenseMonthOptions);
     const currentMonthKey = getCurrentMonthKey();
+    const currentYear = getCurrentYear();
+    const monthOptionsCacheKey = getExpenseMonthOptionsCacheKey(uid, currentYear);
+    const categories = controlledCategories ?? storeCategories;
+    const wallets = controlledWallets ?? storeWallets;
     const isDesktopMode = mode === "desktop";
     const isMobileMode = mode === "mobile";
     const isMonthOptionsControlled = Array.isArray(controlledMonthOptions);
     const isSelectedMonthControlled = controlledSelectedMonth !== undefined;
     const [internalSelectedMonth, setInternalSelectedMonth] = useState(currentMonthKey);
-    const [internalMonthOptions, setInternalMonthOptions] = useState(() => [currentMonthKey]);
-    const [monthlyStats, setMonthlyStats] = useState(() => getEmptyMonthlyStats(currentMonthKey));
-    const [previousMonthlyStats, setPreviousMonthlyStats] = useState(() =>
-        getEmptyMonthlyStats(getPreviousMonthKey(currentMonthKey)),
-    );
-    const [trendStats, setTrendStats] = useState(() =>
-        getTrailingMonthKeys(currentMonthKey).map((monthKey) => getEmptyMonthlyStats(monthKey)),
-    );
-    const [budgets, setBudgets] = useState([]);
     const [transactions, setTransactions] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [loadError, setLoadError] = useState("");
     const selectedMonth = isSelectedMonthControlled ? controlledSelectedMonth : internalSelectedMonth;
-    const monthOptions = isMonthOptionsControlled ? controlledMonthOptions : internalMonthOptions;
+    const previousMonthKey = getPreviousMonthKey(selectedMonth);
+    const trendMonthKeys = useMemo(() => getTrailingMonthKeys(selectedMonth), [selectedMonth]);
+    const monthlyStats = monthlyStatsByMonth[selectedMonth] ?? getEmptyMonthlyStats(selectedMonth);
+    const previousMonthlyStats = monthlyStatsByMonth[previousMonthKey] ?? getEmptyMonthlyStats(previousMonthKey);
+    const trendStats = useMemo(
+        () => trendMonthKeys.map((monthKey) => monthlyStatsByMonth[monthKey] ?? getEmptyMonthlyStats(monthKey)),
+        [monthlyStatsByMonth, trendMonthKeys],
+    );
+    const budgets = useMemo(
+        () => budgetLimitsByMonth[selectedMonth] ?? [],
+        [budgetLimitsByMonth, selectedMonth],
+    );
+    const monthOptions = useMemo(
+        () =>
+            isMonthOptionsControlled
+                ? controlledMonthOptions
+                : (monthOptionsByYear[monthOptionsCacheKey] ?? [currentMonthKey]),
+        [controlledMonthOptions, currentMonthKey, isMonthOptionsControlled, monthOptionsByYear, monthOptionsCacheKey],
+    );
     const setSelectedMonth = useCallback(
         (nextMonth) => {
             if (!isSelectedMonthControlled) {
@@ -640,49 +667,13 @@ function ReportWorkspace({
         },
         [isSelectedMonthControlled, onSelectedMonthChange],
     );
-    const setMonthOptions = useCallback(
-        (nextMonthOptions) => {
-            if (!isMonthOptionsControlled) {
-                setInternalMonthOptions(nextMonthOptions);
-            }
 
-            onMonthOptionsChange?.(nextMonthOptions);
-        },
-        [isMonthOptionsControlled, onMonthOptionsChange],
-    );
+    useEffect(() => {
+        loadExpenseMonthOptions(uid, currentYear, currentMonthKey);
+    }, [currentMonthKey, currentYear, loadExpenseMonthOptions, uid]);
 
     useEffect(() => {
         let isCancelled = false;
-        const currentYear = getCurrentYear();
-
-        if (!user?.uid) {
-            return () => {
-                isCancelled = true;
-            };
-        }
-
-        import("../api/monthlyStatsRepository")
-            .then(({ getExpenseMonthlyStatsMonths }) => getExpenseMonthlyStatsMonths(user.uid, currentYear))
-            .then((monthKeys) => {
-                if (!isCancelled) {
-                    setMonthOptions(getVisibleMonthOptions(monthKeys, currentMonthKey));
-                }
-            })
-            .catch(() => {
-                if (!isCancelled) {
-                    setMonthOptions([currentMonthKey]);
-                }
-            });
-
-        return () => {
-            isCancelled = true;
-        };
-    }, [currentMonthKey, setMonthOptions, user?.uid]);
-
-    useEffect(() => {
-        let isCancelled = false;
-        const previousMonthKey = getPreviousMonthKey(selectedMonth);
-        const trendMonthKeys = getTrailingMonthKeys(selectedMonth);
 
         Promise.resolve().then(() => {
             if (!isCancelled) {
@@ -691,13 +682,9 @@ function ReportWorkspace({
             }
         });
 
-        if (!user?.uid) {
+        if (!uid) {
             Promise.resolve().then(() => {
                 if (!isCancelled) {
-                    setMonthlyStats(getEmptyMonthlyStats(selectedMonth));
-                    setPreviousMonthlyStats(getEmptyMonthlyStats(previousMonthKey));
-                    setTrendStats(trendMonthKeys.map((monthKey) => getEmptyMonthlyStats(monthKey)));
-                    setBudgets([]);
                     setTransactions([]);
                     setIsLoading(false);
                 }
@@ -708,39 +695,27 @@ function ReportWorkspace({
             };
         }
 
-        Promise.all([
-            import("../api/monthlyStatsRepository"),
-            import("../api/budgetsRepository"),
-            import("../api/transactionsRepository"),
-        ])
-            .then(([{ getExpenseMonthlyStats }, { getExpenseBudgets }, { getExpenseTransactionsPage }]) =>
+        import("../api/transactionsRepository")
+            .then(({ getExpenseTransactionsPage }) =>
                 Promise.all([
-                    getExpenseMonthlyStats(user.uid, selectedMonth),
-                    getExpenseMonthlyStats(user.uid, previousMonthKey),
-                    Promise.all(trendMonthKeys.map((monthKey) => getExpenseMonthlyStats(user.uid, monthKey))),
-                    getExpenseBudgets(user.uid, selectedMonth),
-                    getExpenseTransactionsPage(user.uid, {
+                    loadExpenseMonthlyStats(uid, selectedMonth),
+                    loadExpenseMonthlyStats(uid, previousMonthKey),
+                    Promise.all(trendMonthKeys.map((monthKey) => loadExpenseMonthlyStats(uid, monthKey))),
+                    loadExpenseBudgets(uid, selectedMonth),
+                    getExpenseTransactionsPage(uid, {
                         monthKey: selectedMonth,
                         pageSize: 50,
                         type: "expense",
                     }),
                 ]),
             )
-            .then(([nextMonthlyStats, nextPreviousMonthlyStats, nextTrendStats, nextBudgets, nextTransactionsPage]) => {
+            .then(([, , , , nextTransactionsPage]) => {
                 if (!isCancelled) {
-                    setMonthlyStats(nextMonthlyStats);
-                    setPreviousMonthlyStats(nextPreviousMonthlyStats);
-                    setTrendStats(nextTrendStats);
-                    setBudgets(nextBudgets);
                     setTransactions(nextTransactionsPage.transactions);
                 }
             })
             .catch(() => {
                 if (!isCancelled) {
-                    setMonthlyStats(getEmptyMonthlyStats(selectedMonth));
-                    setPreviousMonthlyStats(getEmptyMonthlyStats(previousMonthKey));
-                    setTrendStats(trendMonthKeys.map((monthKey) => getEmptyMonthlyStats(monthKey)));
-                    setBudgets([]);
                     setTransactions([]);
                     setLoadError("Không thể tải báo cáo. Vui lòng thử lại.");
                 }
@@ -754,12 +729,11 @@ function ReportWorkspace({
         return () => {
             isCancelled = true;
         };
-    }, [selectedMonth, user?.uid]);
+    }, [loadExpenseBudgets, loadExpenseMonthlyStats, previousMonthKey, selectedMonth, trendMonthKeys, uid]);
 
     const income = monthlyStats.incomeMinor ?? 0;
     const expense = monthlyStats.expenseMinor ?? 0;
     const net = monthlyStats.netMinor ?? income - expense;
-    const previousMonthKey = getPreviousMonthKey(selectedMonth);
     const previousIncome = previousMonthlyStats.incomeMinor ?? 0;
     const previousExpense = previousMonthlyStats.expenseMinor ?? 0;
     const previousNet = previousMonthlyStats.netMinor ?? previousIncome - previousExpense;
@@ -787,7 +761,10 @@ function ReportWorkspace({
     const weeklyRows = useMemo(() => getWeeklyExpenseRows(selectedMonth, transactions), [selectedMonth, transactions]);
     const walletRows = useMemo(() => getWalletRows(transactions, wallets), [transactions, wallets]);
     const topTransactions = useMemo(
-        () => [...transactions].sort((first, second) => Math.abs(second.amount) - Math.abs(first.amount)).slice(0, 5),
+        () =>
+            [...transactions]
+                .sort((first, second) => Math.abs(second.amount) - Math.abs(first.amount))
+                .slice(0, reportTopTransactionLimit),
         [transactions],
     );
     const lineMonths = trendStats.map((stat) => {
@@ -803,7 +780,7 @@ function ReportWorkspace({
             savingRate: statIncome > 0 ? getPercent(stat.netMinor ?? statIncome - statExpense, statIncome) : 0,
         };
     });
-    const comparisonRows = lineMonths.slice(-5).reverse();
+    const comparisonRows = lineMonths.slice(-reportComparisonMonthCount).reverse();
     const expenseTrend = calculateTrend(expense, previousExpense);
     const incomeTrend = calculateTrend(income, previousIncome);
     const netTrend = calculateTrend(net, previousNet);
@@ -857,7 +834,7 @@ function ReportWorkspace({
     const elapsedDays = Math.max(getElapsedMonthDays(selectedMonth), 1);
     const projectedExpense = Math.round((expense / elapsedDays) * monthDayCount);
     const projectedSavingRate = income > 0 ? Math.round(((income - projectedExpense) / income) * 1000) / 10 : 0;
-    const targetSavingAmount = Math.round((income * savingsTargetPercentage) / 100);
+    const targetSavingAmount = Math.round((income * reportSavingsTargetPercentage) / 100);
     const additionalSavingNeeded = Math.max(projectedExpense + targetSavingAmount - income, 0);
     const highestDailyAmount = Math.max(...dailyRows.map((day) => day.amount), 0);
     const topTransaction = topTransactions[0];
@@ -1164,7 +1141,7 @@ function ReportWorkspace({
                                     <AmountText amount={additionalSavingNeeded} />
                                 </strong>
                             </div>
-                            <b>để đạt mục tiêu {savingsTargetPercentage}%</b>
+                            <b>để đạt mục tiêu {reportSavingsTargetPercentage}%</b>
                         </div>
                     </div>
                     <button className="report-panel__link" type="button">

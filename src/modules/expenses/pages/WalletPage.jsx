@@ -3,16 +3,8 @@ import AmountText from "../components/shared/AmountText";
 import MobilePageHeader from "../components/mobile/MobilePageHeader";
 import ExpenseIcon from "../components/shared/ExpenseEmoji";
 import WalletForm from "../components/wallet/WalletForm";
+import { walletTypeLabels } from "../constant/expensesMetaData";
 import { XIcon } from "../icon/ExpenseIcons";
-
-const walletTypeLabels = {
-    bank: "Ngân hàng",
-    card: "Thẻ tín dụng",
-    cash: "Tiền mặt",
-    eWallet: "Ví điện tử",
-    saving: "Tiết kiệm",
-    other: "Khác",
-};
 
 export default function WalletPage({ onBack, onDeleteWallet, onSaveWallet, wallets = [] }) {
     const [selectedWalletId, setSelectedWalletId] = useState("");

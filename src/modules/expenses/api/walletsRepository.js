@@ -12,18 +12,17 @@ import {
     writeBatch,
 } from "firebase/firestore";
 import { firestore } from "../../../lib/firebase/firestore";
+import {
+    expenseCurrencyLabels,
+    expenseDefaultCurrency,
+    expenseDefaultTimezone,
+    expenseDefaultWalletTypeId,
+    expenseDefaultWalletTypeMeta,
+    expenseMaxSearchTokens,
+    walletTypeIds,
+    walletTypeMeta,
+} from "../constant/expensesMetaData";
 
-const walletTypes = ['cash', 'bank', 'eWallet', 'card', 'saving', 'other']
-const walletCurrencies = ['VND', 'USD']
-const maxSearchTokens = 500
-const walletTypeMeta = {
-    bank: { color: '#4f93d7', icon: 'bank' },
-    card: { color: '#9b7bd8', icon: 'card' },
-    cash: { color: '#56b879', icon: 'wallet' },
-    eWallet: { color: '#d77fa1', icon: 'momo' },
-    other: { color: '#b8bec8', icon: 'more' },
-    saving: { color: '#d9a441', icon: 'saving' },
-}
 
 function getWalletsCollectionRef(uid) {
     if (!uid) {
@@ -94,11 +93,11 @@ function mapWallet(documentSnapshot) {
         id: documentSnapshot.id,
         name: data.name,
         type: data.type,
-        icon: data.icon ?? "wallet",
-        color: data.color ?? "#56b879",
+        icon: data.icon ?? expenseDefaultWalletTypeMeta.icon,
+        color: data.color ?? expenseDefaultWalletTypeMeta.color,
         balance: data.balance ?? data.currentBalance ?? 0,
         initialBalance: data.initialBalance ?? 0,
-        currency: data.currency ?? "VND",
+        currency: data.currency ?? expenseDefaultCurrency,
         order: data.order ?? data.sortOrder ?? Number.MAX_SAFE_INTEGER,
         isDefault: data.isDefault ?? false,
         isArchived: data.isArchived ?? false,
@@ -128,9 +127,9 @@ function normalizeInteger(value, label) {
 }
 
 function normalizeWalletType(value) {
-    const type = String(value ?? 'cash').trim()
+    const type = String(value ?? expenseDefaultWalletTypeId).trim()
 
-    if (!walletTypes.includes(type)) {
+    if (!walletTypeIds.includes(type)) {
         throw new Error(`Unsupported wallet type: ${type}.`)
     }
 
@@ -138,9 +137,9 @@ function normalizeWalletType(value) {
 }
 
 function normalizeCurrency(value) {
-    const currency = String(value ?? 'VND').trim().toUpperCase()
+    const currency = String(value ?? expenseDefaultCurrency).trim().toUpperCase()
 
-    if (!walletCurrencies.includes(currency)) {
+    if (!expenseCurrencyLabels.includes(currency)) {
         throw new Error(`Unsupported wallet currency: ${currency}.`)
     }
 
@@ -195,7 +194,7 @@ function getTransactionSearchTokens({ title, note }) {
         })
     })
 
-    return [...searchTokens].slice(0, maxSearchTokens)
+    return [...searchTokens].slice(0, expenseMaxSearchTokens)
 }
 
 function getLocalDateTimeParts(date = new Date()) {
@@ -213,14 +212,14 @@ function getLocalDateTimeParts(date = new Date()) {
 }
 
 function getTimezone() {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Bangkok"
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || expenseDefaultTimezone
 }
 
 function getWalletSnapshot(wallet) {
     return {
         name: wallet.name,
-        icon: wallet.icon ?? "wallet",
-        color: wallet.color ?? "#56b879",
+        icon: wallet.icon ?? expenseDefaultWalletTypeMeta.icon,
+        color: wallet.color ?? expenseDefaultWalletTypeMeta.color,
     }
 }
 
@@ -239,11 +238,11 @@ function mapAdjustmentTransaction(id, data) {
         categoryColor: data.walletSnapshot?.color ?? "",
         categoryId: null,
         categoryName: "Điều chỉnh số dư",
-        currency: data.currency ?? "VND",
+        currency: data.currency ?? expenseDefaultCurrency,
         date: data.localDate,
         fromWalletId: null,
         fromWalletName: "",
-        icon: data.walletSnapshot?.icon ?? "wallet",
+        icon: data.walletSnapshot?.icon ?? expenseDefaultWalletTypeMeta.icon,
         note: data.note ?? "",
         status: data.status ?? "active",
         subtitle: time,
@@ -252,7 +251,7 @@ function mapAdjustmentTransaction(id, data) {
         toWalletId: null,
         toWalletName: "",
         type: data.type,
-        wallet: data.walletSnapshot?.icon ?? "wallet",
+        wallet: data.walletSnapshot?.icon ?? expenseDefaultWalletTypeMeta.icon,
         walletColor: data.walletSnapshot?.color ?? "",
         walletId: data.walletId,
         walletName: data.walletSnapshot?.name ?? "",
@@ -272,7 +271,7 @@ function createBalanceAdjustmentTransactionData({ balanceDelta, currentBalance, 
         categoryId: null,
         categorySnapshot: null,
         createdAt: timestamp,
-        currency: wallet.currency ?? "VND",
+        currency: wallet.currency ?? expenseDefaultCurrency,
         fromWalletId: null,
         fromWalletSnapshot: null,
         localDate,

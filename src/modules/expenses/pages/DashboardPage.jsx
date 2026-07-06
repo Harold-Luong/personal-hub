@@ -1,5 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
+import { selectAuthUid, useAuthSessionStore } from "../../../stores/authSessionStore";
+import {
+    getExpenseMonthOptionsCacheKey,
+    selectExpenseBudgetLimitsByMonth,
+    selectExpenseCategories,
+    selectExpenseMonthOptionsByYear,
+    selectExpenseMonthlyStatsByMonth,
+    selectExpenseRecentTransactions,
+    selectExpenseWallets,
+    useExpenseDataStore,
+} from "../../../stores/expenseDataStore";
+import {
+    selectExpensePreferences,
+    useExpensePreferencesStore,
+} from "../../../stores/expensePreferencesStore";
 import MobileBudgetFormSheet from "../components/budget/MobileBudgetFormSheet";
 import ExpenseBottomNav from "../components/layout/ExpenseBottomNav";
 import ExpenseHeader from "../components/layout/ExpenseHeader";
@@ -16,45 +31,22 @@ import SettingsPage from "./SettingsPage";
 import TransactionsPage from "./TransactionsPage";
 import WalletPage from "./WalletPage";
 import {
-    expenseCurrencies,
+    expenseMobileOnlyPageIds,
     expenseNavItems,
+    expenseRoutePaths,
     expenseSummaryItems,
-    expenseThemes,
+    expenseThemeIds,
 } from "../constant/expensesMetaData";
 import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { calculateTrend, getEmptyMonthlyStats, getPreviousMonthKey } from "../utils/monthlyStatsUtils";
 import {
     getCompactMonthLabel,
     getCurrentMonthKey,
+    getCurrentYear,
     getMonthLabel,
     getVisibleMonthOptions,
 } from "../utils/monthUtils";
 import "../styles/expenses.scss";
-
-function getInitialSettings(initialSettings) {
-    return {
-        currency: expenseCurrencies.includes(initialSettings?.currency) ? initialSettings.currency : "VND",
-        hideBalance: typeof initialSettings?.hideBalance === "boolean" ? initialSettings.hideBalance : false,
-        notificationsEnabled:
-            typeof initialSettings?.notificationsEnabled === "boolean" ? initialSettings.notificationsEnabled : true,
-        theme: expenseThemes.includes(initialSettings?.theme) ? initialSettings.theme : expenseThemes[0],
-    };
-}
-
-function sortWallets(firstWallet, secondWallet) {
-    if (firstWallet.isDefault !== secondWallet.isDefault) {
-        return firstWallet.isDefault ? -1 : 1;
-    }
-
-    return (firstWallet.order ?? Number.MAX_SAFE_INTEGER) - (secondWallet.order ?? Number.MAX_SAFE_INTEGER);
-}
-
-const expenseRoutePaths = {
-    categories: "/expenses/category-spending",
-    dashboard: "/expenses/dashboard",
-    report: "/expenses/report",
-    transactions: "/expenses/transactions",
-};
 
 function getIsMobileViewport() {
     return typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches;
@@ -78,37 +70,41 @@ const desktopMainClasses = {
     transactions: "web-transactions-view__main",
 };
 
-export default function DashboardPage({ initialSettings, onLogout, user }) {
+export default function DashboardPage({ initialSettings, onLogout }) {
     const location = useLocation();
     const navigate = useNavigate();
+    const uid = useAuthSessionStore(selectAuthUid);
+    const settings = useExpensePreferencesStore(selectExpensePreferences);
+    const initializeExpensePreferences = useExpensePreferencesStore((state) => state.initializeExpensePreferences);
+    const saveExpensePreference = useExpensePreferencesStore((state) => state.saveExpensePreference);
+    const waitForExpensePreferenceWrites = useExpensePreferencesStore((state) => state.waitForExpensePreferenceWrites);
+    const categories = useExpenseDataStore(selectExpenseCategories);
+    const wallets = useExpenseDataStore(selectExpenseWallets);
+    const transactions = useExpenseDataStore(selectExpenseRecentTransactions);
+    const budgetLimitsByMonth = useExpenseDataStore(selectExpenseBudgetLimitsByMonth);
+    const monthlyStatsByMonth = useExpenseDataStore(selectExpenseMonthlyStatsByMonth);
+    const monthOptionsByYear = useExpenseDataStore(selectExpenseMonthOptionsByYear);
+    const loadExpenseDashboardData = useExpenseDataStore((state) => state.loadExpenseDashboardData);
+    const loadExpenseMonthOptions = useExpenseDataStore((state) => state.loadExpenseMonthOptions);
+    const createExpenseTransactionAction = useExpenseDataStore((state) => state.createExpenseTransaction);
+    const upsertExpenseBudgetAction = useExpenseDataStore((state) => state.upsertExpenseBudget);
+    const deleteExpenseBudgetAction = useExpenseDataStore((state) => state.deleteExpenseBudget);
+    const upsertExpenseWalletAction = useExpenseDataStore((state) => state.upsertExpenseWallet);
+    const deleteExpenseWalletAction = useExpenseDataStore((state) => state.deleteExpenseWallet);
     const routePage = getExpenseRoutePage(location.pathname);
     const [mobilePageOverride, setMobilePageOverride] = useState(null);
     const activeMobilePage =
         mobilePageOverride?.routePath === location.pathname ? mobilePageOverride.pageId : routePage;
     const activeDesktopPage = routePage;
     const [areThemeTransitionsEnabled, setAreThemeTransitionsEnabled] = useState(false);
-    const [settings, setSettings] = useState(() => getInitialSettings(initialSettings));
-    const [settingsError, setSettingsError] = useState("");
-    const confirmedSettingsRef = useRef(settings);
-    const settingRevisionsRef = useRef({});
-    const settingsRef = useRef(settings);
-    const settingsWriteQueueRef = useRef(Promise.resolve());
-    const [categories, setCategories] = useState([]);
-    const [monthlyStats, setMonthlyStats] = useState(() => getEmptyMonthlyStats(getCurrentMonthKey()));
-    const [previousMonthlyStats, setPreviousMonthlyStats] = useState(() =>
-        getEmptyMonthlyStats(getPreviousMonthKey(getCurrentMonthKey())),
-    );
     const currentMonthKey = getCurrentMonthKey();
     const previousMonthKey = getPreviousMonthKey(currentMonthKey);
     const currentMonthLabel = getCompactMonthLabel(currentMonthKey);
+    const currentYear = getCurrentYear();
+    const monthOptionsCacheKey = getExpenseMonthOptionsCacheKey(uid, currentYear);
     const [categoryMonth, setCategoryMonth] = useState(currentMonthKey);
-    const [categoryMonthOptions, setCategoryMonthOptions] = useState(() => [currentMonthKey]);
     const [categorySortKey, setCategorySortKey] = useState("amount");
     const [reportMonth, setReportMonth] = useState(currentMonthKey);
-    const [reportMonthOptions, setReportMonthOptions] = useState(() => [currentMonthKey]);
-    const [wallets, setWallets] = useState([]);
-    const [transactions, setTransactions] = useState([]);
-    const [budgetLimits, setBudgetLimits] = useState([]);
     const [isBudgetPanelOpen, setIsBudgetPanelOpen] = useState(false);
     const [budgetPanelCategoryId, setBudgetPanelCategoryId] = useState("");
     const [budgetPanelMonthKey, setBudgetPanelMonthKey] = useState(currentMonthKey);
@@ -116,13 +112,20 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     const [isDesktopAddTransactionOpen, setIsDesktopAddTransactionOpen] = useState(false);
     const [isMobileViewport, setIsMobileViewport] = useState(getIsMobileViewport);
     const budgetPanelCallbacksRef = useRef({});
+    const monthlyStats = monthlyStatsByMonth[currentMonthKey] ?? getEmptyMonthlyStats(currentMonthKey);
+    const previousMonthlyStats = monthlyStatsByMonth[previousMonthKey] ?? getEmptyMonthlyStats(previousMonthKey);
+    const budgetLimits = budgetLimitsByMonth[currentMonthKey] ?? [];
+    const monthOptions = useMemo(
+        () => monthOptionsByYear[monthOptionsCacheKey] ?? [currentMonthKey],
+        [currentMonthKey, monthOptionsByYear, monthOptionsCacheKey],
+    );
     const categoryDisplayedMonthOptions = useMemo(
-        () => getVisibleMonthOptions([...categoryMonthOptions, categoryMonth], currentMonthKey),
-        [categoryMonth, categoryMonthOptions, currentMonthKey],
+        () => getVisibleMonthOptions([...monthOptions, categoryMonth], currentMonthKey),
+        [categoryMonth, currentMonthKey, monthOptions],
     );
     const reportDisplayedMonthOptions = useMemo(
-        () => getVisibleMonthOptions([...reportMonthOptions, reportMonth], currentMonthKey),
-        [currentMonthKey, reportMonth, reportMonthOptions],
+        () => getVisibleMonthOptions([...monthOptions, reportMonth], currentMonthKey),
+        [currentMonthKey, monthOptions, reportMonth],
     );
 
     useEffect(() => {
@@ -132,6 +135,10 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
 
         return () => window.cancelAnimationFrame(frameId);
     }, []);
+
+    useEffect(() => {
+        initializeExpensePreferences(initialSettings);
+    }, [initialSettings, initializeExpensePreferences]);
 
     useEffect(() => {
         const mediaQuery = window.matchMedia("(max-width: 900px)");
@@ -148,116 +155,15 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     }, []);
 
     useEffect(() => {
-        let isCancelled = false;
-
-        import("../api/categoriesRepository")
-            .then(({ getExpenseCategories }) => getExpenseCategories(user.uid))
-            .then((nextCategories) => {
-                if (!isCancelled) {
-                    setCategories(nextCategories);
-                }
-            })
-            .catch(() => {
-                if (!isCancelled) {
-                    setCategories([]);
-                }
-            });
-
-        return () => {
-            isCancelled = true;
-        };
-    }, [user.uid]);
+        loadExpenseDashboardData(uid, {
+            currentMonthKey,
+            previousMonthKey,
+        });
+    }, [currentMonthKey, loadExpenseDashboardData, previousMonthKey, uid]);
 
     useEffect(() => {
-        let isCancelled = false;
-
-        import("../api/walletsRepository")
-            .then(({ getExpenseWallets }) => getExpenseWallets(user.uid))
-            .then((nextWallets) => {
-                if (!isCancelled) {
-                    setWallets(nextWallets);
-                }
-            })
-            .catch(() => {
-                if (!isCancelled) {
-                    setWallets([]);
-                }
-            });
-
-        return () => {
-            isCancelled = true;
-        };
-    }, [user.uid]);
-
-    useEffect(() => {
-        let isCancelled = false;
-
-        import("../api/monthlyStatsRepository")
-            .then(({ getExpenseMonthlyStats }) =>
-                Promise.all([
-                    getExpenseMonthlyStats(user.uid, currentMonthKey),
-                    getExpenseMonthlyStats(user.uid, previousMonthKey),
-                ]),
-            )
-            .then(([nextMonthlyStats, nextPreviousMonthlyStats]) => {
-                if (!isCancelled) {
-                    setMonthlyStats(nextMonthlyStats);
-                    setPreviousMonthlyStats(nextPreviousMonthlyStats);
-                }
-            })
-            .catch(() => {
-                if (!isCancelled) {
-                    setMonthlyStats(getEmptyMonthlyStats(currentMonthKey));
-                    setPreviousMonthlyStats(getEmptyMonthlyStats(previousMonthKey));
-                }
-            });
-
-        return () => {
-            isCancelled = true;
-        };
-    }, [currentMonthKey, previousMonthKey, user.uid]);
-
-    useEffect(() => {
-        let isCancelled = false;
-
-        import("../api/budgetsRepository")
-            .then(({ getExpenseBudgets }) => getExpenseBudgets(user.uid, currentMonthKey))
-            .then((nextBudgets) => {
-                if (!isCancelled) {
-                    setBudgetLimits(nextBudgets);
-                }
-            })
-            .catch(() => {
-                if (!isCancelled) {
-                    setBudgetLimits([]);
-                }
-            });
-
-        return () => {
-            isCancelled = true;
-        };
-    }, [currentMonthKey, user.uid]);
-
-    useEffect(() => {
-        let isCancelled = false;
-
-        import("../api/transactionsRepository")
-            .then(({ getExpenseTransactions }) => getExpenseTransactions(user.uid, 10))
-            .then((nextTransactions) => {
-                if (!isCancelled) {
-                    setTransactions(nextTransactions);
-                }
-            })
-            .catch(() => {
-                if (!isCancelled) {
-                    setTransactions([]);
-                }
-            });
-
-        return () => {
-            isCancelled = true;
-        };
-    }, [user.uid]);
+        loadExpenseMonthOptions(uid, currentYear, currentMonthKey);
+    }, [currentMonthKey, currentYear, loadExpenseMonthOptions, uid]);
 
     const monthlyIncome = monthlyStats.incomeMinor ?? 0;
     const monthlyExpense = monthlyStats.expenseMinor ?? 0;
@@ -326,63 +232,24 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     });
 
     const handleSettingChange = (key, nextValue) => {
-        if (nextValue === settingsRef.current[key]) {
-            return;
-        }
-
-        const revision = (settingRevisionsRef.current[key] ?? 0) + 1;
-        settingRevisionsRef.current[key] = revision;
-        settingsRef.current = {
-            ...settingsRef.current,
-            [key]: nextValue,
-        };
-
-        setSettings(settingsRef.current);
-        setSettingsError("");
-
-        const writePromise = settingsWriteQueueRef.current
-            .catch(() => {})
-            .then(async () => {
-                const { updateExpenseSettings } = await import("../api/expenseSettingsRepository");
-
-                await updateExpenseSettings(user.uid, {
-                    [key]: nextValue,
-                });
-                confirmedSettingsRef.current = {
-                    ...confirmedSettingsRef.current,
-                    [key]: nextValue,
-                };
-            });
-
-        settingsWriteQueueRef.current = writePromise;
-
-        writePromise.catch(() => {
-            if (settingRevisionsRef.current[key] === revision) {
-                settingsRef.current = {
-                    ...settingsRef.current,
-                    [key]: confirmedSettingsRef.current[key],
-                };
-                setSettings(settingsRef.current);
-                setSettingsError("Không thể lưu cài đặt. Vui lòng kiểm tra kết nối và thử lại.");
-            }
-        });
+        saveExpensePreference(uid, key, nextValue);
     };
 
     const handleThemeChange = (nextTheme) => {
-        if (expenseThemes.includes(nextTheme)) {
+        if (expenseThemeIds.includes(nextTheme)) {
             handleSettingChange("theme", nextTheme);
         }
     };
 
     const handleToggleTheme = () => {
-        const currentIndex = expenseThemes.indexOf(settingsRef.current.theme);
-        const nextIndex = (currentIndex + 1) % expenseThemes.length;
+        const currentIndex = expenseThemeIds.indexOf(settings.theme);
+        const nextIndex = (currentIndex + 1) % expenseThemeIds.length;
 
-        handleThemeChange(expenseThemes[nextIndex]);
+        handleThemeChange(expenseThemeIds[nextIndex]);
     };
 
     const handleLogout = async () => {
-        await settingsWriteQueueRef.current;
+        await waitForExpensePreferenceWrites();
         await onLogout();
     };
 
@@ -408,7 +275,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             return;
         }
 
-        if (pageId === "add" || pageId === "budget" || pageId === "wallets" || pageId === "settings") {
+        if (expenseMobileOnlyPageIds.includes(pageId)) {
             showMobilePage(pageId);
         }
     };
@@ -419,53 +286,11 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         }
     };
 
-    const sortTransactionList = (nextTransactions) =>
-        [...nextTransactions].sort((first, second) => {
-            const firstValue = `${first.date ?? ""}T${first.time ?? ""}`;
-            const secondValue = `${second.date ?? ""}T${second.time ?? ""}`;
-
-            return secondValue.localeCompare(firstValue);
-        });
-
-    const applyWalletBalanceUpdates = (walletBalanceUpdates = {}) => {
-        setWallets((currentWallets) =>
-            currentWallets.map((wallet) =>
-                Object.hasOwn(walletBalanceUpdates, wallet.id)
-                    ? {
-                          ...wallet,
-                          balance: walletBalanceUpdates[wallet.id],
-                      }
-                    : wallet,
-            ),
-        );
-    };
-
-    const applyMonthlyStatsUpdates = (monthlyStatsUpdates = {}) => {
-        if (monthlyStatsUpdates[currentMonthKey]) {
-            setMonthlyStats(monthlyStatsUpdates[currentMonthKey]);
-        }
-
-        if (monthlyStatsUpdates[previousMonthKey]) {
-            setPreviousMonthlyStats(monthlyStatsUpdates[previousMonthKey]);
-        }
-    };
-
     const handleAddTransaction = async (transaction) => {
-        const { createExpenseTransaction } = await import("../api/transactionsRepository");
-        const result = await createExpenseTransaction(user.uid, transaction);
-
-        setTransactions((currentTransactions) =>
-            sortTransactionList([result.transaction, ...currentTransactions]).slice(0, 10),
-        );
-        applyWalletBalanceUpdates(result.walletBalanceUpdates);
-        if (result.monthlyStats?.monthKey === currentMonthKey) {
-            setMonthlyStats(result.monthlyStats);
-        }
-        if (result.monthlyStats?.monthKey === previousMonthKey) {
-            setPreviousMonthlyStats(result.monthlyStats);
-        }
-
-        return result;
+        return createExpenseTransactionAction(uid, transaction, {
+            currentMonthKey,
+            previousMonthKey,
+        });
     };
 
     const handleAddMobileTransaction = async (transaction) => {
@@ -484,80 +309,12 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         return result;
     };
 
-    const handleUpdateTransaction = async (transactionId, transaction) => {
-        const { updateExpenseTransaction } = await import("../api/transactionsRepository");
-        const result = await updateExpenseTransaction(user.uid, transactionId, transaction);
-
-        setTransactions((currentTransactions) =>
-            sortTransactionList(
-                currentTransactions.map((currentTransaction) =>
-                    currentTransaction.id === result.transaction.id ? result.transaction : currentTransaction,
-                ),
-            ),
-        );
-        applyWalletBalanceUpdates(result.walletBalanceUpdates);
-        applyMonthlyStatsUpdates(result.monthlyStatsUpdates);
-
-        return result;
-    };
-
-    const handleDeleteTransaction = async (transactionId) => {
-        const { voidExpenseTransaction } = await import("../api/transactionsRepository");
-        const result = await voidExpenseTransaction(user.uid, transactionId);
-
-        setTransactions((currentTransactions) =>
-            currentTransactions.filter((currentTransaction) => currentTransaction.id !== transactionId),
-        );
-        applyWalletBalanceUpdates(result.walletBalanceUpdates);
-        applyMonthlyStatsUpdates(result.monthlyStatsUpdates);
-
-        return result;
-    };
-
     const handleSaveBudget = async (budget, monthKey = currentMonthKey) => {
-        const { upsertExpenseBudget } = await import("../api/budgetsRepository");
-        const result = await upsertExpenseBudget(user.uid, {
-            ...budget,
-            monthKey,
-        });
-
-        if (result.monthKey === currentMonthKey) {
-            setBudgetLimits((currentBudgets) => {
-                const existingBudgetIndex = currentBudgets.findIndex(
-                    (currentBudget) =>
-                        currentBudget.monthKey === result.monthKey && currentBudget.categoryId === result.categoryId,
-                );
-
-                if (existingBudgetIndex === -1) {
-                    return [...currentBudgets, result];
-                }
-
-                return currentBudgets.map((currentBudget, index) =>
-                    index === existingBudgetIndex ? result : currentBudget,
-                );
-            });
-        }
-
-        return result;
+        return upsertExpenseBudgetAction(uid, budget, monthKey);
     };
 
     const handleDeleteBudget = async (budget, monthKey = currentMonthKey) => {
-        const { deleteExpenseBudget } = await import("../api/budgetsRepository");
-        const result = await deleteExpenseBudget(user.uid, {
-            ...budget,
-            monthKey,
-        });
-
-        if (result.monthKey === currentMonthKey) {
-            setBudgetLimits((currentBudgets) =>
-                currentBudgets.filter(
-                    (currentBudget) =>
-                        currentBudget.monthKey !== result.monthKey || currentBudget.categoryId !== result.categoryId,
-                ),
-            );
-        }
-
-        return result;
+        return deleteExpenseBudgetAction(uid, budget, monthKey);
     };
 
     const openBudgetPanel = (categoryId = "", options = {}) => {
@@ -598,48 +355,11 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     };
 
     const handleSaveWallet = async (wallet) => {
-        const { upsertExpenseWallet } = await import("../api/walletsRepository");
-        const result = await upsertExpenseWallet(user.uid, wallet);
-        const savedWallet = result.wallet ?? result;
-
-        setWallets((currentWallets) => {
-            const nextWallets = savedWallet.isDefault
-                ? currentWallets.map((currentWallet) => ({
-                      ...currentWallet,
-                      isDefault: currentWallet.id === savedWallet.id,
-                  }))
-                : currentWallets;
-            const existingWalletIndex = nextWallets.findIndex((currentWallet) => currentWallet.id === savedWallet.id);
-
-            if (existingWalletIndex === -1) {
-                return [...nextWallets, savedWallet].sort(sortWallets);
-            }
-
-            return nextWallets
-                .map((currentWallet, index) => (index === existingWalletIndex ? savedWallet : currentWallet))
-                .sort(sortWallets);
-        });
-
-        if (result.adjustmentTransaction) {
-            setTransactions((currentTransactions) =>
-                sortTransactionList([result.adjustmentTransaction, ...currentTransactions]).slice(0, 10),
-            );
-        }
+        await upsertExpenseWalletAction(uid, wallet);
     };
 
     const handleDeleteWallet = async (wallet) => {
-        const { deleteExpenseWallet } = await import("../api/walletsRepository");
-        const result = await deleteExpenseWallet(user.uid, wallet);
-
-        setWallets((currentWallets) =>
-            currentWallets
-                .filter((currentWallet) => currentWallet.id !== result.id)
-                .map((currentWallet) => ({
-                    ...currentWallet,
-                    isDefault: currentWallet.id === result.replacementDefaultWalletId ? true : currentWallet.isDefault,
-                }))
-                .sort(sortWallets),
-        );
+        await deleteExpenseWalletAction(uid, wallet);
     };
 
     const renderMobilePage = () => {
@@ -657,14 +377,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         if (activeMobilePage === "transactions") {
             return (
                 <TransactionsPage
-                    categories={categories}
                     mode="mobile"
-                    onAddTransaction={handleAddTransaction}
-                    onDeleteTransaction={handleDeleteTransaction}
-                    onUpdateTransaction={handleUpdateTransaction}
-                    transactions={transactions}
-                    user={user}
-                    wallets={wallets}
                 />
             );
         }
@@ -672,10 +385,8 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         if (activeMobilePage === "categories") {
             return (
                 <CategorySpendingPage
-                    categories={categories}
                     mode="mobile"
                     onManageBudget={openBudgetPanel}
-                    user={user}
                 />
             );
         }
@@ -683,11 +394,8 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         if (activeMobilePage === "report") {
             return (
                 <ReportPage
-                    categories={categories}
                     mode="mobile"
                     onNavigate={handleMobileNavigate}
-                    user={user}
-                    wallets={wallets}
                 />
             );
         }
@@ -719,17 +427,9 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         if (activeMobilePage === "settings") {
             return (
                 <SettingsPage
-                    currency={settings.currency}
-                    hideBalance={settings.hideBalance}
-                    notificationsEnabled={settings.notificationsEnabled}
                     onLogout={handleLogout}
                     onManageBudget={() => showMobilePage("budget")}
                     onManageWallet={() => showMobilePage("wallets")}
-                    onSettingChange={handleSettingChange}
-                    onThemeChange={handleThemeChange}
-                    settingsError={settingsError}
-                    theme={settings.theme}
-                    user={user}
                     wallets={wallets}
                 />
             );
@@ -747,7 +447,6 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 summary={summary}
                 theme={settings.theme}
                 transactions={transactions}
-                user={user}
             />
         );
     };
@@ -756,14 +455,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         if (activeDesktopPage === "transactions") {
             return (
                 <TransactionsPage
-                    categories={categories}
                     mode="desktop"
-                    onAddTransaction={handleAddTransaction}
-                    onDeleteTransaction={handleDeleteTransaction}
-                    onUpdateTransaction={handleUpdateTransaction}
-                    transactions={transactions}
-                    user={user}
-                    wallets={wallets}
                 />
             );
         }
@@ -771,17 +463,14 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         if (activeDesktopPage === "categories") {
             return (
                 <CategorySpendingPage
-                    categories={categories}
                     key={categoryMonth}
-                    monthOptions={categoryMonthOptions}
+                    monthOptions={monthOptions}
                     mode="desktop"
-                    onMonthOptionsChange={setCategoryMonthOptions}
                     onManageBudget={openBudgetPanel}
                     onSelectedMonthChange={setCategoryMonth}
                     onSortKeyChange={setCategorySortKey}
                     selectedMonth={categoryMonth}
                     sortKey={categorySortKey}
-                    user={user}
                 />
             );
         }
@@ -789,15 +478,11 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         if (activeDesktopPage === "report") {
             return (
                 <ReportPage
-                    categories={categories}
-                    monthOptions={reportMonthOptions}
+                    monthOptions={monthOptions}
                     mode="desktop"
-                    onMonthOptionsChange={setReportMonthOptions}
                     onNavigate={handleDesktopNavigate}
                     onSelectedMonthChange={setReportMonth}
                     selectedMonth={reportMonth}
-                    user={user}
-                    wallets={wallets}
                 />
             );
         }
@@ -888,7 +573,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
 
         return (
             <div className={desktopViewClassName}>
-                <ExpenseSidebar activeId={activeDesktopPage} items={expenseNavItems} onNavigate={handleDesktopNavigate} user={user} />
+                <ExpenseSidebar activeId={activeDesktopPage} items={expenseNavItems} onNavigate={handleDesktopNavigate} />
                 <main className={desktopMainClassName}>
                     <ExpenseHeader
                         eyebrow={desktopHeaderContent.eyebrow}
@@ -899,7 +584,6 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                         subtitle={desktopHeaderContent.subtitle}
                         theme={settings.theme}
                         title={desktopHeaderContent.title}
-                        user={user}
                     />
                     {renderDesktopPage()}
                     {isDesktopAddTransactionOpen ? (

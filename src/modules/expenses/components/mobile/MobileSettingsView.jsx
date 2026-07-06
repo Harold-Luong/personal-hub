@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { selectAuthUser, useAuthSessionStore } from "../../../../stores/authSessionStore";
 import { BellIcon, LogoutIcon, SettingsIcon, ThemeIcon, WalletIcon } from "../../icon/ExpenseIcons";
-import { expenseThemeOptions } from "../../constant/expensesMetaData";
+import { expenseCurrencyLabels, expenseThemeOptions } from "../../constant/expensesMetaData";
 import MobilePageHeader from "./MobilePageHeader";
 
 function SettingsSwitch({ checked, description, label, onChange }) {
@@ -35,9 +36,9 @@ export default function MobileSettingsView({
     onThemeChange,
     settingsError,
     theme,
-    user,
     wallets = [],
 }) {
+    const user = useAuthSessionStore(selectAuthUser);
     const [logoutError, setLogoutError] = useState("");
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -155,8 +156,11 @@ export default function MobileSettingsView({
                             onChange={(event) => onSettingChange?.("currency", event.target.value)}
                             value={currency}
                         >
-                            <option value="VND">VND</option>
-                            <option value="USD">USD</option>
+                            {expenseCurrencyLabels.map((currencyLabel) => (
+                                <option key={currencyLabel} value={currencyLabel}>
+                                    {currencyLabel}
+                                </option>
+                            ))}
                         </select>
                     </label>
                 </div>

@@ -1,19 +1,14 @@
 import { useState } from "react";
+import {
+    expenseCurrencyLabels,
+    expenseCurrencySymbolByLabel,
+    expenseDefaultCurrency,
+    walletTypeOptions,
+} from "../../constant/expensesMetaData";
 import { formatCurrencyInput, parseCurrencyInput } from "../../utils/formatCurrency";
 
-const walletTypes = [
-    { id: "cash", label: "Tiền mặt", icon: "wallet", color: "#56b879" },
-    { id: "bank", label: "Ngân hàng", icon: "bank", color: "#4f93d7" },
-    { id: "card", label: "Thẻ", icon: "card", color: "#9b7bd8" },
-    { id: "eWallet", label: "Ví điện tử", icon: "momo", color: "#d77fa1" },
-    { id: "saving", label: "Tiết kiệm", icon: "saving", color: "#d9a441" },
-    { id: "other", label: "Khác", icon: "more", color: "#b8bec8" },
-];
-
-const walletCurrencies = ["VND", "USD"];
-
 function getWalletType(type) {
-    return walletTypes.find((walletType) => walletType.id === type) ?? walletTypes[0];
+    return walletTypeOptions.find((walletType) => walletType.id === type) ?? walletTypeOptions[0];
 }
 
 function getInitialWalletId(wallets, preferredWalletId) {
@@ -38,7 +33,7 @@ function getFormState(wallet) {
     return {
         balance: wallet?.balance ? formatCurrencyInput(wallet.balance) : "",
         color: wallet?.color ?? walletType.color,
-        currency: wallet?.currency ?? "VND",
+        currency: wallet?.currency ?? expenseDefaultCurrency,
         icon: wallet?.icon ?? walletType.icon,
         isDefault: Boolean(wallet?.isDefault),
         name: wallet?.name ?? "",
@@ -57,6 +52,7 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
     const isWorking = isSubmitting || isDeleting;
     const hasBalance = (selectedWallet?.balance ?? 0) !== 0;
     const canDelete = isEditing && wallets.length > 1 && !selectedWallet?.isDefault && !hasBalance;
+    const currencySymbol = expenseCurrencySymbolByLabel[formState.currency] ?? formState.currency;
 
     const updateFormState = (nextState) => {
         setFormState((currentState) => ({
@@ -183,7 +179,7 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                     <label className="wallet-form__field">
                         <span>Loại ví</span>
                         <select disabled={isWorking} name="type" onChange={handleTypeChange} value={formState.type}>
-                            {walletTypes.map((walletType) => (
+                            {walletTypeOptions.map((walletType) => (
                                 <option key={walletType.id} value={walletType.id}>
                                     {walletType.label}
                                 </option>
@@ -199,7 +195,7 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                             onChange={(event) => updateFormState({ currency: event.target.value })}
                             value={formState.currency}
                         >
-                            {walletCurrencies.map((currency) => (
+                            {expenseCurrencyLabels.map((currency) => (
                                 <option key={currency} value={currency}>
                                     {currency}
                                 </option>
@@ -224,7 +220,7 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                             type="text"
                             value={formState.balance}
                         />
-                        <span aria-hidden="true">₫</span>
+                        <span aria-hidden="true">{currencySymbol}</span>
                     </span>
                 </label>
 

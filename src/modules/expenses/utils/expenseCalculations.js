@@ -1,3 +1,8 @@
+import {
+    budgetExceededThresholdPercentage,
+    budgetWarningThresholdPercentage,
+} from "../constant/expensesMetaData";
+
 // Chuyen moi gia tri ve so an toan de tranh NaN lam hong cong thuc.
 function toSafeNumber(value) {
     const numberValue = Number(value);
@@ -27,13 +32,13 @@ export function calculateBudgetUsagePercentage(budget) {
 }
 
 // Phan loai trang thai ngan sach de UI doi mau khi cham nguong canh bao.
-export function getBudgetUsageStatus(budget, defaultAlertThreshold = 80) {
+export function getBudgetUsageStatus(budget, defaultAlertThreshold = budgetWarningThresholdPercentage) {
     const percentage = calculateBudgetUsagePercentage(budget);
     const alertThreshold = toSafeNumber(
         budget?.alertThreshold ?? defaultAlertThreshold,
     );
 
-    if (percentage >= 100) {
+    if (percentage >= budgetExceededThresholdPercentage) {
         return "exceeded";
     }
 
