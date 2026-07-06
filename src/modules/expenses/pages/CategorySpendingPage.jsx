@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import ExpenseSidebar from "../components/layout/ExpenseSidebar";
 import AmountText from "../components/shared/AmountText";
 import DonutChart from "../components/shared/DonutChart";
 import ExpenseEmoji from "../components/shared/ExpenseEmoji";
@@ -486,15 +485,29 @@ function CategoryDetailPanel({
     );
 }
 
-function CategorySpendingWorkspace({ categories, mode, onManageBudget, userId }) {
+function CategorySpendingWorkspace({
+    categories,
+    mode,
+    monthOptions: controlledMonthOptions,
+    onManageBudget,
+    onMonthOptionsChange,
+    onSelectedMonthChange,
+    onSortKeyChange,
+    selectedMonth: controlledSelectedMonth,
+    sortKey: controlledSortKey,
+    userId,
+}) {
     const navigate = useNavigate();
     const isDesktopMode = mode === "desktop";
     const currentMonthKey = getCurrentMonthKey();
-    const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
-    const [monthOptions, setMonthOptions] = useState(() => [currentMonthKey]);
+    const isMonthOptionsControlled = Array.isArray(controlledMonthOptions);
+    const isSelectedMonthControlled = controlledSelectedMonth !== undefined;
+    const isSortKeyControlled = controlledSortKey !== undefined;
+    const [internalSelectedMonth, setInternalSelectedMonth] = useState(currentMonthKey);
+    const [internalMonthOptions, setInternalMonthOptions] = useState(() => [currentMonthKey]);
     const [monthlyStats, setMonthlyStats] = useState(() => getEmptyMonthlyStats(currentMonthKey));
     const [budgets, setBudgets] = useState([]);
-    const [sortKey, setSortKey] = useState("amount");
+    const [internalSortKey, setInternalSortKey] = useState("amount");
     const [selectedCategoryId, setSelectedCategoryId] = useState("");
     const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -504,6 +517,39 @@ function CategorySpendingWorkspace({ categories, mode, onManageBudget, userId })
     const [hasNextTransactionPage, setHasNextTransactionPage] = useState(false);
     const [isTransactionLoading, setIsTransactionLoading] = useState(false);
     const [transactionError, setTransactionError] = useState("");
+    const selectedMonth = isSelectedMonthControlled ? controlledSelectedMonth : internalSelectedMonth;
+    const monthOptions = isMonthOptionsControlled ? controlledMonthOptions : internalMonthOptions;
+    const sortKey = isSortKeyControlled ? controlledSortKey : internalSortKey;
+    const setMonthOptions = useCallback(
+        (nextMonthOptions) => {
+            if (!isMonthOptionsControlled) {
+                setInternalMonthOptions(nextMonthOptions);
+            }
+
+            onMonthOptionsChange?.(nextMonthOptions);
+        },
+        [isMonthOptionsControlled, onMonthOptionsChange],
+    );
+    const setSelectedMonth = useCallback(
+        (nextMonth) => {
+            if (!isSelectedMonthControlled) {
+                setInternalSelectedMonth(nextMonth);
+            }
+
+            onSelectedMonthChange?.(nextMonth);
+        },
+        [isSelectedMonthControlled, onSelectedMonthChange],
+    );
+    const setSortKey = useCallback(
+        (nextSortKey) => {
+            if (!isSortKeyControlled) {
+                setInternalSortKey(nextSortKey);
+            }
+
+            onSortKeyChange?.(nextSortKey);
+        },
+        [isSortKeyControlled, onSortKeyChange],
+    );
 
     const categorySpending = useMemo(
         () =>
@@ -580,7 +626,7 @@ function CategorySpendingWorkspace({ categories, mode, onManageBudget, userId })
         return () => {
             isCancelled = true;
         };
-    }, [currentMonthKey, userId]);
+    }, [currentMonthKey, setMonthOptions, userId]);
 
     useEffect(() => {
         let isCancelled = false;
@@ -805,42 +851,44 @@ function CategorySpendingWorkspace({ categories, mode, onManageBudget, userId })
 
     return (
         <div className={`category-spending-page category-spending-page--${mode}`}>
-            <section className="category-spending-page__hero">
-                <div className="category-spending-page__hero-copy">
-                    <span>Chi tiêu</span>
-                    <h1>Chi tiêu theo danh mục</h1>
-                    <p>
-                        {getMonthLabel(selectedMonth)} · {formatCurrency(monthlyStats.expenseMinor ?? 0)}
-                    </p>
-                </div>
-                <div className="category-spending-page__controls">
-                    <label className="category-spending-page__select">
-                        <span className="sr-only">Chọn tháng</span>
-                        <select
-                            onChange={(event) => {
-                                setSelectedMonth(event.target.value);
-                                setSelectedCategoryId("");
-                                setIsDetailSheetOpen(false);
-                            }}
-                            value={selectedMonth}
-                        >
-                            {displayedMonthOptions.map((monthKey) => (
-                                <option key={monthKey} value={monthKey}>
-                                    {getMonthLabel(monthKey)}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                    <label className="category-spending-page__select">
-                        <span className="sr-only">Sắp xếp danh mục</span>
-                        <select onChange={(event) => setSortKey(event.target.value)} value={sortKey}>
-                            <option value="amount">Số tiền cao nhất</option>
-                            <option value="budget">Theo ngân sách</option>
-                            <option value="name">Tên danh mục</option>
-                        </select>
-                    </label>
-                </div>
-            </section>
+            {!isDesktopMode ? (
+                <section className="category-spending-page__hero">
+                    <div className="category-spending-page__hero-copy">
+                        <span>Chi tiêu</span>
+                        <h1>Chi tiêu theo danh mục</h1>
+                        <p>
+                            {getMonthLabel(selectedMonth)} · {formatCurrency(monthlyStats.expenseMinor ?? 0)}
+                        </p>
+                    </div>
+                    <div className="category-spending-page__controls">
+                        <label className="category-spending-page__select">
+                            <span className="sr-only">Chọn tháng</span>
+                            <select
+                                onChange={(event) => {
+                                    setSelectedMonth(event.target.value);
+                                    setSelectedCategoryId("");
+                                    setIsDetailSheetOpen(false);
+                                }}
+                                value={selectedMonth}
+                            >
+                                {displayedMonthOptions.map((monthKey) => (
+                                    <option key={monthKey} value={monthKey}>
+                                        {getMonthLabel(monthKey)}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                        <label className="category-spending-page__select">
+                            <span className="sr-only">Sắp xếp danh mục</span>
+                            <select onChange={(event) => setSortKey(event.target.value)} value={sortKey}>
+                                <option value="amount">Số tiền cao nhất</option>
+                                <option value="budget">Theo ngân sách</option>
+                                <option value="name">Tên danh mục</option>
+                            </select>
+                        </label>
+                    </div>
+                </section>
+            ) : null}
 
             <CategorySummaryCards categories={categoryRows} monthlyStats={monthlyStats} budgets={budgets} />
 
@@ -946,33 +994,27 @@ function CategorySpendingWorkspace({ categories, mode, onManageBudget, userId })
 
 export default function CategorySpendingPage({
     categories = [],
+    monthOptions,
     mode = "mobile",
-    navItems = [],
+    onMonthOptionsChange,
     onManageBudget,
-    onNavigate,
+    onSelectedMonthChange,
+    onSortKeyChange,
+    selectedMonth,
+    sortKey,
     user,
 }) {
-    if (mode === "desktop") {
-        return (
-            <div className="web-dashboard-view web-category-spending-view">
-                <ExpenseSidebar activeId="categories" items={navItems} onNavigate={onNavigate} user={user} />
-                <main className="web-dashboard-view__main web-category-spending-view__main">
-                    <CategorySpendingWorkspace
-                        categories={categories}
-                        mode={mode}
-                        onManageBudget={onManageBudget}
-                        userId={user?.uid}
-                    />
-                </main>
-            </div>
-        );
-    }
-
     return (
         <CategorySpendingWorkspace
             categories={categories}
+            monthOptions={monthOptions}
             mode={mode}
+            onMonthOptionsChange={onMonthOptionsChange}
             onManageBudget={onManageBudget}
+            onSelectedMonthChange={onSelectedMonthChange}
+            onSortKeyChange={onSortKeyChange}
+            selectedMonth={selectedMonth}
+            sortKey={sortKey}
             userId={user?.uid}
         />
     );

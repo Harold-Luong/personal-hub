@@ -14,7 +14,6 @@ import {
     TransactionListIcon,
     TrashIcon,
 } from "../icon/ExpenseIcons";
-import ExpenseSidebar from "../components/layout/ExpenseSidebar";
 import AmountText from "../components/shared/AmountText";
 import ExpenseEmoji from "../components/shared/ExpenseEmoji";
 import SummaryCardList from "../components/shared/SummaryCardList";
@@ -331,6 +330,7 @@ function TransactionsWorkspace({
     userId,
     wallets,
 }) {
+    const isDesktopMode = mode === "desktop";
     const [activeFilter, setActiveFilter] = useState("all");
     const [searchTerm, setSearchTerm] = useState("");
     const [querySearchTerm, setQuerySearchTerm] = useState("");
@@ -637,16 +637,18 @@ function TransactionsWorkspace({
 
     return (
         <div className={`transactions-page transactions-page--${mode}`}>
-            <section className="transactions-page__hero">
-                <div className="transactions-page__hero-copy">
-                    <h1>Giao dịch</h1>
-                    <p>Quản lý tất cả giao dịch thu chi của bạn</p>
-                </div>
-                <button className="transactions-page__add-button" onClick={openCreateEditor} type="button">
-                    <PlusIcon size={18} />
-                    <span>Thêm giao dịch</span>
-                </button>
-            </section>
+            {!isDesktopMode ? (
+                <section className="transactions-page__hero">
+                    <div className="transactions-page__hero-copy">
+                        <h1>Giao dịch</h1>
+                        <p>Quản lý tất cả giao dịch thu chi của bạn</p>
+                    </div>
+                    <button className="transactions-page__add-button" onClick={openCreateEditor} type="button">
+                        <PlusIcon size={18} />
+                        <span>Thêm giao dịch</span>
+                    </button>
+                </section>
+            ) : null}
 
             <TransactionSummary transactions={visibleTransactions} />
 
@@ -669,9 +671,7 @@ function TransactionsWorkspace({
                 <button
                     aria-expanded={isFilterPanelOpen}
                     className={
-                        activeFilterCount
-                            ? "transactions-page__filter-button is-active"
-                            : "transactions-page__filter-button"
+                        activeFilterCount ? "transactions-page__filter-button is-active" : "transactions-page__filter-button"
                     }
                     onClick={() => setIsFilterPanelOpen((isOpen) => !isOpen)}
                     type="button"
@@ -922,10 +922,8 @@ function TransactionsWorkspace({
 export default function TransactionsPage({
     categories = [],
     mode = "mobile",
-    navItems = [],
     onAddTransaction,
     onDeleteTransaction,
-    onNavigate,
     onUpdateTransaction,
     user,
     wallets = [],
@@ -933,27 +931,6 @@ export default function TransactionsPage({
     const [searchParams] = useSearchParams();
     const initialCategoryId = searchParams.get("categoryId") ?? "all";
     const initialMonthKey = searchParams.get("monthKey") ?? "";
-
-    if (mode === "desktop") {
-        return (
-            <div className="web-dashboard-view web-transactions-view">
-                <ExpenseSidebar activeId="transactions" items={navItems} onNavigate={onNavigate} user={user} />
-                <main className="web-dashboard-view__main web-transactions-view__main">
-                    <TransactionsWorkspace
-                        categories={categories}
-                        initialCategoryId={initialCategoryId}
-                        initialMonthKey={initialMonthKey}
-                        mode={mode}
-                        onAddTransaction={onAddTransaction}
-                        onDeleteTransaction={onDeleteTransaction}
-                        onUpdateTransaction={onUpdateTransaction}
-                        userId={user?.uid}
-                        wallets={wallets}
-                    />
-                </main>
-            </div>
-        );
-    }
 
     return (
         <TransactionsWorkspace

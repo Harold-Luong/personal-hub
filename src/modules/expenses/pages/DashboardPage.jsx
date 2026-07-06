@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import MobileBudgetFormSheet from "../components/budget/MobileBudgetFormSheet";
 import ExpenseBottomNav from "../components/layout/ExpenseBottomNav";
+import ExpenseHeader from "../components/layout/ExpenseHeader";
+import ExpenseSidebar from "../components/layout/ExpenseSidebar";
 import MobileDashboardView from "../components/mobile/MobileDashboardView";
+import WebAddTransactionPanel from "../components/web/WebAddTransactionPanel";
 import WebDashboardView from "../components/web/WebDashboardView";
 import WebBudgetPanel from "../components/web/WebBudgetPanel";
 import AddTransactionPage from "./AddTransactionPage";
@@ -12,10 +15,20 @@ import ReportPage from "./ReportPage";
 import SettingsPage from "./SettingsPage";
 import TransactionsPage from "./TransactionsPage";
 import WalletPage from "./WalletPage";
-import { expenseCurrencies, expenseNavItems, expenseSummaryItems, expenseThemes } from "../constant/expensesMetaData";
+import {
+    expenseCurrencies,
+    expenseNavItems,
+    expenseSummaryItems,
+    expenseThemes,
+} from "../constant/expensesMetaData";
 import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { calculateTrend, getEmptyMonthlyStats, getPreviousMonthKey } from "../utils/monthlyStatsUtils";
-import { getCompactMonthLabel, getCurrentMonthKey } from "../utils/monthUtils";
+import {
+    getCompactMonthLabel,
+    getCurrentMonthKey,
+    getMonthLabel,
+    getVisibleMonthOptions,
+} from "../utils/monthUtils";
 import "../styles/expenses.scss";
 
 function getInitialSettings(initialSettings) {
@@ -53,6 +66,18 @@ function getExpenseRoutePage(pathname) {
     return Object.entries(expenseRoutePaths).find(([, path]) => path === normalizedPathname)?.[0] ?? "dashboard";
 }
 
+const desktopViewClasses = {
+    categories: "web-category-spending-view",
+    report: "web-report-view",
+    transactions: "web-transactions-view",
+};
+
+const desktopMainClasses = {
+    categories: "web-category-spending-view__main",
+    report: "web-report-view__main",
+    transactions: "web-transactions-view__main",
+};
+
 export default function DashboardPage({ initialSettings, onLogout, user }) {
     const location = useLocation();
     const navigate = useNavigate();
@@ -76,6 +101,11 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     const currentMonthKey = getCurrentMonthKey();
     const previousMonthKey = getPreviousMonthKey(currentMonthKey);
     const currentMonthLabel = getCompactMonthLabel(currentMonthKey);
+    const [categoryMonth, setCategoryMonth] = useState(currentMonthKey);
+    const [categoryMonthOptions, setCategoryMonthOptions] = useState(() => [currentMonthKey]);
+    const [categorySortKey, setCategorySortKey] = useState("amount");
+    const [reportMonth, setReportMonth] = useState(currentMonthKey);
+    const [reportMonthOptions, setReportMonthOptions] = useState(() => [currentMonthKey]);
     const [wallets, setWallets] = useState([]);
     const [transactions, setTransactions] = useState([]);
     const [budgetLimits, setBudgetLimits] = useState([]);
@@ -83,8 +113,17 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
     const [budgetPanelCategoryId, setBudgetPanelCategoryId] = useState("");
     const [budgetPanelMonthKey, setBudgetPanelMonthKey] = useState(currentMonthKey);
     const [budgetPanelBudgets, setBudgetPanelBudgets] = useState(null);
+    const [isDesktopAddTransactionOpen, setIsDesktopAddTransactionOpen] = useState(false);
     const [isMobileViewport, setIsMobileViewport] = useState(getIsMobileViewport);
     const budgetPanelCallbacksRef = useRef({});
+    const categoryDisplayedMonthOptions = useMemo(
+        () => getVisibleMonthOptions([...categoryMonthOptions, categoryMonth], currentMonthKey),
+        [categoryMonth, categoryMonthOptions, currentMonthKey],
+    );
+    const reportDisplayedMonthOptions = useMemo(
+        () => getVisibleMonthOptions([...reportMonthOptions, reportMonth], currentMonthKey),
+        [currentMonthKey, reportMonth, reportMonthOptions],
+    );
 
     useEffect(() => {
         const frameId = window.requestAnimationFrame(() => {
@@ -437,6 +476,14 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         return result;
     };
 
+    const handleAddDesktopTransaction = async (transaction) => {
+        const result = await handleAddTransaction(transaction);
+
+        setIsDesktopAddTransactionOpen(false);
+
+        return result;
+    };
+
     const handleUpdateTransaction = async (transactionId, transaction) => {
         const { updateExpenseTransaction } = await import("../api/transactionsRepository");
         const result = await updateExpenseTransaction(user.uid, transactionId, transaction);
@@ -711,14 +758,9 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
                 <TransactionsPage
                     categories={categories}
                     mode="desktop"
-                    navItems={expenseNavItems}
                     onAddTransaction={handleAddTransaction}
                     onDeleteTransaction={handleDeleteTransaction}
-                    onLogout={handleLogout}
-                    onNavigate={handleDesktopNavigate}
-                    onToggleTheme={handleToggleTheme}
                     onUpdateTransaction={handleUpdateTransaction}
-                    theme={settings.theme}
                     transactions={transactions}
                     user={user}
                     wallets={wallets}
@@ -730,10 +772,15 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             return (
                 <CategorySpendingPage
                     categories={categories}
+                    key={categoryMonth}
+                    monthOptions={categoryMonthOptions}
                     mode="desktop"
-                    navItems={expenseNavItems}
+                    onMonthOptionsChange={setCategoryMonthOptions}
                     onManageBudget={openBudgetPanel}
-                    onNavigate={handleDesktopNavigate}
+                    onSelectedMonthChange={setCategoryMonth}
+                    onSortKeyChange={setCategorySortKey}
+                    selectedMonth={categoryMonth}
+                    sortKey={categorySortKey}
                     user={user}
                 />
             );
@@ -743,9 +790,12 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
             return (
                 <ReportPage
                     categories={categories}
+                    monthOptions={reportMonthOptions}
                     mode="desktop"
-                    navItems={expenseNavItems}
+                    onMonthOptionsChange={setReportMonthOptions}
                     onNavigate={handleDesktopNavigate}
+                    onSelectedMonthChange={setReportMonth}
+                    selectedMonth={reportMonth}
                     user={user}
                     wallets={wallets}
                 />
@@ -754,27 +804,114 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
 
         return (
             <WebDashboardView
-                user={user}
                 budgets={budgets}
-                categories={categories}
                 categorySpending={categorySpending}
                 monthLabel={currentMonthLabel}
-                navItems={expenseNavItems}
                 transactions={transactions}
                 wallets={wallets}
                 summary={summary}
-                theme={settings.theme}
-                onAddTransaction={handleAddTransaction}
                 onDeleteWallet={handleDeleteWallet}
-                onLogout={handleLogout}
                 onManageBudget={openBudgetPanel}
-                onNavigate={handleDesktopNavigate}
                 onSaveWallet={handleSaveWallet}
                 onSelectBudget={openBudgetPanel}
-                onToggleTheme={handleToggleTheme}
                 onViewCategorySpending={() => navigateExpenseRoute("categories")}
                 onViewTransactions={() => navigateExpenseRoute("transactions")}
             />
+        );
+    };
+
+    const renderDesktopShell = () => {
+        const desktopHeaderContent = {
+            categories: {
+                eyebrow: "Chi tiêu",
+                subtitle: "Phân tích chi tiêu theo danh mục và ngân sách",
+                title: "Chi tiêu theo danh mục",
+            },
+            dashboard: {
+                eyebrow: "Tổng quan",
+                subtitle: currentMonthLabel,
+                title: "Dashboard",
+            },
+            report: {
+                eyebrow: "Báo cáo",
+                subtitle: "Theo dõi xu hướng thu chi và dự báo",
+                title: "Báo cáo chi tiêu",
+            },
+            transactions: {
+                eyebrow: "Giao dịch",
+                subtitle: "Quản lý tất cả giao dịch thu chi của bạn",
+                title: "Giao dịch",
+            },
+        }[activeDesktopPage];
+        const desktopViewClassName = ["web-dashboard-view", desktopViewClasses[activeDesktopPage]]
+            .filter(Boolean)
+            .join(" ");
+        const desktopMainClassName = ["web-dashboard-view__main", desktopMainClasses[activeDesktopPage]]
+            .filter(Boolean)
+            .join(" ");
+        const desktopHeaderPageActions =
+            activeDesktopPage === "categories" ? (
+                <div className="category-spending-page__controls">
+                    <label className="category-spending-page__select">
+                        <span className="sr-only">Chọn tháng</span>
+                        <select onChange={(event) => setCategoryMonth(event.target.value)} value={categoryMonth}>
+                            {categoryDisplayedMonthOptions.map((monthKey) => (
+                                <option key={monthKey} value={monthKey}>
+                                    {getMonthLabel(monthKey)}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                    <label className="category-spending-page__select">
+                        <span className="sr-only">Sắp xếp danh mục</span>
+                        <select onChange={(event) => setCategorySortKey(event.target.value)} value={categorySortKey}>
+                            <option value="amount">Số tiền cao nhất</option>
+                            <option value="budget">Theo ngân sách</option>
+                            <option value="name">Tên danh mục</option>
+                        </select>
+                    </label>
+                </div>
+            ) : activeDesktopPage === "report" ? (
+                <div className="report-page__filters">
+                    <label className="report-page__filter-control report-page__select-control">
+                        <span className="sr-only">Chọn tháng báo cáo</span>
+                        <select onChange={(event) => setReportMonth(event.target.value)} value={reportMonth}>
+                            {reportDisplayedMonthOptions.map((monthKey) => (
+                                <option key={monthKey} value={monthKey}>
+                                    {getMonthLabel(monthKey)}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                </div>
+            ) : null;
+
+        return (
+            <div className={desktopViewClassName}>
+                <ExpenseSidebar activeId={activeDesktopPage} items={expenseNavItems} onNavigate={handleDesktopNavigate} user={user} />
+                <main className={desktopMainClassName}>
+                    <ExpenseHeader
+                        eyebrow={desktopHeaderContent.eyebrow}
+                        onAddTransactionClick={() => setIsDesktopAddTransactionOpen(true)}
+                        onLogout={handleLogout}
+                        onToggleTheme={handleToggleTheme}
+                        pageActions={desktopHeaderPageActions}
+                        subtitle={desktopHeaderContent.subtitle}
+                        theme={settings.theme}
+                        title={desktopHeaderContent.title}
+                        user={user}
+                    />
+                    {renderDesktopPage()}
+                    {isDesktopAddTransactionOpen ? (
+                        <WebAddTransactionPanel
+                            categories={categories}
+                            onCancel={() => setIsDesktopAddTransactionOpen(false)}
+                            onSubmit={handleAddDesktopTransaction}
+                            wallets={wallets}
+                        />
+                    ) : null}
+                </main>
+            </div>
         );
     };
 
@@ -785,7 +922,7 @@ export default function DashboardPage({ initialSettings, onLogout, user }) {
         >
             {renderMobilePage()}
             <ExpenseBottomNav activeId={activeMobilePage} items={expenseNavItems} onNavigate={handleMobileNavigate} />
-            {renderDesktopPage()}
+            {renderDesktopShell()}
             {isBudgetPanelOpen && isMobileViewport ? (
                 <MobileBudgetFormSheet
                     key={budgetPanelCategoryId || "mobile-budget-panel"}

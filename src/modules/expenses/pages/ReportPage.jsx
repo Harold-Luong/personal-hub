@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Bar,
     BarChart,
@@ -11,7 +11,6 @@ import {
     XAxis,
     YAxis,
 } from "recharts";
-import ExpenseSidebar from "../components/layout/ExpenseSidebar";
 import MobilePageHeader from "../components/mobile/MobilePageHeader";
 import AmountText from "../components/shared/AmountText";
 import ProgressBar from "../components/shared/ProgressBar";
@@ -60,7 +59,9 @@ function getPercent(value, total) {
 }
 
 function getMonthDayCount(monthKey) {
-    const [year, month] = String(monthKey ?? "").split("-").map(Number);
+    const [year, month] = String(monthKey ?? "")
+        .split("-")
+        .map(Number);
 
     return year && month ? new Date(year, month, 0).getDate() : 30;
 }
@@ -203,9 +204,14 @@ function getDailyExpenseRows(monthKey, transactions) {
             categories: {},
             transactionCount: 0,
         };
-        const topCategory = Object.entries(dayStats.categories).sort((firstCategory, secondCategory) => secondCategory[1] - firstCategory[1])[0]?.[0] ?? "-";
+        const topCategory =
+            Object.entries(dayStats.categories).sort(
+                (firstCategory, secondCategory) => secondCategory[1] - firstCategory[1],
+            )[0]?.[0] ?? "-";
         const averageDeltaPercentage =
-            averageDailyAmount > 0 ? Math.round(((dayStats.amount - averageDailyAmount) / averageDailyAmount) * 100) : 0;
+            averageDailyAmount > 0
+                ? Math.round(((dayStats.amount - averageDailyAmount) / averageDailyAmount) * 100)
+                : 0;
 
         return {
             amount: dayStats.amount,
@@ -345,7 +351,10 @@ function ReportLineChart({ months }) {
                         tickLine={false}
                         width={42}
                     />
-                    <Tooltip content={<ReportChartTooltip />} cursor={{ stroke: "var(--expense-border)", strokeDasharray: "4 4" }} />
+                    <Tooltip
+                        content={<ReportChartTooltip />}
+                        cursor={{ stroke: "var(--expense-border)", strokeDasharray: "4 4" }}
+                    />
                     <Line
                         activeDot={{ r: 5, strokeWidth: 0 }}
                         dataKey="income"
@@ -389,7 +398,12 @@ function renderBarValueLabel({ height, value, width, x, y }) {
     }
 
     return (
-        <text className="report-week-chart__value" textAnchor="middle" x={x + width / 2} y={Math.max(y - 8, height > 0 ? 12 : y)}>
+        <text
+            className="report-week-chart__value"
+            textAnchor="middle"
+            x={x + width / 2}
+            y={Math.max(y - 8, height > 0 ? 12 : y)}
+        >
             {getShortMoney(value)}
         </text>
     );
@@ -420,7 +434,10 @@ function ReportWeeklyBarChart({ weeks }) {
                         tickLine={false}
                         width={42}
                     />
-                    <Tooltip content={<ReportChartTooltip />} cursor={{ fill: "color-mix(in srgb, var(--expense-active-soft) 22%, transparent)" }} />
+                    <Tooltip
+                        content={<ReportChartTooltip />}
+                        cursor={{ fill: "color-mix(in srgb, var(--expense-active-soft) 22%, transparent)" }}
+                    />
                     <Bar dataKey="amount" fill="#f4323d" maxBarSize={72} name="Chi tiêu" radius={[8, 8, 3, 3]}>
                         <LabelList content={renderBarValueLabel} dataKey="amount" />
                     </Bar>
@@ -479,10 +496,15 @@ function CategoryComparisonBars({ rows, tone }) {
                             <span>{getCategoryComparisonChangeText(row)}</span>
                         </div>
                         <div className="report-category-comparison-chart__track" aria-hidden="true">
-                            <i style={{ "--bar-width": `${Math.max(Math.round((row.absoluteChange / maxChange) * 100), 6)}%` }} />
+                            <i
+                                style={{
+                                    "--bar-width": `${Math.max(Math.round((row.absoluteChange / maxChange) * 100), 6)}%`,
+                                }}
+                            />
                         </div>
                         <small>
-                            Tháng này {formatCurrency(row.currentAmount)} · Tháng trước {formatCurrency(row.previousAmount)}
+                            Tháng này {formatCurrency(row.currentAmount)} · Tháng trước{" "}
+                            {formatCurrency(row.previousAmount)}
                         </small>
                     </div>
                 ))
@@ -545,7 +567,11 @@ function ReportHeatmap({ days }) {
             <div className="report-heatmap__grid">
                 {paddedDays.map((day, index) =>
                     day ? (
-                        <button className={`report-heatmap__day report-heatmap__day--${day.intensity}`} key={day.day} type="button">
+                        <button
+                            className={`report-heatmap__day report-heatmap__day--${day.intensity}`}
+                            key={day.day}
+                            type="button"
+                        >
                             {day.day}
                             <span className="report-heatmap__tooltip" role="tooltip">
                                 <strong>{day.dayLabel}</strong>
@@ -573,11 +599,24 @@ function ReportHeatmap({ days }) {
     );
 }
 
-function ReportWorkspace({ categories = [], mode = "mobile", navItems = [], onNavigate, user, wallets = [] }) {
+function ReportWorkspace({
+    categories = [],
+    mode = "mobile",
+    monthOptions: controlledMonthOptions,
+    onMonthOptionsChange,
+    onNavigate,
+    onSelectedMonthChange,
+    selectedMonth: controlledSelectedMonth,
+    user,
+    wallets = [],
+}) {
     const currentMonthKey = getCurrentMonthKey();
+    const isDesktopMode = mode === "desktop";
     const isMobileMode = mode === "mobile";
-    const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
-    const [monthOptions, setMonthOptions] = useState(() => [currentMonthKey]);
+    const isMonthOptionsControlled = Array.isArray(controlledMonthOptions);
+    const isSelectedMonthControlled = controlledSelectedMonth !== undefined;
+    const [internalSelectedMonth, setInternalSelectedMonth] = useState(currentMonthKey);
+    const [internalMonthOptions, setInternalMonthOptions] = useState(() => [currentMonthKey]);
     const [monthlyStats, setMonthlyStats] = useState(() => getEmptyMonthlyStats(currentMonthKey));
     const [previousMonthlyStats, setPreviousMonthlyStats] = useState(() =>
         getEmptyMonthlyStats(getPreviousMonthKey(currentMonthKey)),
@@ -589,6 +628,28 @@ function ReportWorkspace({ categories = [], mode = "mobile", navItems = [], onNa
     const [transactions, setTransactions] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [loadError, setLoadError] = useState("");
+    const selectedMonth = isSelectedMonthControlled ? controlledSelectedMonth : internalSelectedMonth;
+    const monthOptions = isMonthOptionsControlled ? controlledMonthOptions : internalMonthOptions;
+    const setSelectedMonth = useCallback(
+        (nextMonth) => {
+            if (!isSelectedMonthControlled) {
+                setInternalSelectedMonth(nextMonth);
+            }
+
+            onSelectedMonthChange?.(nextMonth);
+        },
+        [isSelectedMonthControlled, onSelectedMonthChange],
+    );
+    const setMonthOptions = useCallback(
+        (nextMonthOptions) => {
+            if (!isMonthOptionsControlled) {
+                setInternalMonthOptions(nextMonthOptions);
+            }
+
+            onMonthOptionsChange?.(nextMonthOptions);
+        },
+        [isMonthOptionsControlled, onMonthOptionsChange],
+    );
 
     useEffect(() => {
         let isCancelled = false;
@@ -616,7 +677,7 @@ function ReportWorkspace({ categories = [], mode = "mobile", navItems = [], onNa
         return () => {
             isCancelled = true;
         };
-    }, [currentMonthKey, user?.uid]);
+    }, [currentMonthKey, setMonthOptions, user?.uid]);
 
     useEffect(() => {
         let isCancelled = false;
@@ -739,7 +800,7 @@ function ReportWorkspace({ categories = [], mode = "mobile", navItems = [], onNa
             income: statIncome,
             monthKey: stat.monthKey,
             net: stat.netMinor ?? statIncome - statExpense,
-            savingRate: statIncome > 0 ? getPercent((stat.netMinor ?? statIncome - statExpense), statIncome) : 0,
+            savingRate: statIncome > 0 ? getPercent(stat.netMinor ?? statIncome - statExpense, statIncome) : 0,
         };
     });
     const comparisonRows = lineMonths.slice(-5).reverse();
@@ -819,7 +880,9 @@ function ReportWorkspace({ categories = [], mode = "mobile", navItems = [], onNa
         {
             label: "Cuối tuần chi nhiều hơn",
             tone: "green",
-            value: weekendRatio ? `Chi tiêu cuối tuần cao gấp ${weekendRatio} lần ngày thường.` : "Chưa đủ dữ liệu cuối tuần.",
+            value: weekendRatio
+                ? `Chi tiêu cuối tuần cao gấp ${weekendRatio} lần ngày thường.`
+                : "Chưa đủ dữ liệu cuối tuần.",
         },
         {
             label: "Vượt ngân sách",
@@ -838,25 +901,26 @@ function ReportWorkspace({ categories = [], mode = "mobile", navItems = [], onNa
 
     const reportContent = (
         <div className={`report-page report-page--${mode}`}>
-            <section className="report-page__topbar">
-                <div className="report-page__title">
-                    <h1>Báo cáo chi tiêu</h1>
-                    <p>Phân tích và tổng hợp tình hình tài chính của bạn</p>
-                </div>
-                <div className="report-page__filters">
-                    <label className="report-page__filter-control report-page__select-control">
-                        <span className="sr-only">Chọn tháng báo cáo</span>
-                        <select onChange={(event) => setSelectedMonth(event.target.value)} value={selectedMonth}>
-                            {monthOptions.map((monthKey) => (
-                                <option key={monthKey} value={monthKey}>
-                                    {getMonthLabel(monthKey)}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
-                    
-                </div>
-            </section>
+            {!isDesktopMode ? (
+                <section className="report-page__topbar">
+                    <div className="report-page__title">
+                        <h1>Báo cáo chi tiêu</h1>
+                        <p>Phân tích và tổng hợp tình hình tài chính của bạn</p>
+                    </div>
+                    <div className="report-page__filters">
+                        <label className="report-page__filter-control report-page__select-control">
+                            <span className="sr-only">Chọn tháng báo cáo</span>
+                            <select onChange={(event) => setSelectedMonth(event.target.value)} value={selectedMonth}>
+                                {monthOptions.map((monthKey) => (
+                                    <option key={monthKey} value={monthKey}>
+                                        {getMonthLabel(monthKey)}
+                                    </option>
+                                ))}
+                            </select>
+                        </label>
+                    </div>
+                </section>
+            ) : null}
 
             {loadError ? <p className="report-page__notice">{loadError}</p> : null}
 
@@ -889,17 +953,24 @@ function ReportWorkspace({ categories = [], mode = "mobile", navItems = [], onNa
                             <span>6 tháng gần nhất</span>
                         </div>
                     </header>
-                    {isLoading ? <p className="report-page__empty">Đang tải dữ liệu...</p> : <ReportLineChart months={lineMonths} />}
+                    {isLoading ? (
+                        <p className="report-page__empty">Đang tải dữ liệu...</p>
+                    ) : (
+                        <ReportLineChart months={lineMonths} />
+                    )}
                     <div className="report-chart-legend">
                         <span className="report-chart-legend__item report-chart-legend__item--income">Thu nhập</span>
                         <span className="report-chart-legend__item report-chart-legend__item--expense">Chi tiêu</span>
-                        <span className="report-chart-legend__item report-chart-legend__item--average">Trung bình chi tiêu</span>
+                        <span className="report-chart-legend__item report-chart-legend__item--average">
+                            Trung bình chi tiêu
+                        </span>
                     </div>
                     <div className="report-callout">
                         <ReportIcon size={18} />
                         <span>
                             Chi tiêu tháng {getCompactMonthLabel(selectedMonth)} {expenseTrend >= 0 ? "tăng" : "giảm"}{" "}
-                            {Math.abs(expenseTrend)}% ({formatCurrency(Math.abs(expense - previousExpense))}) so với tháng trước.
+                            {Math.abs(expenseTrend)}% ({formatCurrency(Math.abs(expense - previousExpense))}) so với
+                            tháng trước.
                         </span>
                         <b>›</b>
                     </div>
@@ -911,7 +982,11 @@ function ReportWorkspace({ categories = [], mode = "mobile", navItems = [], onNa
                             <span>{getMonthLabel(selectedMonth)}</span>
                         </div>
                     </header>
-                    {isLoading ? <p className="report-page__empty">Đang tải dữ liệu...</p> : <ReportWeeklyBarChart weeks={weeklyRows} />}
+                    {isLoading ? (
+                        <p className="report-page__empty">Đang tải dữ liệu...</p>
+                    ) : (
+                        <ReportWeeklyBarChart weeks={weeklyRows} />
+                    )}
                 </article>
             </section>
 
@@ -942,7 +1017,9 @@ function ReportWorkspace({ categories = [], mode = "mobile", navItems = [], onNa
                         </div>
                     </header>
                     <ReportHeatmap days={dailyRows} />
-                    <p className="report-panel__muted">Ngày cao nhất: {highestDailyAmount ? formatCurrency(highestDailyAmount) : "-"}</p>
+                    <p className="report-panel__muted">
+                        Ngày cao nhất: {highestDailyAmount ? formatCurrency(highestDailyAmount) : "-"}
+                    </p>
                 </article>
 
                 <article className="report-panel report-panel--top-transactions">
@@ -1028,9 +1105,13 @@ function ReportWorkspace({ categories = [], mode = "mobile", navItems = [], onNa
                                 <strong>{getCompactMonthLabel(month.monthKey)}</strong>
                                 <span>{formatCurrency(month.income)}</span>
                                 <span className="is-danger">{formatCurrency(month.expense)}</span>
-                                <span className={month.net >= 0 ? "is-good" : "is-danger"}>{formatCurrency(month.net)}</span>
+                                <span className={month.net >= 0 ? "is-good" : "is-danger"}>
+                                    {formatCurrency(month.net)}
+                                </span>
                                 <span className="report-table__saving">
-                                    <i style={{ "--saving-width": `${Math.max(Math.min(month.savingRate, 100), 0)}%` }} />
+                                    <i
+                                        style={{ "--saving-width": `${Math.max(Math.min(month.savingRate, 100), 0)}%` }}
+                                    />
                                     <small>{month.savingRate}%</small>
                                 </span>
                             </div>
@@ -1056,7 +1137,9 @@ function ReportWorkspace({ categories = [], mode = "mobile", navItems = [], onNa
                                     <AmountText amount={projectedExpense} />
                                 </strong>
                             </div>
-                            <b>{expenseTrend >= 0 ? "↑" : "↓"} {Math.abs(expenseTrend)}%</b>
+                            <b>
+                                {expenseTrend >= 0 ? "↑" : "↓"} {Math.abs(expenseTrend)}%
+                            </b>
                         </div>
                         <div className="report-forecast report-forecast--blue">
                             <i>
@@ -1066,7 +1149,10 @@ function ReportWorkspace({ categories = [], mode = "mobile", navItems = [], onNa
                                 <span>Tỷ lệ tiết kiệm dự kiến</span>
                                 <strong>{projectedSavingRate}%</strong>
                             </div>
-                            <b>{projectedSavingRate >= savingRate ? "↑" : "↓"} {Math.abs(Math.round((projectedSavingRate - savingRate) * 10) / 10)}%</b>
+                            <b>
+                                {projectedSavingRate >= savingRate ? "↑" : "↓"}{" "}
+                                {Math.abs(Math.round((projectedSavingRate - savingRate) * 10) / 10)}%
+                            </b>
                         </div>
                         <div className="report-forecast report-forecast--orange">
                             <i>
@@ -1100,12 +1186,7 @@ function ReportWorkspace({ categories = [], mode = "mobile", navItems = [], onNa
         );
     }
 
-    return (
-        <div className="web-dashboard-view web-report-view">
-            <ExpenseSidebar activeId="report" items={navItems} onNavigate={onNavigate} user={user} />
-            <main className="web-dashboard-view__main web-report-view__main">{reportContent}</main>
-        </div>
-    );
+    return reportContent;
 }
 
 export default function ReportPage(props) {

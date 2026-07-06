@@ -9,7 +9,6 @@
 .web-report-view__main {
     background:
         linear-gradient(180deg, color-mix(in srgb, var(--expense-surface-solid) 94%, #f4f8fb), var(--expense-page-bg));
-    padding: 28px;
 }
 
 .report-page {
@@ -49,6 +48,14 @@
     font-weight: 700;
     line-height: 1.4;
     margin: 0;
+}
+
+.report-page--desktop .report-page__topbar {
+    justify-content: flex-end;
+}
+
+.report-page--desktop .report-page__title {
+    display: none;
 }
 
 .report-page button,
