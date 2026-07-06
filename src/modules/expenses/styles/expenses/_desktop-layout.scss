@@ -84,8 +84,39 @@
 }
 
 .expense-header {
+    align-items: flex-start;
     display: flex;
-    justify-content: flex-end;
+    gap: 20px;
+    justify-content: space-between;
+    min-width: 0;
+}
+
+.expense-header__title {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
+}
+
+.expense-header__title span {
+    color: color-mix(in srgb, var(--expense-active-strong) 68%, var(--expense-muted));
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.expense-header__title h1 {
+    color: var(--expense-heading);
+    font-size: 30px;
+    line-height: 1.08;
+    margin: 0;
+}
+
+.expense-header__title p {
+    color: var(--expense-muted);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.35;
+    margin: 0;
 }
 
 .expense-header__actions {
@@ -93,6 +124,41 @@
     display: flex;
     gap: 12px;
     justify-content: flex-end;
+    margin-left: auto;
+}
+
+.expense-header__page-actions {
+    align-items: center;
+    display: flex;
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.expense-header__page-actions + .expense-header__actions {
+    margin-left: 0;
+}
+
+.expense-header__page-actions .category-spending-page__controls {
+    flex-wrap: nowrap;
+}
+
+.expense-header__page-actions .report-page__filters {
+    flex-wrap: nowrap;
+}
+
+.expense-header__page-actions .report-page__filter-control {
+    background: var(--expense-surface-solid);
+    border-color: var(--expense-border);
+    box-shadow: none;
+    min-height: 44px;
+}
+
+.expense-header__page-actions .report-page__select-control {
+    min-width: 180px;
+}
+
+.expense-header__page-actions .report-page__select-control select {
+    min-height: 44px;
 }
 
 .expense-header__actions input,
@@ -178,6 +244,7 @@
 }
 
 .web-dashboard-view__main {
+    align-content: start;
     display: grid;
     gap: 24px;
     min-width: 0;

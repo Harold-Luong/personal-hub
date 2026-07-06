@@ -2,10 +2,15 @@ import { useState } from "react";
 import { LogoutIcon, PlusIcon, ThemeIcon } from "../../icon/ExpenseIcons";
 
 export default function ExpenseHeader({
+    className = "",
+    // eyebrow,
     onAddTransactionClick,
     onLogout,
     onToggleTheme,
+    pageActions,
+    subtitle,
     theme = "sage",
+    title,
     user,
 }) {
     const [isSigningOut, setIsSigningOut] = useState(false);
@@ -25,8 +30,18 @@ export default function ExpenseHeader({
         }
     };
 
+    const headerClassName = ["expense-header", className].filter(Boolean).join(" ");
+
     return (
-        <header className="expense-header">
+        <header className={headerClassName}>
+            {title ? (
+                <div className="expense-header__title">
+                    {/* {eyebrow ? <span>{eyebrow}</span> : null} */}
+                    <h1>{title}</h1>
+                    {subtitle ? <p>{subtitle}</p> : null}
+                </div>
+            ) : null}
+            {pageActions ? <div className="expense-header__page-actions">{pageActions}</div> : null}
             <div className="expense-header__actions">
                 <button
                     aria-label="Thêm giao dịch"
@@ -45,12 +60,6 @@ export default function ExpenseHeader({
                 >
                     <ThemeIcon size={18} />
                     <span>{theme}</span>
-                </button>
-                <button aria-label="Search" type="button">
-                    SR
-                </button>
-                <button aria-label="Notifications" type="button">
-                    NT
                 </button>
                 <span className="expense-header__avatar" title={user?.email || accountName}>
                     {shouldShowAccountPhoto ? (
