@@ -15,10 +15,25 @@ package-lock.json
 yarn.lock
 
 # Local agent/tooling state
+.agents/
 .codegraph/
 .codex-run/
 .claude/
+.cursorrules
+.gemini/
+.github/code-review-graph.instruction.md
+.kiro/
 .mcp.json
+.opencode.json
+.qoder/
+.windsurfrules
+AGENTS.md
+CLAUDE.md
+GEMINI.md
+QODER.md
+graph.dot
+graph.mmd
+graph.mmd~
 
 # Editor directories and files
 .vscode/*
@@ -30,3 +45,5 @@ yarn.lock
 *.njsproj
 *.sln
 *.sw?
+# Added by code-review-graph
+.code-review-graph/
