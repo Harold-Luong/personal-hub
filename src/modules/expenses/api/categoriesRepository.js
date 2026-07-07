@@ -1,20 +1,7 @@
 import { collection, getDocsFromServer } from "firebase/firestore";
 import { firestore } from "../../../lib/firebase/firestore";
-
-function getCategoriesCollectionRef(uid) {
-    if (!uid) {
-        throw new Error("A Firebase Authentication uid is required.");
-    }
-
-    return collection(
-        firestore,
-        "users",
-        uid,
-        "modules",
-        "expenses",
-        "categories",
-    );
-}
+import { getCollectionReference } from "./getReference";
+const CATEGORIES_COLLECTION = "categories";
 
 function sortCategories(firstCategory, secondCategory) {
     const typeComparison = (firstCategory.type ?? "").localeCompare(
@@ -32,7 +19,7 @@ function sortCategories(firstCategory, secondCategory) {
 }
 
 export async function getExpenseCategories(uid) {
-    const snapshot = await getDocsFromServer(getCategoriesCollectionRef(uid));
+    const snapshot = await getDocsFromServer(getCollectionReference(uid, CATEGORIES_COLLECTION));
 
     return snapshot.docs
         .map((documentSnapshot) => ({
