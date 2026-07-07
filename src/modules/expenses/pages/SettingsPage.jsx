@@ -1,32 +1,37 @@
+import { selectAuthUid, useAuthSessionStore } from "../../../stores/authSessionStore";
+import {
+    selectExpensePreferences,
+    selectExpenseSettingsError,
+    useExpensePreferencesStore,
+} from "../../../stores/expensePreferencesStore";
 import MobileSettingsView from "../components/mobile/MobileSettingsView";
 
 export default function SettingsPage({
-    currency,
-    hideBalance,
-    notificationsEnabled,
     onLogout,
     onManageBudget,
     onManageWallet,
-    onSettingChange,
-    onThemeChange,
-    settingsError,
-    theme,
-    user,
     wallets,
 }) {
+    const uid = useAuthSessionStore(selectAuthUid);
+    const settings = useExpensePreferencesStore(selectExpensePreferences);
+    const settingsError = useExpensePreferencesStore(selectExpenseSettingsError);
+    const saveExpensePreference = useExpensePreferencesStore((state) => state.saveExpensePreference);
+    const handleSettingChange = (key, value) => {
+        saveExpensePreference(uid, key, value);
+    };
+
     return (
         <MobileSettingsView
-            currency={currency}
-            hideBalance={hideBalance}
-            notificationsEnabled={notificationsEnabled}
+            currency={settings.currency}
+            hideBalance={settings.hideBalance}
+            notificationsEnabled={settings.notificationsEnabled}
             onLogout={onLogout}
             onManageBudget={onManageBudget}
             onManageWallet={onManageWallet}
-            onSettingChange={onSettingChange}
-            onThemeChange={onThemeChange}
+            onSettingChange={handleSettingChange}
+            onThemeChange={(theme) => handleSettingChange("theme", theme)}
             settingsError={settingsError}
-            theme={theme}
-            user={user}
+            theme={settings.theme}
             wallets={wallets}
         />
     );

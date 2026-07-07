@@ -4,22 +4,12 @@ import MobilePageHeader from "../components/mobile/MobilePageHeader";
 import AmountText from "../components/shared/AmountText";
 import ExpenseIcon from "../components/shared/ExpenseEmoji";
 import ProgressBar from "../components/shared/ProgressBar";
+import { budgetStatusColors, budgetStatusLabels } from "../constant/expensesMetaData";
 import {
     calculateBudgetUsagePercentage,
     calculateMonthlyBudgetTotals,
     getBudgetUsageStatus,
 } from "../utils/expenseCalculations";
-
-const budgetStatusColors = {
-    exceeded: "#dc1717",
-    warning: "#d98c00",
-};
-
-const budgetStatusLabels = {
-    exceeded: "Vượt hạn mức",
-    normal: "Trong kế hoạch",
-    warning: "Gần chạm ngưỡng",
-};
 
 function getExpenseCategories(categories) {
     return categories.filter((category) => (category.type ?? "expense") === "expense");

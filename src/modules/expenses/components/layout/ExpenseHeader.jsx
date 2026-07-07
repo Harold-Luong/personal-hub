@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { selectAuthUser, useAuthSessionStore } from "../../../../stores/authSessionStore";
+import { expenseDefaultTheme } from "../../constant/expensesMetaData";
 import { LogoutIcon, PlusIcon, ThemeIcon } from "../../icon/ExpenseIcons";
 
 export default function ExpenseHeader({
@@ -9,10 +11,10 @@ export default function ExpenseHeader({
     onToggleTheme,
     pageActions,
     subtitle,
-    theme = "sage",
+    theme = expenseDefaultTheme,
     title,
-    user,
 }) {
+    const user = useAuthSessionStore(selectAuthUser);
     const [isSigningOut, setIsSigningOut] = useState(false);
     const [failedAvatarUrl, setFailedAvatarUrl] = useState("");
     const accountName = user?.displayName || user?.email || "Tai khoan";

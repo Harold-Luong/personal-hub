@@ -1,10 +1,26 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
+import { selectAuthUid, useAuthSessionStore } from "../../../stores/authSessionStore";
+import {
+    getExpenseMonthOptionsCacheKey,
+    selectExpenseBudgetLimitsByMonth,
+    selectExpenseCategories,
+    selectExpenseMonthOptionsByYear,
+    selectExpenseMonthlyStatsByMonth,
+    useExpenseDataStore,
+} from "../../../stores/expenseDataStore";
 import AmountText from "../components/shared/AmountText";
 import DonutChart from "../components/shared/DonutChart";
 import ExpenseEmoji from "../components/shared/ExpenseEmoji";
 import ProgressBar from "../components/shared/ProgressBar";
 import SummaryCardList from "../components/shared/SummaryCardList";
+import {
+    budgetExceededThresholdPercentage,
+    budgetWarningThresholdPercentage,
+    categoryChartPinnedCategoryLimit,
+    categoryChartTopCategoryLimit,
+    categoryTransactionPageSize,
+} from "../constant/expensesMetaData";
 import { BudgetIcon, CalendarIcon, ChevronIcon, ReportIcon, TransactionListIcon, XIcon } from "../icon/ExpenseIcons";
 import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { formatCurrency } from "../utils/formatCurrency";
@@ -16,8 +32,6 @@ import {
     getTransactionWalletLabel,
 } from "../utils/transactionDisplayUtils";
 
-const categoryTransactionPageSize = 15;
-
 function getBudgetTone(amount, limit) {
     if (!limit) {
         return "neutral";
@@ -25,11 +39,11 @@ function getBudgetTone(amount, limit) {
 
     const percentage = Math.round((amount / limit) * 100);
 
-    if (percentage >= 100) {
+    if (percentage >= budgetExceededThresholdPercentage) {
         return "danger";
     }
 
-    if (percentage >= 80) {
+    if (percentage >= budgetWarningThresholdPercentage) {
         return "warning";
     }
 
@@ -176,11 +190,13 @@ function CategorySummaryCards({ categories, monthlyStats, budgets }) {
 }
 
 function CategoryChartOverview({ categories, onSelect, selectedCategoryId, totalExpense }) {
-    const topCategories = categories.slice(0, 5);
+    const topCategories = categories.slice(0, categoryChartTopCategoryLimit);
     const selectedCategory = categories.find((category) => category.id === selectedCategoryId) ?? topCategories[0];
     const hasVisibleSelection = topCategories.some((category) => category.id === selectedCategory?.id);
     const visibleCategories =
-        selectedCategory && !hasVisibleSelection ? [...topCategories.slice(0, 3), selectedCategory] : topCategories;
+        selectedCategory && !hasVisibleSelection
+            ? [...topCategories.slice(0, categoryChartPinnedCategoryLimit), selectedCategory]
+            : topCategories;
     const hiddenCategoryCount = Math.max(
         categories.length - new Set(visibleCategories.map((category) => category.id)).size,
         0,
@@ -486,27 +502,33 @@ function CategoryDetailPanel({
 }
 
 function CategorySpendingWorkspace({
-    categories,
+    categories: controlledCategories,
     mode,
     monthOptions: controlledMonthOptions,
     onManageBudget,
-    onMonthOptionsChange,
     onSelectedMonthChange,
     onSortKeyChange,
     selectedMonth: controlledSelectedMonth,
     sortKey: controlledSortKey,
-    userId,
 }) {
+    const uid = useAuthSessionStore(selectAuthUid);
+    const storeCategories = useExpenseDataStore(selectExpenseCategories);
+    const budgetLimitsByMonth = useExpenseDataStore(selectExpenseBudgetLimitsByMonth);
+    const monthlyStatsByMonth = useExpenseDataStore(selectExpenseMonthlyStatsByMonth);
+    const monthOptionsByYear = useExpenseDataStore(selectExpenseMonthOptionsByYear);
+    const loadExpenseBudgets = useExpenseDataStore((state) => state.loadExpenseBudgets);
+    const loadExpenseMonthlyStats = useExpenseDataStore((state) => state.loadExpenseMonthlyStats);
+    const loadExpenseMonthOptions = useExpenseDataStore((state) => state.loadExpenseMonthOptions);
     const navigate = useNavigate();
     const isDesktopMode = mode === "desktop";
     const currentMonthKey = getCurrentMonthKey();
+    const currentYear = getCurrentYear();
+    const monthOptionsCacheKey = getExpenseMonthOptionsCacheKey(uid, currentYear);
+    const categories = controlledCategories ?? storeCategories;
     const isMonthOptionsControlled = Array.isArray(controlledMonthOptions);
     const isSelectedMonthControlled = controlledSelectedMonth !== undefined;
     const isSortKeyControlled = controlledSortKey !== undefined;
     const [internalSelectedMonth, setInternalSelectedMonth] = useState(currentMonthKey);
-    const [internalMonthOptions, setInternalMonthOptions] = useState(() => [currentMonthKey]);
-    const [monthlyStats, setMonthlyStats] = useState(() => getEmptyMonthlyStats(currentMonthKey));
-    const [budgets, setBudgets] = useState([]);
     const [internalSortKey, setInternalSortKey] = useState("amount");
     const [selectedCategoryId, setSelectedCategoryId] = useState("");
     const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
@@ -518,18 +540,19 @@ function CategorySpendingWorkspace({
     const [isTransactionLoading, setIsTransactionLoading] = useState(false);
     const [transactionError, setTransactionError] = useState("");
     const selectedMonth = isSelectedMonthControlled ? controlledSelectedMonth : internalSelectedMonth;
-    const monthOptions = isMonthOptionsControlled ? controlledMonthOptions : internalMonthOptions;
-    const sortKey = isSortKeyControlled ? controlledSortKey : internalSortKey;
-    const setMonthOptions = useCallback(
-        (nextMonthOptions) => {
-            if (!isMonthOptionsControlled) {
-                setInternalMonthOptions(nextMonthOptions);
-            }
-
-            onMonthOptionsChange?.(nextMonthOptions);
-        },
-        [isMonthOptionsControlled, onMonthOptionsChange],
+    const monthlyStats = monthlyStatsByMonth[selectedMonth] ?? getEmptyMonthlyStats(selectedMonth);
+    const budgets = useMemo(
+        () => budgetLimitsByMonth[selectedMonth] ?? [],
+        [budgetLimitsByMonth, selectedMonth],
     );
+    const monthOptions = useMemo(
+        () =>
+            isMonthOptionsControlled
+                ? controlledMonthOptions
+                : (monthOptionsByYear[monthOptionsCacheKey] ?? [currentMonthKey]),
+        [controlledMonthOptions, currentMonthKey, isMonthOptionsControlled, monthOptionsByYear, monthOptionsCacheKey],
+    );
+    const sortKey = isSortKeyControlled ? controlledSortKey : internalSortKey;
     const setSelectedMonth = useCallback(
         (nextMonth) => {
             if (!isSelectedMonthControlled) {
@@ -595,38 +618,8 @@ function CategorySpendingWorkspace({
     );
 
     useEffect(() => {
-        let isCancelled = false;
-        const currentYear = getCurrentYear();
-
-        if (!userId) {
-            Promise.resolve().then(() => {
-                if (!isCancelled) {
-                    setMonthOptions([currentMonthKey]);
-                }
-            });
-
-            return () => {
-                isCancelled = true;
-            };
-        }
-
-        import("../api/monthlyStatsRepository")
-            .then(({ getExpenseMonthlyStatsMonths }) => getExpenseMonthlyStatsMonths(userId, currentYear))
-            .then((monthKeys) => {
-                if (!isCancelled) {
-                    setMonthOptions(getVisibleMonthOptions(monthKeys, currentMonthKey));
-                }
-            })
-            .catch(() => {
-                if (!isCancelled) {
-                    setMonthOptions([currentMonthKey]);
-                }
-            });
-
-        return () => {
-            isCancelled = true;
-        };
-    }, [currentMonthKey, setMonthOptions, userId]);
+        loadExpenseMonthOptions(uid, currentYear, currentMonthKey);
+    }, [currentMonthKey, currentYear, loadExpenseMonthOptions, uid]);
 
     useEffect(() => {
         let isCancelled = false;
@@ -638,11 +631,9 @@ function CategorySpendingWorkspace({
             }
         });
 
-        if (!userId) {
+        if (!uid) {
             Promise.resolve().then(() => {
                 if (!isCancelled) {
-                    setMonthlyStats(getEmptyMonthlyStats(selectedMonth));
-                    setBudgets([]);
                     setIsLoading(false);
                 }
             });
@@ -652,20 +643,9 @@ function CategorySpendingWorkspace({
             };
         }
 
-        Promise.all([import("../api/monthlyStatsRepository"), import("../api/budgetsRepository")])
-            .then(([{ getExpenseMonthlyStats }, { getExpenseBudgets }]) =>
-                Promise.all([getExpenseMonthlyStats(userId, selectedMonth), getExpenseBudgets(userId, selectedMonth)]),
-            )
-            .then(([nextMonthlyStats, nextBudgets]) => {
-                if (!isCancelled) {
-                    setMonthlyStats(nextMonthlyStats);
-                    setBudgets(nextBudgets);
-                }
-            })
+        Promise.all([loadExpenseMonthlyStats(uid, selectedMonth), loadExpenseBudgets(uid, selectedMonth)])
             .catch(() => {
                 if (!isCancelled) {
-                    setMonthlyStats(getEmptyMonthlyStats(selectedMonth));
-                    setBudgets([]);
                     setLoadError("Không thể tải chi tiêu theo danh mục. Vui lòng thử lại.");
                 }
             })
@@ -678,7 +658,7 @@ function CategorySpendingWorkspace({
         return () => {
             isCancelled = true;
         };
-    }, [selectedMonth, userId]);
+    }, [loadExpenseBudgets, loadExpenseMonthlyStats, selectedMonth, uid]);
 
     useEffect(() => {
         let isCancelled = false;
@@ -694,7 +674,7 @@ function CategorySpendingWorkspace({
             }
         });
 
-        if (!userId || !nextCategoryId) {
+        if (!uid || !nextCategoryId) {
             return undefined;
         }
 
@@ -706,7 +686,7 @@ function CategorySpendingWorkspace({
 
         import("../api/transactionsRepository")
             .then(({ getExpenseTransactionsPage }) =>
-                getExpenseTransactionsPage(userId, {
+                getExpenseTransactionsPage(uid, {
                     categoryId: nextCategoryId,
                     monthKey: selectedMonth,
                     pageSize: categoryTransactionPageSize,
@@ -734,10 +714,10 @@ function CategorySpendingWorkspace({
         return () => {
             isCancelled = true;
         };
-    }, [selectedCategory?.id, selectedMonth, userId]);
+    }, [selectedCategory?.id, selectedMonth, uid]);
 
     const handleLoadMoreTransactions = async () => {
-        if (!userId || !selectedCategory?.id || !transactionCursor || isTransactionLoading) {
+        if (!uid || !selectedCategory?.id || !transactionCursor || isTransactionLoading) {
             return;
         }
 
@@ -746,7 +726,7 @@ function CategorySpendingWorkspace({
 
         try {
             const { getExpenseTransactionsPage } = await import("../api/transactionsRepository");
-            const result = await getExpenseTransactionsPage(userId, {
+            const result = await getExpenseTransactionsPage(uid, {
                 categoryId: selectedCategory.id,
                 cursor: transactionCursor,
                 monthKey: selectedMonth,
@@ -782,40 +762,6 @@ function CategorySpendingWorkspace({
         navigate(`/expenses/transactions?${query.toString()}`);
     };
 
-    const applySavedBudget = (budget) => {
-        if (budget?.monthKey !== selectedMonth) {
-            return;
-        }
-
-        setBudgets((currentBudgets) => {
-            const existingBudgetIndex = currentBudgets.findIndex(
-                (currentBudget) =>
-                    currentBudget.monthKey === budget.monthKey && currentBudget.categoryId === budget.categoryId,
-            );
-
-            if (existingBudgetIndex === -1) {
-                return [...currentBudgets, budget];
-            }
-
-            return currentBudgets.map((currentBudget, index) =>
-                index === existingBudgetIndex ? budget : currentBudget,
-            );
-        });
-    };
-
-    const applyDeletedBudget = (budget) => {
-        if (budget?.monthKey !== selectedMonth) {
-            return;
-        }
-
-        setBudgets((currentBudgets) =>
-            currentBudgets.filter(
-                (currentBudget) =>
-                    currentBudget.monthKey !== budget.monthKey || currentBudget.categoryId !== budget.categoryId,
-            ),
-        );
-    };
-
     const handleManageBudget = (categoryId) => {
         if (!categoryId) {
             return;
@@ -824,8 +770,6 @@ function CategorySpendingWorkspace({
         onManageBudget?.(categoryId, {
             budgets: budgetFormBudgets,
             monthKey: selectedMonth,
-            onDeleteBudget: applyDeletedBudget,
-            onSaveBudget: applySavedBudget,
         });
 
         if (!isDesktopMode) {
@@ -993,29 +937,25 @@ function CategorySpendingWorkspace({
 }
 
 export default function CategorySpendingPage({
-    categories = [],
+    categories,
     monthOptions,
     mode = "mobile",
-    onMonthOptionsChange,
     onManageBudget,
     onSelectedMonthChange,
     onSortKeyChange,
     selectedMonth,
     sortKey,
-    user,
 }) {
     return (
         <CategorySpendingWorkspace
             categories={categories}
             monthOptions={monthOptions}
             mode={mode}
-            onMonthOptionsChange={onMonthOptionsChange}
             onManageBudget={onManageBudget}
             onSelectedMonthChange={onSelectedMonthChange}
             onSortKeyChange={onSortKeyChange}
             selectedMonth={selectedMonth}
             sortKey={sortKey}
-            userId={user?.uid}
         />
     );
 }

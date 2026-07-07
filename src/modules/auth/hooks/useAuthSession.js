@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from '../../../lib/firebase/auth'
+import { useAuthSessionStore } from '../../../stores/authSessionStore'
 
 export default function useAuthSession() {
     const [user, setUser] = useState(null)
@@ -8,13 +9,14 @@ export default function useAuthSession() {
 
     useEffect(() => {
         return onAuthStateChanged(auth, (currentUser) => {
+            useAuthSessionStore.getState().setAuthUser(currentUser)
             setUser(currentUser)
             setIsLoading(false)
         })
     }, [])
 
     return {
-        user,
-        isLoading,
+        user: user,
+        isLoading: isLoading,
     }
 }

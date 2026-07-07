@@ -6,9 +6,18 @@ import {
     updateDoc,
 } from "firebase/firestore";
 import { firestore } from "../../../lib/firebase/firestore";
-import { expenseCurrencies, expenseThemes } from "../constant/expensesMetaData";
+import {
+    expenseCurrencyLabels,
+    expenseDefaultCurrency,
+    expenseDefaultTheme,
+    expenseDefaultTimezone,
+    expenseDefaultWalletId,
+    expenseDefaultWalletTypeId,
+    expenseDefaultWalletTypeMeta,
+    expenseThemeIds,
+} from "../constant/expensesMetaData";
 
-const defaultWalletId = "default-wallet-cash";
+const defaultWalletId = expenseDefaultWalletId;
 const defaultExpenseCategories = [
     {
         id: "food",
@@ -147,9 +156,9 @@ const defaultCategories = [
 ];
 
 const defaultExpenseSettings = {
-    theme: "sage",
-    currency: "VND",
-    timezone: "Asia/Bangkok",
+    theme: expenseDefaultTheme,
+    currency: expenseDefaultCurrency,
+    timezone: expenseDefaultTimezone,
     hideBalance: false,
     notificationsEnabled: true,
     defaultWalletId,
@@ -165,11 +174,11 @@ function isAlreadyExistsError(error) {
 }
 
 function validateExpenseSetting(key, value) {
-    if (key === "theme" && !expenseThemes.includes(value)) {
+    if (key === "theme" && !expenseThemeIds.includes(value)) {
         throw new Error(`Unsupported expense theme: ${value}.`);
     }
 
-    if (key === "currency" && !expenseCurrencies.includes(value)) {
+    if (key === "currency" && !expenseCurrencyLabels.includes(value)) {
         throw new Error(`Unsupported expense currency: ${value}.`);
     }
 
@@ -363,12 +372,12 @@ async function initializeUserData(user, settings = {}) {
             if (!walletSnapshot.exists()) {
                 transaction.set(walletRef, {
                     name: "Ví tiền mặt",
-                    type: "cash",
-                    icon: "wallet",
-                    color: "#56b879",
+                    type: expenseDefaultWalletTypeId,
+                    icon: expenseDefaultWalletTypeMeta.icon,
+                    color: expenseDefaultWalletTypeMeta.color,
                     balance: 0,
                     initialBalance: 0,
-                    currency: "VND",
+                    currency: expenseDefaultCurrency,
                     order: 10,
                     isDefault: true,
                     isArchived: false,

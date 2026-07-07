@@ -1,6 +1,8 @@
+import { selectAuthUser, useAuthSessionStore } from "../../../../stores/authSessionStore";
 import ExpenseIcon from "../shared/ExpenseEmoji";
 
-export default function ExpenseSidebar({ items = [], activeId = "dashboard", onNavigate, user }) {
+export default function ExpenseSidebar({ items = [], activeId = "dashboard", onNavigate }) {
+    const user = useAuthSessionStore(selectAuthUser);
     const accountName = user?.displayName || user?.email || "Tài khoản";
 
     return (
