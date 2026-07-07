@@ -76,9 +76,9 @@ function applyWalletBalanceUpdates(wallets, walletBalanceUpdates = {}) {
     return wallets.map((wallet) =>
         Object.hasOwn(walletBalanceUpdates, wallet.id)
             ? {
-                  ...wallet,
-                  balance: walletBalanceUpdates[wallet.id],
-              }
+                ...wallet,
+                balance: walletBalanceUpdates[wallet.id],
+            }
             : wallet,
     );
 }
@@ -165,7 +165,7 @@ export const useExpenseDataStore = create((set, get) => ({
             return [];
         }
     },
-    
+
     // Tải thống kê chi tiêu hàng tháng
     loadExpenseMonthlyStats: async (uid, monthKey) => {
         if (!uid || !monthKey) {
@@ -188,34 +188,49 @@ export const useExpenseDataStore = create((set, get) => ({
     // Tải giới hạn ngân sách theo tháng
     loadExpenseBudgets: async (uid, monthKey) => {
         if (!uid || !monthKey) {
-            set((state) => ({
-                budgetLimitsByMonth: {
-                    ...state.budgetLimitsByMonth,
-                    [monthKey]: [],
-                },
-            }));
             return [];
         }
 
+        set((state) => ({
+            budgetLimitsErrorByMonth: {
+                ...state.budgetLimitsErrorByMonth,
+                [monthKey]: null,
+            },
+        }));
+
         try {
-            const { getExpenseBudgets } = await import("../modules/expenses/api/budgetsRepository");
-            const budgets = await getExpenseBudgets(uid, monthKey);
+            const { getExpenseBudgetsByMonth } = await import("../modules/expenses/api/budgetsRepository");
+            const budgets = await getExpenseBudgetsByMonth(uid, monthKey);
 
             set((state) => ({
                 budgetLimitsByMonth: {
                     ...state.budgetLimitsByMonth,
                     [monthKey]: budgets,
                 },
+                budgetLimitsErrorByMonth: {
+                    ...state.budgetLimitsErrorByMonth,
+                    [monthKey]: null,
+                },
             }));
 
             return budgets;
-        } catch {
+        } catch (error) {
+            console.error("Failed to load expense budgets:", error);
+
             set((state) => ({
                 budgetLimitsByMonth: {
                     ...state.budgetLimitsByMonth,
                     [monthKey]: [],
                 },
+                budgetLimitsErrorByMonth: {
+                    ...state.budgetLimitsErrorByMonth,
+                    [monthKey]:
+                        error instanceof Error
+                            ? error.message
+                            : "Không thể tải ngân sách.",
+                },
             }));
+
             return [];
         }
     },
@@ -418,17 +433,17 @@ export const useExpenseDataStore = create((set, get) => ({
         set((state) => {
             const nextWallets = savedWallet.isDefault
                 ? state.wallets.map((currentWallet) => ({
-                      ...currentWallet,
-                      isDefault: currentWallet.id === savedWallet.id,
-                  }))
+                    ...currentWallet,
+                    isDefault: currentWallet.id === savedWallet.id,
+                }))
                 : state.wallets;
             const existingWalletIndex = nextWallets.findIndex((currentWallet) => currentWallet.id === savedWallet.id);
             const wallets =
                 existingWalletIndex === -1
                     ? [...nextWallets, savedWallet].sort(sortWallets)
                     : nextWallets
-                          .map((currentWallet, index) => (index === existingWalletIndex ? savedWallet : currentWallet))
-                          .sort(sortWallets);
+                        .map((currentWallet, index) => (index === existingWalletIndex ? savedWallet : currentWallet))
+                        .sort(sortWallets);
 
             return {
                 recentTransactions: result.adjustmentTransaction
