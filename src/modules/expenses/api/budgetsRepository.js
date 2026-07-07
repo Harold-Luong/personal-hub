@@ -1,69 +1,40 @@
-import {
-    collection,
-    deleteDoc,
-    doc,
-    getDocsFromServer,
-    orderBy,
-    query,
-    runTransaction,
-    serverTimestamp,
-    where,
-} from "firebase/firestore";
+import { deleteDoc, getDocsFromServer, query, runTransaction, serverTimestamp, where } from "firebase/firestore";
 import { firestore } from "../../../lib/firebase/firestore";
+import { getCollectionReference, getDocumentReference } from "./getReference";
+import { toPositiveInteger } from "../utils/formatNumber";
 
-function getBudgetsCollectionRef(uid) {
-    if (!uid) {
-        throw new Error("A Firebase Authentication uid is required.");
+const BUDGETS_COLLECTION = "budgets";
+
+function getBudgetDocumentId(monthKey, categoryId) {
+    if (!monthKey) {
+        throw new Error("A month key is required.");
+    }
+    if (!categoryId) {
+        throw new Error("A category id is required.");
     }
 
-    return collection(
-        firestore,
-        "users",
-        uid,
-        "modules",
-        "expenses",
-        "budgets",
-    );
+    return `${monthKey}_${categoryId}`;
 }
 
+/**
+ * Chuyển đổi snapshot tài liệu thành đối tượng ngân sách.
+ * @param {*} documentSnapshot 
+ * @returns {id, monthKey, categoryId, limitMinor, alertThreshold, createdAt, updatedAt }
+ */
 function mapBudget(documentSnapshot) {
     const data = documentSnapshot.data();
+    const limitMinor = data.limitMinor ?? data.limit ?? 0;
 
     return {
         id: documentSnapshot.id,
         monthKey: data.monthKey,
         categoryId: data.categoryId,
-        limitMinor: data.limitMinor ?? 0,
+        limit: limitMinor,
+        limitMinor,
         alertThreshold: data.alertThreshold ?? 80,
         createdAt: data.createdAt,
         updatedAt: data.updatedAt,
     };
-}
-
-function getBudgetRef(uid, monthKey, categoryId) {
-    if (!uid) {
-        throw new Error("A Firebase Authentication uid is required.");
-    }
-
-    if (!monthKey) {
-        throw new Error("A month key is required.");
-    }
-
-    if (!categoryId) {
-        throw new Error("A category id is required.");
-    }
-
-    return doc(getBudgetsCollectionRef(uid), `${monthKey}_${categoryId}`);
-}
-
-function toPositiveInteger(value, label) {
-    const numberValue = Math.round(Math.abs(Number(value)));
-
-    if (!Number.isSafeInteger(numberValue) || numberValue <= 0) {
-        throw new Error(`${label} must be a positive integer.`);
-    }
-
-    return numberValue;
 }
 
 function normalizeAlertThreshold(value) {
@@ -76,79 +47,87 @@ function normalizeAlertThreshold(value) {
     ) {
         throw new Error("Budget alert threshold must be between 1 and 100.");
     }
-
     return numberValue;
 }
 
-export async function getExpenseBudgets(uid, monthKey) {
+/**
+ * Lấy danh sách ngân sách chi tiêu của người dùng trong một tháng cụ thể.
+ * @param {*} uid 
+ * @param {*} monthKey 
+ * @returns {Promise<Array>} Danh sách ngân sách chi tiêu.
+ * @throws {Error} Nếu uid hoặc monthKey không được cung cấp.
+ */
+export async function getExpenseBudgetsByMonth(uid, monthKey) {
     if (!monthKey) {
         throw new Error("A month key is required.");
     }
 
     const budgetsQuery = query(
-        getBudgetsCollectionRef(uid),
+        getCollectionReference(uid, BUDGETS_COLLECTION),
         where("monthKey", "==", monthKey),
-        orderBy("categoryId", "asc"),
     );
     const snapshot = await getDocsFromServer(budgetsQuery);
 
     return snapshot.docs
         .map(mapBudget)
-        .filter((budget) => budget.limitMinor > 0);
+        .filter((budget) => budget.limitMinor > 0)
+        .sort((firstBudget, secondBudget) =>
+            String(firstBudget.categoryId ?? "").localeCompare(String(secondBudget.categoryId ?? ""), "vi"),
+        );
 }
 
 export async function upsertExpenseBudget(uid, input) {
     const monthKey = input?.monthKey;
     const categoryId = input?.categoryId;
-    const limitMinor = toPositiveInteger(
-        input?.limitMinor ?? input?.limit,
-        "Budget limit",
-    );
+    const limitMinor = input?.limitMinor ?? input?.limit;
+    const limitMinorPositive = toPositiveInteger(limitMinor, "Budget limit");
     const alertThreshold = normalizeAlertThreshold(input?.alertThreshold);
-    const budgetRef = getBudgetRef(uid, monthKey, categoryId);
-
+    const documentId = getBudgetDocumentId(monthKey, categoryId);
+    const budgetDocRef = getDocumentReference(uid, BUDGETS_COLLECTION, documentId);
+    console.log(documentId, budgetDocRef)
     await runTransaction(firestore, async (transaction) => {
-        const snapshot = await transaction.get(budgetRef);
+        const snapshot = await transaction.get(budgetDocRef);
         const timestamp = serverTimestamp();
 
         if (snapshot.exists()) {
-            transaction.update(budgetRef, {
-                limitMinor,
-                alertThreshold,
+            transaction.update(budgetDocRef, {
+                limitMinor: limitMinorPositive,
+                alertThreshold: alertThreshold,
                 updatedAt: timestamp,
             });
             return;
         }
 
-        transaction.set(budgetRef, {
-            monthKey,
-            categoryId,
-            limitMinor,
-            alertThreshold,
+        transaction.set(budgetDocRef, {
+            monthKey: monthKey,
+            categoryId: categoryId,
+            limitMinor: limitMinorPositive,
+            alertThreshold: alertThreshold,
             createdAt: timestamp,
             updatedAt: timestamp,
         });
     });
 
     return {
-        id: budgetRef.id,
-        monthKey,
-        categoryId,
-        limitMinor,
-        alertThreshold,
+        id: budgetDocRef.id,
+        monthKey: monthKey,
+        categoryId: categoryId,
+        limit: limitMinorPositive,
+        limitMinor: limitMinorPositive,
+        alertThreshold: alertThreshold,
     };
 }
 
 export async function deleteExpenseBudget(uid, input) {
     const monthKey = input?.monthKey;
     const categoryId = input?.categoryId;
-    const budgetRef = getBudgetRef(uid, monthKey, categoryId);
+    const budgetDocRef = getDocumentReference(uid, BUDGETS_COLLECTION, getBudgetDocumentId(monthKey, categoryId));
 
-    await deleteDoc(budgetRef);
+    await deleteDoc(budgetDocRef);
 
     return {
-        id: budgetRef.id,
-        monthKey,
-        categoryId,
+        id: budgetDocRef.id,
+        monthKey: monthKey,
+        categoryId: categoryId,
     };
 }

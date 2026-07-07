@@ -121,19 +121,28 @@ export default function BudgetForm({
             <div className="budget-form__content">
                 <label className="budget-form__field">
                     <span>Danh mục</span>
-                    <select
-                        disabled={!hasCategories || isWorking}
-                        name="categoryId"
-                        onChange={handleCategoryChange}
-                        required
-                        value={categoryId}
-                    >
-                        {expenseCategories.map((category) => (
-                            <option key={category.id} value={category.id}>
-                                {category.name}
-                            </option>
-                        ))}
-                    </select>
+                    {isEditing ? (
+                        <input
+                            name="categoryName"
+                            readOnly
+                            type="text"
+                            value={selectedCategoryName}
+                        />
+                    ) : (
+                        <select
+                            disabled={!hasCategories || isWorking}
+                            name="categoryId"
+                            onChange={handleCategoryChange}
+                            required
+                            value={categoryId}
+                        >
+                            {expenseCategories.map((category) => (
+                                <option key={category.id} value={category.id}>
+                                    {category.name}
+                                </option>
+                            ))}
+                        </select>
+                    )}
                 </label>
 
                 <label className="budget-form__field budget-form__field--amount">

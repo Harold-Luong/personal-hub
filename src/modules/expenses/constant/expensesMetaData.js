@@ -12,7 +12,7 @@ export const expensePageMeta = {
         isRouted: true,
     },
     categories: {
-        label: "Chi tiêu",
+        label: "Danh mục chi tiêu",
         icon: "category",
         path: "/expenses/category-spending",
         isRouted: true,
@@ -27,6 +27,7 @@ export const expensePageMeta = {
         label: "Ngân sách",
         icon: "income",
         path: "/expenses/budgets",
+        isRouted: true,
     },
     wallets: {
         label: "Ví tiền",
@@ -60,7 +61,7 @@ export const expenseRoutePaths = Object.fromEntries(
         .map(([id, item]) => [id, item.path]),
 );
 
-export const expenseMobileOnlyPageIds = ["add", "budget", "wallets", "settings"];
+export const expenseMobileOnlyPageIds = ["add", "wallets", "settings"];
 
 export const expenseCurrencies = [
     {

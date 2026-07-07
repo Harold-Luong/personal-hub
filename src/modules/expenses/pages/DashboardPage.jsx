@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { selectAuthUid, useAuthSessionStore } from "../../../stores/authSessionStore";
 import {
@@ -15,14 +15,12 @@ import {
     selectExpensePreferences,
     useExpensePreferencesStore,
 } from "../../../stores/expensePreferencesStore";
-import MobileBudgetFormSheet from "../components/budget/MobileBudgetFormSheet";
 import ExpenseBottomNav from "../components/layout/ExpenseBottomNav";
 import ExpenseHeader from "../components/layout/ExpenseHeader";
 import ExpenseSidebar from "../components/layout/ExpenseSidebar";
 import MobileDashboardView from "../components/mobile/MobileDashboardView";
 import WebAddTransactionPanel from "../components/web/WebAddTransactionPanel";
 import WebDashboardView from "../components/web/WebDashboardView";
-import WebBudgetPanel from "../components/web/WebBudgetPanel";
 import AddTransactionPage from "./AddTransactionPage";
 import BudgetPage from "./BudgetPage";
 import CategorySpendingPage from "./CategorySpendingPage";
@@ -48,10 +46,6 @@ import {
 } from "../utils/monthUtils";
 import "../styles/expenses.scss";
 
-function getIsMobileViewport() {
-    return typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches;
-}
-
 function getExpenseRoutePage(pathname) {
     const normalizedPathname = pathname.replace(/\/+$/, "") || "/";
 
@@ -59,16 +53,22 @@ function getExpenseRoutePage(pathname) {
 }
 
 const desktopViewClasses = {
+    budgets: "web-budget-view",
     categories: "web-category-spending-view",
     report: "web-report-view",
     transactions: "web-transactions-view",
 };
 
 const desktopMainClasses = {
+    budgets: "web-budget-view__main",
     categories: "web-category-spending-view__main",
     report: "web-report-view__main",
     transactions: "web-transactions-view__main",
 };
+
+function getIsMobileViewport() {
+    return typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches;
+}
 
 export default function DashboardPage({ initialSettings, onLogout }) {
     const location = useLocation();
@@ -92,6 +92,13 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     const upsertExpenseWalletAction = useExpenseDataStore((state) => state.upsertExpenseWallet);
     const deleteExpenseWalletAction = useExpenseDataStore((state) => state.deleteExpenseWallet);
     const routePage = getExpenseRoutePage(location.pathname);
+    const budgetInitialCategoryId = useMemo(() => {
+        if (routePage !== "budgets") {
+            return "";
+        }
+
+        return new URLSearchParams(location.search).get("categoryId") ?? "";
+    }, [location.search, routePage]);
     const [mobilePageOverride, setMobilePageOverride] = useState(null);
     const activeMobilePage =
         mobilePageOverride?.routePath === location.pathname ? mobilePageOverride.pageId : routePage;
@@ -105,13 +112,9 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     const [categoryMonth, setCategoryMonth] = useState(currentMonthKey);
     const [categorySortKey, setCategorySortKey] = useState("amount");
     const [reportMonth, setReportMonth] = useState(currentMonthKey);
-    const [isBudgetPanelOpen, setIsBudgetPanelOpen] = useState(false);
-    const [budgetPanelCategoryId, setBudgetPanelCategoryId] = useState("");
-    const [budgetPanelMonthKey, setBudgetPanelMonthKey] = useState(currentMonthKey);
-    const [budgetPanelBudgets, setBudgetPanelBudgets] = useState(null);
     const [isDesktopAddTransactionOpen, setIsDesktopAddTransactionOpen] = useState(false);
     const [isMobileViewport, setIsMobileViewport] = useState(getIsMobileViewport);
-    const budgetPanelCallbacksRef = useRef({});
+    const mobileBudgetInitialCategoryId = isMobileViewport ? budgetInitialCategoryId : "";
     const monthlyStats = monthlyStatsByMonth[currentMonthKey] ?? getEmptyMonthlyStats(currentMonthKey);
     const previousMonthlyStats = monthlyStatsByMonth[previousMonthKey] ?? getEmptyMonthlyStats(previousMonthKey);
     const budgetLimits = budgetLimitsByMonth[currentMonthKey] ?? [];
@@ -262,6 +265,24 @@ export default function DashboardPage({ initialSettings, onLogout }) {
         }
     };
 
+    const navigateBudgetPage = (categoryId = "") => {
+        const routePath = expenseRoutePaths.budgets;
+        const nextCategoryId = typeof categoryId === "string" ? categoryId : "";
+
+        if (!routePath) {
+            return;
+        }
+
+        setMobilePageOverride(null);
+        navigate(nextCategoryId ? `${routePath}?categoryId=${encodeURIComponent(nextCategoryId)}` : routePath);
+    };
+
+    const clearBudgetEditorRouteState = () => {
+        if (routePage === "budgets" && location.search) {
+            navigate(expenseRoutePaths.budgets, { replace: true });
+        }
+    };
+
     const showMobilePage = (pageId) => {
         setMobilePageOverride({
             pageId,
@@ -317,43 +338,6 @@ export default function DashboardPage({ initialSettings, onLogout }) {
         return deleteExpenseBudgetAction(uid, budget, monthKey);
     };
 
-    const openBudgetPanel = (categoryId = "", options = {}) => {
-        budgetPanelCallbacksRef.current = {
-            onDeleteBudget: options.onDeleteBudget,
-            onSaveBudget: options.onSaveBudget,
-        };
-        setBudgetPanelCategoryId(typeof categoryId === "string" ? categoryId : "");
-        setBudgetPanelMonthKey(options.monthKey ?? currentMonthKey);
-        setBudgetPanelBudgets(Array.isArray(options.budgets) ? options.budgets : null);
-        setIsBudgetPanelOpen(true);
-    };
-
-    const closeBudgetPanel = () => {
-        budgetPanelCallbacksRef.current = {};
-        setIsBudgetPanelOpen(false);
-        setBudgetPanelCategoryId("");
-        setBudgetPanelMonthKey(currentMonthKey);
-        setBudgetPanelBudgets(null);
-    };
-
-    const handleSaveBudgetFromPanel = async (budget) => {
-        const result = await handleSaveBudget(budget, budgetPanelMonthKey);
-
-        budgetPanelCallbacksRef.current.onSaveBudget?.(result);
-        closeBudgetPanel();
-
-        return result;
-    };
-
-    const handleDeleteBudgetFromPanel = async (budget) => {
-        const result = await handleDeleteBudget(budget, budgetPanelMonthKey);
-
-        budgetPanelCallbacksRef.current.onDeleteBudget?.(result);
-        closeBudgetPanel();
-
-        return result;
-    };
-
     const handleSaveWallet = async (wallet) => {
         await upsertExpenseWalletAction(uid, wallet);
     };
@@ -386,7 +370,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
             return (
                 <CategorySpendingPage
                     mode="mobile"
-                    onManageBudget={openBudgetPanel}
+                    onManageBudget={navigateBudgetPage}
                 />
             );
         }
@@ -400,13 +384,18 @@ export default function DashboardPage({ initialSettings, onLogout }) {
             );
         }
 
-        if (activeMobilePage === "budget") {
+        if (activeMobilePage === "budgets") {
             return (
                 <BudgetPage
                     budgets={budgets}
                     categories={categories}
+                    initialCategoryId={mobileBudgetInitialCategoryId}
+                    key={`mobile-budgets-${mobileBudgetInitialCategoryId || "index"}`}
+                    mode="mobile"
                     monthKey={currentMonthKey}
+                    monthLabel={currentMonthLabel}
                     onBack={() => navigateExpenseRoute("dashboard")}
+                    onCloseEditor={clearBudgetEditorRouteState}
                     onDeleteBudget={handleDeleteBudget}
                     onSaveBudget={handleSaveBudget}
                 />
@@ -428,7 +417,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
             return (
                 <SettingsPage
                     onLogout={handleLogout}
-                    onManageBudget={() => showMobilePage("budget")}
+                    onManageBudget={() => navigateExpenseRoute("budgets")}
                     onManageWallet={() => showMobilePage("wallets")}
                     wallets={wallets}
                 />
@@ -440,7 +429,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                 budgets={budgets}
                 categorySpending={categorySpending}
                 monthLabel={currentMonthLabel}
-                onManageBudget={() => showMobilePage("budget")}
+                onManageBudget={() => navigateExpenseRoute("budgets")}
                 onToggleTheme={handleToggleTheme}
                 onViewCategorySpending={() => navigateExpenseRoute("categories")}
                 onViewTransactions={() => navigateExpenseRoute("transactions")}
@@ -466,7 +455,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                     key={categoryMonth}
                     monthOptions={monthOptions}
                     mode="desktop"
-                    onManageBudget={openBudgetPanel}
+                    onManageBudget={navigateBudgetPage}
                     onSelectedMonthChange={setCategoryMonth}
                     onSortKeyChange={setCategorySortKey}
                     selectedMonth={categoryMonth}
@@ -487,6 +476,23 @@ export default function DashboardPage({ initialSettings, onLogout }) {
             );
         }
 
+        if (activeDesktopPage === "budgets") {
+            return (
+                <BudgetPage
+                    budgets={budgets}
+                    categories={categories}
+                    initialCategoryId={budgetInitialCategoryId}
+                    key={`desktop-budgets-${budgetInitialCategoryId || "index"}`}
+                    mode="desktop"
+                    monthKey={currentMonthKey}
+                    monthLabel={currentMonthLabel}
+                    onCloseEditor={clearBudgetEditorRouteState}
+                    onDeleteBudget={handleDeleteBudget}
+                    onSaveBudget={handleSaveBudget}
+                />
+            );
+        }
+
         return (
             <WebDashboardView
                 budgets={budgets}
@@ -496,9 +502,9 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                 wallets={wallets}
                 summary={summary}
                 onDeleteWallet={handleDeleteWallet}
-                onManageBudget={openBudgetPanel}
+                onManageBudget={navigateBudgetPage}
                 onSaveWallet={handleSaveWallet}
-                onSelectBudget={openBudgetPanel}
+                onSelectBudget={navigateBudgetPage}
                 onViewCategorySpending={() => navigateExpenseRoute("categories")}
                 onViewTransactions={() => navigateExpenseRoute("transactions")}
             />
@@ -507,6 +513,11 @@ export default function DashboardPage({ initialSettings, onLogout }) {
 
     const renderDesktopShell = () => {
         const desktopHeaderContent = {
+            budgets: {
+                eyebrow: "Ngân sách",
+                subtitle: currentMonthLabel,
+                title: "Ngân sách",
+            },
             categories: {
                 eyebrow: "Chi tiêu",
                 subtitle: "Phân tích chi tiêu theo danh mục và ngân sách",
@@ -607,28 +618,6 @@ export default function DashboardPage({ initialSettings, onLogout }) {
             {renderMobilePage()}
             <ExpenseBottomNav activeId={activeMobilePage} items={expenseNavItems} onNavigate={handleMobileNavigate} />
             {renderDesktopShell()}
-            {isBudgetPanelOpen && isMobileViewport ? (
-                <MobileBudgetFormSheet
-                    key={budgetPanelCategoryId || "mobile-budget-panel"}
-                    budgets={budgetPanelBudgets ?? budgets}
-                    categories={categories}
-                    initialCategoryId={budgetPanelCategoryId}
-                    onCancel={closeBudgetPanel}
-                    onDelete={handleDeleteBudgetFromPanel}
-                    onSubmit={handleSaveBudgetFromPanel}
-                />
-            ) : null}
-            {isBudgetPanelOpen && !isMobileViewport ? (
-                <WebBudgetPanel
-                    key={budgetPanelCategoryId || "budget-panel"}
-                    budgets={budgetPanelBudgets ?? budgets}
-                    categories={categories}
-                    initialCategoryId={budgetPanelCategoryId}
-                    onCancel={closeBudgetPanel}
-                    onDelete={handleDeleteBudgetFromPanel}
-                    onSubmit={handleSaveBudgetFromPanel}
-                />
-            ) : null}
         </div>
     );
 }
