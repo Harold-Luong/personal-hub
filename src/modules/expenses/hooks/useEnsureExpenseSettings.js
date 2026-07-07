@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { selectAuthUid, useAuthSessionStore } from "../../../stores/authSessionStore";
 
 const initialState = {
     error: null,
@@ -8,9 +9,9 @@ const initialState = {
 };
 
 export default function useEnsureExpenseSettings(user) {
+    const uid = useAuthSessionStore(selectAuthUid);
     const [attempt, setAttempt] = useState(0);
     const [state, setState] = useState(initialState);
-    const uid = user?.uid ?? null;
     const requestKey = uid ? `${uid}:${attempt}` : null;
 
     useEffect(() => {

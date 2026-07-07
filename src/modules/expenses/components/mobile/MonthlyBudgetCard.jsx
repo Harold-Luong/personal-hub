@@ -1,11 +1,7 @@
 import ProgressBar from "../shared/ProgressBar";
+import { budgetStatusColors } from "../../constant/expensesMetaData";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { calculateMonthlyBudgetTotals, getBudgetUsageStatus } from "../../utils/expenseCalculations";
-
-const budgetStatusColors = {
-    exceeded: "#dc1717",
-    warning: "#d98c00",
-};
 
 export default function MonthlyBudgetCard({ budgets = [], monthLabel, onManageBudget }) {
     const { spent, limit, percentage } = calculateMonthlyBudgetTotals(budgets);

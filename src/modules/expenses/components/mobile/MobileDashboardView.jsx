@@ -5,6 +5,8 @@ import MobilePageHeader from "./MobilePageHeader";
 import MonthlyBudgetCard from "./MonthlyBudgetCard";
 import { formatDate } from "./../../utils/formatDate";
 import { BellIcon, ThemeIcon } from "../../icon/ExpenseIcons";
+import { selectAuthUser, useAuthSessionStore } from "../../../../stores/authSessionStore";
+import { expenseDefaultTheme } from "../../constant/expensesMetaData";
 
 export default function MobileDashboardView({
     budgets,
@@ -15,10 +17,10 @@ export default function MobileDashboardView({
     onViewCategorySpending,
     onViewTransactions,
     summary,
-    theme = "sage",
+    theme = expenseDefaultTheme,
     transactions,
-    user,
 }) {
+    const user = useAuthSessionStore(selectAuthUser);
     const balance = summary.find((item) => item.id === "balance")?.value ?? 0;
     const balanceTrend = summary.find((item) => item.id === "balance")?.trend ?? 0;
     const income = summary.find((item) => item.id === "income")?.value ?? 0;

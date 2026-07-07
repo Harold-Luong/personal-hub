@@ -2,12 +2,8 @@ import AmountText from "../shared/AmountText";
 import ExpenseIcon from "../shared/ExpenseEmoji";
 import ProgressBar from "../shared/ProgressBar";
 import SectionCard from "../shared/SectionCard";
+import { budgetStatusColors } from "../../constant/expensesMetaData";
 import { calculateBudgetUsagePercentage, getBudgetUsageStatus } from "../../utils/expenseCalculations";
-
-const budgetStatusColors = {
-    exceeded: "#dc1717",
-    warning: "#d98c00",
-};
 
 export default function BudgetOverviewCard({ budgets = [], monthLabel, onManageBudget, onSelectBudget }) {
     return (

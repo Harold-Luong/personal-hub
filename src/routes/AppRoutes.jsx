@@ -1,13 +1,19 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import { selectAuthUid, useAuthSessionStore } from "../stores/authSessionStore";
 import { logout } from "../modules/auth/api/authRepository";
 import AuthPage from "../modules/auth/pages/AuthPage";
 import useEnsureExpenseSettings from "../modules/expenses/hooks/useEnsureExpenseSettings";
 import DashboardPage from "../modules/expenses/pages/DashboardPage";
 
 function AuthenticatedExpenses({ user }) {
+    const uid = useAuthSessionStore(selectAuthUid);
     const expenseSettings = useEnsureExpenseSettings(user);
     const settingsUpdatedAt = expenseSettings.settings?.updatedAt;
-    const dashboardKey = `${user.uid}:${settingsUpdatedAt?.seconds ?? 0}:${settingsUpdatedAt?.nanoseconds ?? 0}`;
+    const dashboardKey = `${uid}:${settingsUpdatedAt?.seconds ?? 0}:${settingsUpdatedAt?.nanoseconds ?? 0}`;
+
+    if (!uid) {
+        return <div className="auth-loading">Đang kiểm tra phiên đăng nhập...</div>;
+    }
 
     if (expenseSettings.isLoading) {
         const loadingMessage =
@@ -36,7 +42,7 @@ function AuthenticatedExpenses({ user }) {
     }
 
     return (
-        <DashboardPage initialSettings={expenseSettings.settings} key={dashboardKey} onLogout={logout} user={user} />
+        <DashboardPage initialSettings={expenseSettings.settings} key={dashboardKey} onLogout={logout} />
     );
 }
 

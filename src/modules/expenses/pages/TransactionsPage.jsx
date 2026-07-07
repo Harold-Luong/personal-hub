@@ -1,6 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { expenseTransactionFilters, transactionTypeMeta, colorsFallback } from "../constant/expensesMetaData";
+import { selectAuthUid, useAuthSessionStore } from "../../../stores/authSessionStore";
+import {
+    getExpenseMonthOptionsCacheKey,
+    selectExpenseCategories,
+    selectExpenseMonthOptionsByYear,
+    selectExpenseWallets,
+    useExpenseDataStore,
+} from "../../../stores/expenseDataStore";
+import {
+    colorsFallback,
+    expenseTransactionFilters,
+    transactionDefaultPageSize,
+    transactionDefaultSort,
+    transactionPageSizeOptions,
+    transactionPaginationWindowSize,
+    transactionSearchDebounceMs,
+    transactionSummaryItems,
+    transactionTypeMeta,
+} from "../constant/expensesMetaData";
 import {
     ArrowDownIcon,
     ArrowUpIcon,
@@ -20,39 +38,12 @@ import SummaryCardList from "../components/shared/SummaryCardList";
 import WebAddTransactionPanel from "../components/web/WebAddTransactionPanel";
 import { getTransactionWalletLabel } from "../utils/transactionDisplayUtils";
 
-const pageSizeOptions = [10, 15, 20];
-const searchDebounceMs = 350; //ms
-
-const transactionSummaryCards = [
-    {
-        id: "count",
-        icon: TransactionListIcon,
-        label: "Tổng giao dịch",
-        tone: "neutral",
-        valueKey: "count",
-    },
-    {
-        id: "income",
-        icon: ArrowUpIcon,
-        label: "Thu nhập",
-        tone: "income",
-        valueKey: "income",
-    },
-    {
-        id: "expense",
-        icon: ArrowDownIcon,
-        label: "Chi tiêu",
-        tone: "expense",
-        valueKey: "expense",
-    },
-    {
-        id: "transfer",
-        icon: SwapIcon,
-        label: "Chuyển khoản",
-        tone: "transfer",
-        valueKey: "transfer",
-    },
-];
+const transactionSummaryIcons = {
+    count: TransactionListIcon,
+    expense: ArrowDownIcon,
+    income: ArrowUpIcon,
+    transfer: SwapIcon,
+};
 
 function getTransactionCategoryLabel(transaction) {
     if (transaction.type === "transfer") {
@@ -96,10 +87,6 @@ function getMonthDayOptions(monthKey) {
     const lastDay = new Date(year, month, 0).getDate();
 
     return Array.from({ length: lastDay }, (_, index) => String(index + 1).padStart(2, "0"));
-}
-
-function getVisibleMonthOptions(monthKeys, currentMonthKey) {
-    return [...new Set([currentMonthKey, ...monthKeys])].sort((first, second) => second.localeCompare(first));
 }
 
 function getCategoryFilterOptions(categories, activeType) {
@@ -225,8 +212,8 @@ function TransactionSummary({ transactions }) {
         { count: 0, expense: 0, income: 0, transfer: 0 },
     );
 
-    const summaryItems = transactionSummaryCards.map(({ icon, id, label, tone, valueKey }) => ({
-        icon,
+    const summaryItems = transactionSummaryItems.map(({ id, label, tone, valueKey }) => ({
+        icon: transactionSummaryIcons[id],
         id,
         label,
         tone,
@@ -320,17 +307,26 @@ function TransactionRow({ onDelete, onEdit, transaction }) {
 }
 
 function TransactionsWorkspace({
-    categories,
+    categories: controlledCategories,
     initialCategoryId = "all",
     initialMonthKey = "",
     mode,
     onAddTransaction,
     onDeleteTransaction,
     onUpdateTransaction,
-    userId,
-    wallets,
+    wallets: controlledWallets,
 }) {
+    const uid = useAuthSessionStore(selectAuthUid);
+    const storeCategories = useExpenseDataStore(selectExpenseCategories);
+    const storeWallets = useExpenseDataStore(selectExpenseWallets);
+    const monthOptionsByYear = useExpenseDataStore(selectExpenseMonthOptionsByYear);
+    const loadExpenseMonthOptions = useExpenseDataStore((state) => state.loadExpenseMonthOptions);
+    const createExpenseTransactionAction = useExpenseDataStore((state) => state.createExpenseTransaction);
+    const updateExpenseTransactionAction = useExpenseDataStore((state) => state.updateExpenseTransaction);
+    const voidExpenseTransactionAction = useExpenseDataStore((state) => state.voidExpenseTransaction);
     const isDesktopMode = mode === "desktop";
+    const categories = controlledCategories ?? storeCategories;
+    const wallets = controlledWallets ?? storeWallets;
     const [activeFilter, setActiveFilter] = useState("all");
     const [searchTerm, setSearchTerm] = useState("");
     const [querySearchTerm, setQuerySearchTerm] = useState("");
@@ -338,10 +334,9 @@ function TransactionsWorkspace({
     const [walletFilter, setWalletFilter] = useState("all");
     const [monthFilter, setMonthFilter] = useState(() => initialMonthKey || getCurrentMonthKey());
     const [dayFilter, setDayFilter] = useState("");
-    const [transactionSort, setTransactionSort] = useState({ key: "date", direction: "desc" });
-    const [monthOptions, setMonthOptions] = useState(() => [getCurrentMonthKey()]);
+    const [transactionSort, setTransactionSort] = useState(transactionDefaultSort);
     const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(pageSizeOptions[0]);
+    const [pageSize, setPageSize] = useState(transactionDefaultPageSize);
     const [pageTransactions, setPageTransactions] = useState([]);
     const [pageCursors, setPageCursors] = useState([null]);
     const [hasNextPage, setHasNextPage] = useState(false);
@@ -355,6 +350,13 @@ function TransactionsWorkspace({
     const [deleteError, setDeleteError] = useState("");
     const [isDeleting, setIsDeleting] = useState(false);
     const [historicalWallets, setHistoricalWallets] = useState([]);
+    const currentMonthKey = getCurrentMonthKey();
+    const currentYear = getCurrentYear();
+    const monthOptionsCacheKey = getExpenseMonthOptionsCacheKey(uid, currentYear);
+    const monthOptions = useMemo(
+        () => monthOptionsByYear[monthOptionsCacheKey] ?? [currentMonthKey],
+        [currentMonthKey, monthOptionsByYear, monthOptionsCacheKey],
+    );
 
     const queryCursor = pageCursors[currentPage - 1] ?? null;
     const visibleTransactions = useMemo(
@@ -370,8 +372,8 @@ function TransactionsWorkspace({
         [pageTransactions, transactionSort.direction, transactionSort.key],
     );
     const walletFilterOptions = useMemo(
-        () => getWalletFilterOptions(wallets, userId ? historicalWallets : [], visibleTransactions),
-        [historicalWallets, userId, visibleTransactions, wallets],
+        () => getWalletFilterOptions(wallets, uid ? historicalWallets : [], visibleTransactions),
+        [historicalWallets, uid, visibleTransactions, wallets],
     );
     const categoryFilterOptions = useMemo(
         () => getCategoryFilterOptions(categories, activeFilter),
@@ -380,7 +382,7 @@ function TransactionsWorkspace({
     const pageStart = visibleTransactions.length ? (currentPage - 1) * pageSize + 1 : 0;
     const pageEnd = visibleTransactions.length ? pageStart + visibleTransactions.length - 1 : 0;
     const knownPageCount = currentPage + (hasNextPage ? 1 : 0);
-    const pageWindowSize = Math.min(knownPageCount, 4);
+    const pageWindowSize = Math.min(knownPageCount, transactionPaginationWindowSize);
     const firstVisiblePage = Math.min(Math.max(1, currentPage - 1), Math.max(1, knownPageCount - pageWindowSize + 1));
     const pageNumbers = Array.from({ length: pageWindowSize }, (_, index) => firstVisiblePage + index);
     const dayFilterMonthKey = monthFilter && monthFilter !== "all" ? monthFilter : getCurrentMonthKey();
@@ -439,7 +441,7 @@ function TransactionsWorkspace({
         const timeoutId = window.setTimeout(() => {
             resetPaging();
             setQuerySearchTerm(searchTerm);
-        }, searchDebounceMs);
+        }, transactionSearchDebounceMs);
 
         return () => {
             window.clearTimeout(timeoutId);
@@ -449,12 +451,12 @@ function TransactionsWorkspace({
     useEffect(() => {
         let isCancelled = false;
 
-        if (!userId) {
+        if (!uid) {
             return undefined;
         }
 
         import("../api/walletsRepository")
-            .then(({ getExpenseWallets }) => getExpenseWallets(userId, { includeArchived: true }))
+            .then(({ getExpenseWallets }) => getExpenseWallets(uid, { includeArchived: true }))
             .then((nextWallets) => {
                 if (!isCancelled) {
                     setHistoricalWallets(nextWallets);
@@ -469,42 +471,11 @@ function TransactionsWorkspace({
         return () => {
             isCancelled = true;
         };
-    }, [userId, wallets]);
+    }, [uid, wallets]);
 
     useEffect(() => {
-        let isCancelled = false;
-        const currentMonthKey = getCurrentMonthKey();
-        const currentYear = getCurrentYear();
-
-        if (!userId) {
-            Promise.resolve().then(() => {
-                if (!isCancelled) {
-                    setMonthOptions([currentMonthKey]);
-                }
-            });
-
-            return () => {
-                isCancelled = true;
-            };
-        }
-
-        import("../api/monthlyStatsRepository")
-            .then(({ getExpenseMonthlyStatsMonths }) => getExpenseMonthlyStatsMonths(userId, currentYear))
-            .then((monthKeys) => {
-                if (!isCancelled) {
-                    setMonthOptions(getVisibleMonthOptions(monthKeys, currentMonthKey));
-                }
-            })
-            .catch(() => {
-                if (!isCancelled) {
-                    setMonthOptions([currentMonthKey]);
-                }
-            });
-
-        return () => {
-            isCancelled = true;
-        };
-    }, [refreshRevision, userId]);
+        loadExpenseMonthOptions(uid, currentYear, currentMonthKey);
+    }, [currentMonthKey, currentYear, loadExpenseMonthOptions, refreshRevision, uid]);
 
     useEffect(() => {
         let isCancelled = false;
@@ -516,7 +487,7 @@ function TransactionsWorkspace({
             }
         });
 
-        if (!userId) {
+        if (!uid) {
             Promise.resolve().then(() => {
                 if (!isCancelled) {
                     setPageTransactions([]);
@@ -533,7 +504,7 @@ function TransactionsWorkspace({
 
         import("../api/transactionsRepository")
             .then(({ getExpenseTransactionsPage }) =>
-                getExpenseTransactionsPage(userId, {
+                getExpenseTransactionsPage(uid, {
                     categoryId: categoryFilter,
                     cursor: queryCursor,
                     date: dateFilter,
@@ -586,7 +557,7 @@ function TransactionsWorkspace({
         queryCursor,
         querySearchTerm,
         refreshRevision,
-        userId,
+        uid,
         walletFilter,
     ]);
 
@@ -607,9 +578,17 @@ function TransactionsWorkspace({
 
     const handleSubmit = async (transactionInput) => {
         if (editingTransaction) {
-            await onUpdateTransaction?.(editingTransaction.id, transactionInput);
+            if (onUpdateTransaction) {
+                await onUpdateTransaction(editingTransaction.id, transactionInput);
+            } else {
+                await updateExpenseTransactionAction(uid, editingTransaction.id, transactionInput);
+            }
         } else {
-            await onAddTransaction?.(transactionInput);
+            if (onAddTransaction) {
+                await onAddTransaction(transactionInput);
+            } else {
+                await createExpenseTransactionAction(uid, transactionInput);
+            }
         }
 
         refreshCurrentPage();
@@ -625,7 +604,11 @@ function TransactionsWorkspace({
         setDeleteError("");
 
         try {
-            await onDeleteTransaction?.(transactionToDelete.id);
+            if (onDeleteTransaction) {
+                await onDeleteTransaction(transactionToDelete.id);
+            } else {
+                await voidExpenseTransactionAction(uid, transactionToDelete.id);
+            }
             setTransactionToDelete(null);
             refreshCurrentPage();
         } catch {
@@ -868,7 +851,7 @@ function TransactionsWorkspace({
                             }}
                             value={pageSize}
                         >
-                            {pageSizeOptions.map((option) => (
+                            {transactionPageSizeOptions.map((option) => (
                                 <option key={option} value={option}>
                                     {option} / trang
                                 </option>
@@ -920,13 +903,12 @@ function TransactionsWorkspace({
 }
 
 export default function TransactionsPage({
-    categories = [],
+    categories,
     mode = "mobile",
     onAddTransaction,
     onDeleteTransaction,
     onUpdateTransaction,
-    user,
-    wallets = [],
+    wallets,
 }) {
     const [searchParams] = useSearchParams();
     const initialCategoryId = searchParams.get("categoryId") ?? "all";
@@ -941,7 +923,6 @@ export default function TransactionsPage({
             onAddTransaction={onAddTransaction}
             onDeleteTransaction={onDeleteTransaction}
             onUpdateTransaction={onUpdateTransaction}
-            userId={user?.uid}
             wallets={wallets}
         />
     );
