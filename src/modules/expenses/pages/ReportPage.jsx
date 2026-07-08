@@ -1055,9 +1055,9 @@ function ReportWorkspace({
                             <p className="report-page__empty">Chưa có chi tiêu theo ví.</p>
                         )}
                     </div>
-                    <button className="report-panel__link" type="button">
+                    {/* <button className="report-panel__link" type="button">
                         Xem chi tiết theo ví <span>›</span>
-                    </button>
+                    </button> */}
                 </article>
             </section>
 

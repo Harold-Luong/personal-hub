@@ -77,7 +77,9 @@ function applyWalletBalanceUpdates(wallets, walletBalanceUpdates = {}) {
         Object.hasOwn(walletBalanceUpdates, wallet.id)
             ? {
                 ...wallet,
-                balance: walletBalanceUpdates[wallet.id],
+                ...(typeof walletBalanceUpdates[wallet.id] === "number"
+                    ? { balance: walletBalanceUpdates[wallet.id] }
+                    : walletBalanceUpdates[wallet.id]),
             }
             : wallet,
     );

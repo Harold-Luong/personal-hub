@@ -1,11 +1,12 @@
 import { useState } from "react";
 import {
+    creditCardWalletTypeId,
     expenseCurrencyLabels,
     expenseCurrencySymbolByLabel,
     expenseDefaultCurrency,
     walletTypeOptions,
 } from "../../constant/expensesMetaData";
-import { formatCurrencyInput, parseCurrencyInput } from "../../utils/formatCurrency";
+import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "../../utils/formatCurrency";
 
 function getWalletType(type) {
     return walletTypeOptions.find((walletType) => walletType.id === type) ?? walletTypeOptions[0];
@@ -33,12 +34,31 @@ function getFormState(wallet) {
     return {
         balance: wallet?.balance ? formatCurrencyInput(wallet.balance) : "",
         color: wallet?.color ?? walletType.color,
+        creditLimit: wallet?.creditLimit ? formatCurrencyInput(wallet.creditLimit) : "",
         currency: wallet?.currency ?? expenseDefaultCurrency,
         icon: wallet?.icon ?? walletType.icon,
         isDefault: Boolean(wallet?.isDefault),
         name: wallet?.name ?? "",
         type: walletType.id,
     };
+}
+
+function normalizeWalletNameForComparison(name) {
+    return String(name ?? "")
+        .trim()
+        .replace(/\s+/g, " ")
+        .toLocaleLowerCase("vi");
+}
+
+function findDuplicateWalletName(wallets, name, excludedWalletId) {
+    const normalizedName = normalizeWalletNameForComparison(name);
+
+    return wallets.find(
+        (wallet) =>
+            wallet.id !== excludedWalletId &&
+            !wallet.isArchived &&
+            normalizeWalletNameForComparison(wallet.name) === normalizedName,
+    );
 }
 
 export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubmit, wallets = [] }) {
@@ -49,8 +69,15 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
     const [isDeleting, setIsDeleting] = useState(false);
     const [submitError, setSubmitError] = useState("");
     const isEditing = Boolean(selectedWallet);
+    const isCreditCard = formState.type === creditCardWalletTypeId;
+    const selectedWalletIsCreditCard = selectedWallet?.type === creditCardWalletTypeId;
+    const selectedWalletNeedsBalanceSetup = Boolean(
+        selectedWallet && !selectedWalletIsCreditCard && !selectedWallet.isBalanceInitialized,
+    );
     const isWorking = isSubmitting || isDeleting;
-    const hasBalance = (selectedWallet?.balance ?? 0) !== 0;
+    const hasBalance = selectedWalletIsCreditCard
+        ? (selectedWallet?.outstandingDebt ?? 0) !== 0
+        : (selectedWallet?.balance ?? 0) !== 0;
     const canDelete = isEditing && wallets.length > 1 && !selectedWallet?.isDefault && !hasBalance;
     const currencySymbol = expenseCurrencySymbolByLabel[formState.currency] ?? formState.currency;
 
@@ -91,8 +118,24 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
             return;
         }
 
+        if (findDuplicateWalletName(wallets, name, selectedWallet?.id)) {
+            setSubmitError(`Tên ví "${name}" đã tồn tại. Vui lòng chọn tên khác.`);
+            return;
+        }
+
+        if (selectedWallet && selectedWalletIsCreditCard !== isCreditCard) {
+            setSubmitError("Không thể đổi qua lại giữa ví thường và thẻ tín dụng. Vui lòng tạo ví mới.");
+            return;
+        }
+
+        const creditLimit = parseCurrencyInput(formState.creditLimit);
+
+        if (isCreditCard && !creditLimit) {
+            setSubmitError("Vui lòng nhập hạn mức thẻ tín dụng.");
+            return;
+        }
+
         const wallet = {
-            balance: parseCurrencyInput(formState.balance),
             color: formState.color,
             currency: formState.currency,
             icon: formState.icon,
@@ -102,7 +145,15 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
             type: formState.type,
         };
 
-        if (!isEditing) {
+        if (isCreditCard) {
+            wallet.balance = 0;
+            wallet.creditLimit = creditLimit;
+            wallet.initialBalance = 0;
+        } else {
+            wallet.balance = parseCurrencyInput(formState.balance);
+        }
+
+        if (!isEditing && !isCreditCard) {
             wallet.initialBalance = wallet.balance;
         }
 
@@ -205,24 +256,39 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                 </div>
 
                 <label className="wallet-form__field wallet-form__field--amount">
-                    <span>{isEditing ? "Số dư hiện tại" : "Số dư ban đầu"}</span>
+                    <span>{isCreditCard ? "Hạn mức thẻ" : isEditing ? "Số dư hiện tại" : "Số dư ban đầu"}</span>
                     <span className="wallet-form__amount-control">
                         <input
                             disabled={isWorking}
                             inputMode="numeric"
-                            name="balance"
+                            name={isCreditCard ? "creditLimit" : "balance"}
                             onChange={(event) =>
                                 updateFormState({
-                                    balance: formatCurrencyInput(event.target.value),
+                                    [isCreditCard ? "creditLimit" : "balance"]: formatCurrencyInput(event.target.value),
                                 })
                             }
                             placeholder="0"
+                            required={isCreditCard}
                             type="text"
-                            value={formState.balance}
+                            value={isCreditCard ? formState.creditLimit : formState.balance}
                         />
                         <span aria-hidden="true">{currencySymbol}</span>
                     </span>
                 </label>
+
+                {isCreditCard && selectedWallet ? (
+                    <p className="wallet-form__hint">
+                        Dư nợ hiện tại: {formatCurrency(selectedWallet.outstandingDebt ?? 0, formState.currency)}.
+                        Hạn mức còn lại: {formatCurrency(selectedWallet.availableCredit ?? 0, formState.currency)}.
+                    </p>
+                ) : null}
+
+                {selectedWalletNeedsBalanceSetup ? (
+                    <p className="wallet-form__hint">
+                        Ví này đang tạm tính từ 0đ. Khi lưu số dư hiện tại, hệ thống sẽ tính lại số dư ban
+                        đầu theo các giao dịch đã ghi, không tạo giao dịch điều chỉnh.
+                    </p>
+                ) : null}
 
                 <label className="wallet-form__field">
                     <span>Màu ví</span>
@@ -246,14 +312,16 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                 </label>
 
                 <p className="wallet-form__hint">
-                    {isEditing
+                    {isCreditCard
+                        ? "Chi tiêu bằng thẻ tín dụng sẽ tăng dư nợ và giảm hạn mức còn lại, không trừ tiền ngân hàng ngay."
+                        : isEditing
                         ? "Nếu đổi số dư hiện tại, hệ thống sẽ tạo một giao dịch điều chỉnh để giữ lịch sử."
                         : "Ví mới sẽ dùng cho giao dịch thu, chi và chuyển khoản."}
                 </p>
 
                 {isEditing && !canDelete ? (
                     <p className="wallet-form__hint">
-                        Chỉ có thể xóa ví không phải mặc định, không còn số dư và không phải ví active cuối cùng.
+                        Chỉ có thể xóa ví không phải mặc định, không còn số dư/dư nợ và không phải ví active cuối cùng.
                     </p>
                 ) : null}
 

@@ -14,6 +14,8 @@ import {
 } from "firebase/firestore";
 import { firestore } from "../../../lib/firebase/firestore";
 import {
+    creditPaymentTransactionTypeId,
+    creditCardWalletTypeId,
     expenseDefaultCurrency,
     expenseDefaultLocale,
     expenseDefaultTimezone,
@@ -22,6 +24,7 @@ import {
     transactionMaxPageSize,
     transactionTypeIds as transactionTypes,
 } from "../constant/expensesMetaData";
+import { getWalletDisplayName } from "../utils/walletDisplayUtils";
 
 function getTransactionsCollectionRef(uid) {
     if (!uid) {
@@ -189,11 +192,68 @@ function getSnapshotData(snapshot, label) {
     return data;
 }
 
+function isCreditCardWallet(wallet) {
+    return wallet?.type === creditCardWalletTypeId;
+}
+
+function getCreditCardWalletProjection(wallet, balanceDelta) {
+    const creditLimit = wallet.creditLimit ?? 0;
+    const currentDebt = wallet.outstandingDebt ?? 0;
+    const nextOutstandingDebt = currentDebt - balanceDelta;
+
+    if (nextOutstandingDebt < 0) {
+        throw new Error("Credit card debt cannot be negative.");
+    }
+
+    if (nextOutstandingDebt > creditLimit) {
+        throw new Error("Hạn mức thẻ tín dụng không đủ cho giao dịch này.");
+    }
+
+    return {
+        availableCredit: creditLimit - nextOutstandingDebt,
+        balance: 0,
+        outstandingDebt: nextOutstandingDebt,
+    };
+}
+
+function getWalletProjectionUpdate(wallet, balanceDelta) {
+    if (isCreditCardWallet(wallet)) {
+        return getCreditCardWalletProjection(wallet, balanceDelta);
+    }
+
+    return {
+        balance: (wallet.balance ?? 0) + balanceDelta,
+    };
+}
+
+function assertWalletSupportsTransactionType(wallet, transactionType, label = "Wallet") {
+    if (!isCreditCardWallet(wallet)) {
+        return;
+    }
+
+    if (transactionType === "expense") {
+        return;
+    }
+
+    throw new Error(`${label} là thẻ tín dụng. Flow này chỉ hỗ trợ giao dịch chi tiêu.`);
+}
+
+function assertCreditPaymentWallets(fromWallet, toWallet) {
+    if (isCreditCardWallet(fromWallet)) {
+        throw new Error("Ví thanh toán không được là thẻ tín dụng.");
+    }
+
+    if (!isCreditCardWallet(toWallet)) {
+        throw new Error("Ví nhận thanh toán phải là thẻ tín dụng.");
+    }
+}
+
 function getWalletSnapshot(wallet) {
     return {
         name: wallet.name,
         icon: wallet.icon ?? "wallet",
         color: wallet.color ?? "#56b879",
+        type: wallet.type,
     };
 }
 
@@ -251,20 +311,27 @@ function getSignedAmount(data) {
 
 function mapTransactionData(id, data) {
     const time = getTransactionTime(data);
-    const walletName = data.walletSnapshot?.name ?? "";
-    const fromWalletName = data.fromWalletSnapshot?.name ?? "";
-    const toWalletName = data.toWalletSnapshot?.name ?? "";
+    const walletName = getWalletDisplayName(data.walletSnapshot);
+    const fromWalletName = getWalletDisplayName(data.fromWalletSnapshot);
+    const toWalletName = getWalletDisplayName(data.toWalletSnapshot);
     const walletIcon =
         data.walletSnapshot?.icon ??
         data.fromWalletSnapshot?.icon ??
         data.toWalletSnapshot?.icon ??
         "wallet";
-    const categoryName =
-        data.type === "transfer"
-            ? "Chuyển khoản"
-            : data.type === "adjustment"
-                ? "Điều chỉnh số dư"
-                : (data.categorySnapshot?.name ?? data.categoryId ?? "");
+    let categoryName = data.categorySnapshot?.name ?? data.categoryId ?? "";
+
+    if (data.type === "transfer") {
+        categoryName = "Chuyển khoản";
+    }
+
+    if (data.type === creditPaymentTransactionTypeId) {
+        categoryName = "Thanh toán thẻ tín dụng";
+    }
+
+    if (data.type === "adjustment") {
+        categoryName = "Điều chỉnh số dư";
+    }
 
     return {
         id,
@@ -282,7 +349,7 @@ function mapTransactionData(id, data) {
             data.categorySnapshot?.icon ??
             data.fromWalletSnapshot?.icon ??
             data.walletSnapshot?.icon ??
-            (data.type === "adjustment" ? "wallet" : "transfer"),
+            (data.type === "adjustment" ? "wallet" : data.type === creditPaymentTransactionTypeId ? "card" : "transfer"),
         title: data.title,
         subtitle: getTransactionSubtitle(data),
         date: data.localDate,
@@ -428,8 +495,10 @@ function addTransactionWalletDeltas(walletDeltas, transactionData, direction) {
         return;
     }
 
-    addWalletDelta(walletDeltas, transactionData.fromWalletId, -amountDelta);
-    addWalletDelta(walletDeltas, transactionData.toWalletId, amountDelta);
+    if (transactionData.type === "transfer" || transactionData.type === creditPaymentTransactionTypeId) {
+        addWalletDelta(walletDeltas, transactionData.fromWalletId, -amountDelta);
+        addWalletDelta(walletDeltas, transactionData.toWalletId, amountDelta);
+    }
 }
 
 function createTransactionDataFromInput({
@@ -457,6 +526,7 @@ function createTransactionDataFromInput({
 
     if (input.type === "adjustment") {
         const adjustmentDirection = input.adjustmentDirection === "increase" ? "increase" : "decrease";
+        assertWalletSupportsTransactionType(wallet, input.type);
 
         return {
             type: input.type,
@@ -493,6 +563,44 @@ function createTransactionDataFromInput({
         if (input.fromWalletId === input.toWalletId) {
             throw new Error("Transfer wallets must be different.");
         }
+        assertWalletSupportsTransactionType(fromWallet, input.type, "Source wallet");
+        assertWalletSupportsTransactionType(toWallet, input.type, "Destination wallet");
+
+        return {
+            type: input.type,
+            amountMinor,
+            currency: fromWallet.currency ?? expenseDefaultCurrency,
+            title,
+            titleNormalized: normalizeText(title),
+            searchTokens: getTransactionSearchTokens({
+                input,
+            }),
+            note,
+            categoryId: null,
+            walletId: null,
+            fromWalletId: input.fromWalletId,
+            toWalletId: input.toWalletId,
+            walletIds: [input.fromWalletId, input.toWalletId],
+            occurredAt,
+            localDate: input.date,
+            monthKey,
+            timezone: getTimezone(),
+            categorySnapshot: null,
+            walletSnapshot: null,
+            fromWalletSnapshot: getWalletSnapshot(fromWallet),
+            toWalletSnapshot: getWalletSnapshot(toWallet),
+            status: "active",
+            createdAt,
+            updatedAt: timestamp,
+            voidedAt: null,
+        };
+    }
+
+    if (input.type === creditPaymentTransactionTypeId) {
+        if (input.fromWalletId === input.toWalletId) {
+            throw new Error("Credit payment wallets must be different.");
+        }
+        assertCreditPaymentWallets(fromWallet, toWallet);
 
         return {
             type: input.type,
@@ -527,6 +635,7 @@ function createTransactionDataFromInput({
     if ((category.type ?? "expense") !== input.type) {
         throw new Error("Transaction category does not match its type.");
     }
+    assertWalletSupportsTransactionType(wallet, input.type);
 
     return {
         type: input.type,
@@ -664,7 +773,8 @@ export async function createExpenseTransaction(uid, input) {
             const wallet = getSnapshotData(walletSnapshot, "Wallet");
             const adjustmentDirection = input.adjustmentDirection === "increase" ? "increase" : "decrease";
             const balanceDelta = adjustmentDirection === "increase" ? amountMinor : -amountMinor;
-            const nextBalance = (wallet.balance ?? 0) + balanceDelta;
+            assertWalletSupportsTransactionType(wallet, input.type);
+            const walletProjectionUpdate = getWalletProjectionUpdate(wallet, balanceDelta);
 
             transactionData = {
                 type: input.type,
@@ -698,12 +808,12 @@ export async function createExpenseTransaction(uid, input) {
 
             firestoreTransaction.set(transactionRef, transactionData);
             firestoreTransaction.update(walletRef, {
-                balance: nextBalance,
+                ...walletProjectionUpdate,
                 updatedAt: timestamp,
             });
 
-            walletBalanceUpdates[input.walletId] = nextBalance;
-        } else if (input.type === "transfer") {
+            walletBalanceUpdates[input.walletId] = walletProjectionUpdate;
+        } else if (input.type === "transfer" || input.type === creditPaymentTransactionTypeId) {
             const fromWalletRef = getWalletRef(uid, input.fromWalletId);
             const toWalletRef = getWalletRef(uid, input.toWalletId);
 
@@ -729,8 +839,14 @@ export async function createExpenseTransaction(uid, input) {
                 monthKey,
                 monthlyStatsSnapshot.data(),
             );
-            const fromBalance = (fromWallet.balance ?? 0) - amountMinor;
-            const toBalance = (toWallet.balance ?? 0) + amountMinor;
+            if (input.type === creditPaymentTransactionTypeId) {
+                assertCreditPaymentWallets(fromWallet, toWallet);
+            } else {
+                assertWalletSupportsTransactionType(fromWallet, input.type, "Source wallet");
+                assertWalletSupportsTransactionType(toWallet, input.type, "Destination wallet");
+            }
+            const fromWalletProjectionUpdate = getWalletProjectionUpdate(fromWallet, -amountMinor);
+            const toWalletProjectionUpdate = getWalletProjectionUpdate(toWallet, amountMinor);
 
             transactionData = {
                 type: input.type,
@@ -768,16 +884,16 @@ export async function createExpenseTransaction(uid, input) {
             firestoreTransaction.set(transactionRef, transactionData);
             firestoreTransaction.set(monthlyStatsRef, nextMonthlyStats);
             firestoreTransaction.update(fromWalletRef, {
-                balance: fromBalance,
+                ...fromWalletProjectionUpdate,
                 updatedAt: timestamp,
             });
             firestoreTransaction.update(toWalletRef, {
-                balance: toBalance,
+                ...toWalletProjectionUpdate,
                 updatedAt: timestamp,
             });
 
-            walletBalanceUpdates[input.fromWalletId] = fromBalance;
-            walletBalanceUpdates[input.toWalletId] = toBalance;
+            walletBalanceUpdates[input.fromWalletId] = fromWalletProjectionUpdate;
+            walletBalanceUpdates[input.toWalletId] = toWalletProjectionUpdate;
         } else {
             const walletRef = getWalletRef(uid, input.walletId);
             const categoryRef = getCategoryRef(uid, input.categoryId);
@@ -802,7 +918,8 @@ export async function createExpenseTransaction(uid, input) {
 
             const balanceDelta =
                 input.type === "income" ? amountMinor : -amountMinor;
-            const nextBalance = (wallet.balance ?? 0) + balanceDelta;
+            assertWalletSupportsTransactionType(wallet, input.type);
+            const walletProjectionUpdate = getWalletProjectionUpdate(wallet, balanceDelta);
 
             transactionData = {
                 type: input.type,
@@ -842,11 +959,11 @@ export async function createExpenseTransaction(uid, input) {
             firestoreTransaction.set(transactionRef, transactionData);
             firestoreTransaction.set(monthlyStatsRef, nextMonthlyStats);
             firestoreTransaction.update(walletRef, {
-                balance: nextBalance,
+                ...walletProjectionUpdate,
                 updatedAt: timestamp,
             });
 
-            walletBalanceUpdates[input.walletId] = nextBalance;
+            walletBalanceUpdates[input.walletId] = walletProjectionUpdate;
         }
 
         return {
@@ -892,7 +1009,7 @@ export async function updateExpenseTransaction(uid, transactionId, input) {
             const walletSnapshot = await firestoreTransaction.get(walletRef);
 
             wallet = getSnapshotData(walletSnapshot, "Wallet");
-        } else if (input.type === "transfer") {
+        } else if (input.type === "transfer" || input.type === creditPaymentTransactionTypeId) {
             const fromWalletRef = getWalletRef(uid, input.fromWalletId);
             const toWalletRef = getWalletRef(uid, input.toWalletId);
             const [fromWalletSnapshot, toWalletSnapshot] = await Promise.all([
@@ -985,7 +1102,7 @@ export async function updateExpenseTransaction(uid, transactionId, input) {
                 throw new Error("Wallet does not exist.");
             }
 
-            walletBalanceUpdates[walletId] = (walletSnapshot.data().balance ?? 0) + walletDeltas[walletId];
+            walletBalanceUpdates[walletId] = getWalletProjectionUpdate(walletSnapshot.data(), walletDeltas[walletId]);
         });
 
         firestoreTransaction.set(transactionRef, nextTransactionData, { merge: true });
@@ -994,7 +1111,7 @@ export async function updateExpenseTransaction(uid, transactionId, input) {
         });
         affectedWalletIds.forEach((walletId) => {
             firestoreTransaction.update(walletRefs.get(walletId), {
-                balance: walletBalanceUpdates[walletId],
+                ...walletBalanceUpdates[walletId],
                 updatedAt: timestamp,
             });
         });
@@ -1060,7 +1177,7 @@ export async function voidExpenseTransaction(uid, transactionId) {
                 throw new Error("Wallet does not exist.");
             }
 
-            walletBalanceUpdates[walletId] = (walletSnapshot.data().balance ?? 0) + walletDeltas[walletId];
+            walletBalanceUpdates[walletId] = getWalletProjectionUpdate(walletSnapshot.data(), walletDeltas[walletId]);
         });
 
         firestoreTransaction.set(
@@ -1077,7 +1194,7 @@ export async function voidExpenseTransaction(uid, transactionId) {
         }
         affectedWalletIds.forEach((walletId) => {
             firestoreTransaction.update(walletRefs.get(walletId), {
-                balance: walletBalanceUpdates[walletId],
+                ...walletBalanceUpdates[walletId],
                 updatedAt: timestamp,
             });
         });

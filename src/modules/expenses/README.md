@@ -63,10 +63,12 @@ Quan hệ nghiệp vụ quan trọng:
   category qua `categoryId`.
 - Một transfer transaction tham chiếu hai wallet qua `fromWalletId` và
   `toWalletId`.
+- Một `creditPayment` transaction cũng tham chiếu hai wallet qua `fromWalletId`
+  và `toWalletId`, nhưng `toWalletId` phải là wallet `credit-card`.
 - Một adjustment transaction tham chiếu một wallet qua `walletId`, có
   `adjustmentDirection` để xác định tăng hoặc giảm số dư.
-- `walletIds` là mảng denormalized để query lịch sử theo ví, bao gồm cả transfer
-  và adjustment.
+- `walletIds` là mảng denormalized để query lịch sử theo ví, bao gồm cả
+  transfer, `creditPayment` và adjustment.
 - Transaction lưu snapshot wallet/category để lịch sử vẫn hiển thị đúng sau khi
   wallet/category đổi tên, đổi màu hoặc bị archive.
 - Budget không giữ số đã chi. UI ghép `budgets.limitMinor` với
@@ -74,22 +76,27 @@ Quan hệ nghiệp vụ quan trọng:
 
 Luồng tiền hiện tại:
 
-1. Tạo expense: tạo transaction, trừ `wallet.balance`, tăng
-   `monthlyStats.expenseMinor`, tăng spending của category.
+1. Tạo expense: tạo transaction, tăng `monthlyStats.expenseMinor`, tăng
+   spending của category. Nếu dùng wallet thường thì trừ `wallet.balance`; nếu
+   dùng `credit-card` thì tăng `outstandingDebt` và giảm `availableCredit`.
 2. Tạo income: tạo transaction, cộng `wallet.balance`, tăng
    `monthlyStats.incomeMinor`, tăng income của category.
 3. Tạo transfer: tạo transaction, trừ ví nguồn, cộng ví đích, không đổi
    income/expense report.
-4. Sửa transaction: đảo toàn bộ tác động cũ, áp tác động mới, cập nhật wallet và
+4. Tạo `creditPayment`: tạo transaction "Thanh toán thẻ tín dụng", trừ
+   `fromWalletId`, giảm `outstandingDebt` của credit-card ở `toWalletId`, tăng
+   `availableCredit`, không tăng `monthlyStats.expenseMinor` hoặc budget spent vì
+   khoản chi đã được ghi lúc quẹt thẻ.
+5. Sửa transaction: đảo toàn bộ tác động cũ, áp tác động mới, cập nhật wallet và
    monthlyStats liên quan.
-5. Xóa transaction: không xóa document; chuyển `status` sang `voided` và đảo tác
+6. Xóa transaction: không xóa document; chuyển `status` sang `voided` và đảo tác
    động tài chính.
-6. Sửa số dư ví chưa có active transaction: cập nhật `initialBalance` và
+7. Sửa số dư ví chưa có active transaction: cập nhật `initialBalance` và
    `balance`, không tạo transaction.
-7. Sửa số dư ví đã có active transaction: tạo transaction `adjustment`, cập nhật
+8. Sửa số dư ví đã có active transaction: tạo transaction `adjustment`, cập nhật
    `wallet.balance`, không đổi `monthlyStats`.
-8. Archive wallet: chỉ cho archive ví không phải default, không phải ví active
-   cuối cùng và có `balance == 0`.
+9. Archive wallet: chỉ cho archive ví không phải default, không phải ví active
+   cuối cùng và không còn `balance`/`outstandingDebt`.
 
 ## 3. Các quyết định chính
 
@@ -153,7 +160,9 @@ Tạo, sửa hoặc hủy transaction phải cập nhật cùng lúc:
 
 - Transaction document.
 - Số dư wallet liên quan.
-- Monthly statistics liên quan nếu transaction thuộc income/expense/transfer.
+- Monthly statistics liên quan nếu transaction thuộc income/expense/transfer/
+  `creditPayment`; `creditPayment` chỉ được tính vào transaction count, không
+  tăng income/expense/category aggregate.
 
 Implementation hiện tại thực hiện các thao tác này trong repository client bằng
 Firestore `runTransaction`/batch và được ràng buộc bởi Firestore Security Rules.
@@ -291,7 +300,7 @@ Shape đề xuất:
 cash
 bank
 eWallet
-card
+credit-card
 saving
 other
 ```
@@ -300,11 +309,17 @@ Quy tắc:
 
 - `initialBalance` chỉ là số dư ban đầu khi tạo hoặc import wallet.
 - `balance` là projection được cập nhật cùng transaction.
+- Wallet `credit-card` không dùng số dư ban đầu; `balance` và `initialBalance`
+  luôn bằng `0`, còn hạn mức và dư nợ được lưu bằng `creditLimit`,
+  `outstandingDebt`, `availableCredit`.
 - `color` là màu nhận diện của ví, không phụ thuộc trực tiếp vào theme.
 - `icon` là key trong `CategoryIcon`, ví dụ `wallet`, `bank`, `momo`, `card`,
   `saving`, `more`.
 - `order` dùng để sắp xếp ví trong UI.
 - `isDefault` đánh dấu ví mặc định của user.
+- `isBalanceInitialized` đánh dấu số dư ví thường đã được user neo theo số dư
+  thực tế. Ví mặc định auto-init có thể bắt đầu bằng `false` và `balance = 0`.
+- Tên wallet đang hoạt động phải là duy nhất theo user; `type` wallet được phép trùng.
 - Transaction mới không được tham chiếu wallet đã archive.
 - Wallet có transaction cũ không được hard-delete.
 - Số dư tổng của user bằng tổng `balance` của các wallet đang hoạt
@@ -316,11 +331,22 @@ Quy tắc:
 projection này qua các flow nghiệp vụ có kiểm soát:
 
 - Tạo wallet mới: `balance = initialBalance`.
+- Ví mặc định auto-init có thể bắt đầu với `balance = 0` và
+  `isBalanceInitialized = false`; giao dịch vẫn được ghi bình thường và balance
+  có thể âm/dương theo biến động từ mốc 0.
+- Nếu user tạo ví mới khi ví active duy nhất là ví auto-init chưa initialized,
+  chưa có giao dịch và `balance = 0`, ví mới sẽ tự trở thành ví default.
+- Tạo credit-card wallet: nhập `creditLimit`, đặt `outstandingDebt = 0` và
+  `availableCredit = creditLimit`; không tạo opening balance.
+- Khi user lần đầu cập nhật số dư cho ví chưa initialized, repository tính lại
+  `initialBalance = targetBalance - netMovement(active transactions)` và đặt
+  `isBalanceInitialized = true`, không tạo transaction `adjustment`.
 - Sửa balance của wallet chưa có active transaction: cập nhật trực tiếp
   `initialBalance` và `balance`; đây là bước thiết lập số dư ban đầu.
 - Sửa balance của wallet đã có active transaction: tạo transaction
   `adjustment` với `adjustmentDirection`, rồi cập nhật `balance`.
-- Expense/income/transfer/void transaction: cập nhật balance bằng delta.
+- Expense/income/transfer/creditPayment/void transaction: cập nhật balance hoặc
+  credit-card projection bằng delta.
 
 Archive wallet hiện tại có các điều kiện bắt buộc:
 
@@ -430,6 +456,7 @@ Các loại transaction:
 expense
 income
 transfer
+creditPayment
 adjustment
 ```
 
@@ -452,6 +479,10 @@ Tác động:
 - Trừ `amountMinor` khỏi wallet.
 - Tăng `monthlyStats.expenseMinor`.
 - Tăng tổng chi của category trong tháng.
+
+Nếu wallet là `credit-card`, transaction vẫn là expense và vẫn tính ngân sách,
+nhưng không trừ tiền ngân hàng ngay. Repository tăng `outstandingDebt` của thẻ
+và giảm `availableCredit`; flow thanh toán thẻ sẽ xử lý sau bằng một action riêng.
 
 #### Income transaction
 
@@ -494,6 +525,34 @@ Tác động:
 - Không tính là income hoặc expense.
 - Không ảnh hưởng ngân sách.
 - Hai wallet phải khác nhau và cùng currency trong phiên bản đầu.
+
+#### Credit payment transaction
+
+`creditPayment` là flow "Thanh toán thẻ tín dụng". Đây không phải expense mới vì
+khoản chi đã được ghi ở transaction expense lúc dùng thẻ.
+
+```js
+{
+  type: "creditPayment",
+  amountMinor: 1500000,
+  categoryId: null,
+  walletId: null,
+  fromWalletId: "wallet-bank",
+  toWalletId: "wallet-credit",
+  walletIds: ["wallet-bank", "wallet-credit"]
+}
+```
+
+Tác động:
+
+- Trừ `amountMinor` khỏi ví nguồn thường, ví dụ bank/eWallet/cash.
+- Giảm `outstandingDebt` của ví `credit-card` đích.
+- Tăng `availableCredit` của ví `credit-card` đích.
+- Không tăng `monthlyStats.expenseMinor`.
+- Không tăng `monthlyStats.categoryExpenseMinor`.
+- Không ảnh hưởng budget spent.
+- Có thể tăng `transactionCount` để lịch sử tháng vẫn phản ánh có một giao dịch
+  thanh toán thẻ.
 
 #### Adjustment transaction
 
@@ -818,6 +877,15 @@ Quy tắc merge đề xuất:
 
 ## 11. Flow tạo giao dịch
 
+Form `Thêm giao dịch` chỉ expose ba type user nhập trực tiếp:
+
+- `expense` - Chi tiêu.
+- `income` - Thu nhập.
+- `transfer` - Chuyển khoản.
+
+`creditPayment` và `adjustment` là transaction nội bộ, được tạo từ flow riêng
+thay vì xuất hiện trong type selector của form thêm giao dịch.
+
 ### Request từ client
 
 Client gửi payload domain, không tự gửi balance hoặc statistics:
@@ -890,7 +958,37 @@ Atomic transaction:
 Không mô hình transfer thành expense và income độc lập vì dễ bị đếm sai trong
 báo cáo.
 
-## 13. Flow sửa giao dịch
+## 13. Flow thanh toán thẻ tín dụng
+
+Trong Wallet, mỗi wallet `credit-card` còn dư nợ có nút "Thanh toán". Nút này
+mở dialog riêng tên "Thanh toán thẻ tín dụng" và tạo transaction nội bộ
+`creditPayment`.
+
+Dialog thanh toán phải có:
+
+- Số tiền.
+- Ví thanh toán, không được là `credit-card`.
+- Thẻ tín dụng, bắt buộc là wallet `credit-card`.
+- Ngày thanh toán.
+- Ghi chú.
+- Preview số dư ví nguồn sau thanh toán và dư nợ còn lại.
+
+Atomic transaction:
+
+1. Đọc ví thanh toán và ví credit-card.
+2. Kiểm tra hai ví khác nhau, ví nguồn không phải credit-card, ví đích là
+   credit-card.
+3. Trừ `amountMinor` khỏi `fromWalletId`.
+4. Giảm `outstandingDebt` của `toWalletId`.
+5. Tăng `availableCredit` của `toWalletId`.
+6. Tạo một transaction `creditPayment` chứa cả hai wallet ID.
+7. Có thể tăng `transactionCount`, nhưng không thay đổi income, expense,
+   category aggregate hoặc budget spent.
+
+Không mô hình thanh toán thẻ thành expense từ ví bank vì sẽ đếm trùng khoản chi
+đã được ghi lúc quẹt thẻ.
+
+## 14. Flow sửa giao dịch
 
 Client chỉ gửi transaction ID và dữ liệu mới.
 
@@ -911,10 +1009,13 @@ Ví dụ đổi expense từ tháng 5 sang tháng 6:
 - Tăng expense và category aggregate tháng 6.
 - Balance hiện tại không đổi nếu amount và wallet không đổi.
 
+Với transaction `creditPayment`, flow sửa đảo/apply balance delta cho cả ví nguồn
+và thẻ tín dụng. Nó không đổi income/expense/category aggregate.
+
 Với transaction `adjustment`, flow sửa chỉ đảo/apply balance delta. Nó không tạo
 hoặc cập nhật `monthlyStats` vì adjustment không phải income/expense.
 
-## 14. Flow hủy giao dịch
+## 15. Flow hủy giao dịch
 
 Không xóa document trong flow thông thường.
 
@@ -940,13 +1041,17 @@ thị trong lịch sử kiểm toán.
 Với transaction `adjustment`, void chỉ đảo tác động balance và không động tới
 `monthlyStats`.
 
-## 15. Flow wallet
+Với transaction `creditPayment`, void cộng lại tiền cho ví nguồn, tăng lại
+`outstandingDebt` của thẻ tín dụng và giảm lại `availableCredit`.
+
+## 16. Flow wallet
 
 ### Tạo wallet
 
-1. Validate name, type và currency.
-2. Tạo wallet với opening balance.
-3. Đặt `balance = initialBalance`.
+1. Validate name, type và currency; name không được trùng với wallet đang hoạt động khác.
+2. Tạo wallet thường với opening balance hoặc credit-card với hạn mức thẻ.
+3. Wallet thường đặt `balance = initialBalance`; credit-card đặt
+   `outstandingDebt = 0` và `availableCredit = creditLimit`.
 4. Ví do user tạo thêm dùng Firestore auto ID.
 5. Ví mặc định khi bootstrap lần đầu hiện dùng id cố định `wallet-cash` để init
    idempotent.
@@ -964,6 +1069,15 @@ Cho phép sửa:
 - Default flag.
 - Sort order.
 - Số dư hiện tại theo rule bên dưới.
+- Hạn mức thẻ tín dụng nếu wallet là `credit-card`.
+
+Credit-card không cho sửa số dư trực tiếp. Dư nợ chỉ thay đổi qua transaction
+chi tiêu bằng thẻ hoặc flow thanh toán thẻ riêng trong giai đoạn sau.
+
+Nếu wallet thường được auto-init và chưa có số dư thật, app vẫn cho ghi giao
+dịch từ mốc `0`. Balance lúc này là số dư tạm tính. Khi user nhập số dư hiện
+tại lần đầu, repository tính lại `initialBalance` từ toàn bộ active transaction
+của ví để `balance` khớp số dư user nhập mà không tạo adjustment.
 
 Khi user đổi số dư hiện tại:
 
@@ -1011,7 +1125,7 @@ Nếu target thấp hơn current balance thì `adjustmentDirection = "decrease"`
 - Không cho tạo transaction mới với wallet đã archive.
 - Transaction cũ vẫn giữ wallet snapshot.
 
-## 16. Flow category
+## 17. Flow category
 
 ### Tạo category
 
@@ -1030,7 +1144,7 @@ hình báo cáo hiện tại có thể dùng metadata mới theo `categoryId`.
 - Vẫn xuất hiện trong transaction history và report cũ.
 - Budget mới không được tạo cho category đã archive.
 
-## 17. Flow budget
+## 18. Flow budget
 
 ### Tạo hoặc cập nhật budget
 
@@ -1080,7 +1194,7 @@ vàng/cam cảnh báo, exceeded dùng màu đỏ.
 
 Notification backend có thể được bổ sung sau. V1 chỉ cần cảnh báo trong UI.
 
-## 18. Query patterns
+## 19. Query patterns
 
 ### Recent transactions
 
@@ -1142,7 +1256,7 @@ startAfter(lastVisibleDocument)
 
 Không dùng offset vì các document bị bỏ qua vẫn làm tăng chi phí và latency.
 
-## 19. Search
+## 20. Search
 
 Firestore Standard không phù hợp với full-text substring search như:
 
@@ -1169,7 +1283,7 @@ Nếu cần tìm toàn bộ lịch sử:
 Không nên tạo mảng mọi prefix/token trong transaction document nếu chưa đo
 được nhu cầu vì làm tăng kích thước document và số index write.
 
-## 20. Composite indexes dự kiến
+## 21. Composite indexes dự kiến
 
 Các index chính:
 
@@ -1194,7 +1308,7 @@ Có thể disable single-field indexing cho các field không query:
 - `categoryExpenseMinor`
 - `categoryIncomeMinor`
 
-## 21. Security model
+## 22. Security model
 
 ### Authentication
 
@@ -1266,7 +1380,7 @@ tự validate Auth, ownership và payload.
 Khi đưa lên production, bật Firebase App Check cho web app và Cloud Functions
 để giảm request giả mạo.
 
-## 22. Rule validation cho settings
+## 23. Rule validation cho settings
 
 Security Rules cần giới hạn:
 
@@ -1279,7 +1393,7 @@ Security Rules cần giới hạn:
 
 Không cho client thêm field tùy ý vào settings document.
 
-## 23. Kiến trúc frontend dự kiến
+## 24. Kiến trúc frontend dự kiến
 
 Không gọi Firestore trực tiếp trong component UI.
 
@@ -1323,7 +1437,7 @@ Vai trò:
 
 Nhờ mapper, có thể giữ phần lớn component hiện tại trong giai đoạn migration.
 
-## 24. Mapping sang UI hiện tại
+## 25. Mapping sang UI hiện tại
 
 ### Firestore transaction sang transaction prop
 
@@ -1381,7 +1495,7 @@ như expense âm.
 }
 ```
 
-## 25. Realtime strategy
+## 26. Realtime strategy
 
 Nên dùng realtime listener cho dữ liệu nhỏ và thay đổi thường xuyên:
 
@@ -1400,7 +1514,7 @@ Có thể dùng one-time read cho:
 
 Không subscribe toàn bộ transaction history.
 
-## 26. Loading, error và offline
+## 27. Loading, error và offline
 
 Mỗi hook trả về contract thống nhất:
 
@@ -1424,7 +1538,7 @@ Không hiển thị optimistic balance như đã thành công nếu backend tran
 chưa commit. Form có thể optimistic về trạng thái loading, nhưng balance nên
 theo listener server/cache chính thức.
 
-## 27. Timezone và ngày tháng
+## 28. Timezone và ngày tháng
 
 `occurredAt` là timestamp chuẩn để sort và query.
 
@@ -1449,7 +1563,7 @@ Lý do lưu thêm:
 `monthKey` và `localDate` phải được backend tính từ `occurredAt` và timezone,
 không tin hoàn toàn vào chuỗi client gửi lên.
 
-## 28. Trend calculation
+## 29. Trend calculation
 
 Dashboard cần stats tháng hiện tại và tháng trước.
 
@@ -1478,7 +1592,7 @@ balance at previous month end = current balance - net movement từ đầu thán
 Nếu chưa có historical balance snapshots, có thể tạm dùng net trend và đổi
 label UI cho đúng nghĩa.
 
-## 29. Migration từ mock data
+## 30. Migration từ mock data
 
 ### Bước 1: Firebase foundation
 
@@ -1537,7 +1651,7 @@ Thứ tự đề xuất:
 6. Budgets.
 7. Report.
 8. Edit và void transaction.
-9. Transfer.
+9. Transfer và `creditPayment`.
 
 ### Bước 8: Loại bỏ mock
 
@@ -1546,9 +1660,9 @@ Chỉ xóa `mockExpenses.js` sau khi:
 - UI có loading/error/empty states.
 - Emulator tests chạy ổn.
 - Dashboard totals khớp.
-- Add/edit/void/transfer cập nhật đúng balance và stats.
+- Add/edit/void/transfer/creditPayment cập nhật đúng balance, debt và stats.
 
-## 30. Rebuild và reconciliation
+## 31. Rebuild và reconciliation
 
 Projection có thể sai do bug, import lỗi hoặc function thất bại trong quá trình
 phát triển. Cần có công cụ rebuild.
@@ -1567,14 +1681,18 @@ Production cần giới hạn function này cho admin hoặc internal job.
 
 Có thể thêm scheduled reconciliation để phát hiện chênh lệch mà không tự sửa.
 
-## 31. Invariants bắt buộc
+## 32. Invariants bắt buộc
 
 - Mọi document expenses thuộc đúng một `uid`.
 - `amountMinor` là số nguyên dương.
 - Transaction active có đúng field theo type.
 - Expense/income có một wallet và một category hợp lệ.
 - Transfer có hai wallet khác nhau và không có category.
+- Credit payment có ví nguồn không phải credit-card, ví đích là credit-card và
+  không có category.
 - Adjustment có một wallet, `adjustmentDirection` hợp lệ và không có category.
+- Credit payment không tăng income/expense/monthly category aggregate hoặc
+  budget spent.
 - Adjustment không ảnh hưởng income/expense/monthly category aggregate.
 - Wallet archive phải không phải default, không phải active cuối cùng và có
   `balance == 0`.
@@ -1588,7 +1706,7 @@ Có thể thêm scheduled reconciliation để phát hiện chênh lệch mà kh
 - `monthKey` khớp với `occurredAt` theo timezone đã lưu.
 - Một idempotency key chỉ tạo tối đa một transaction.
 
-## 32. Testing strategy
+## 33. Testing strategy
 
 ### Unit tests
 
@@ -1636,7 +1754,7 @@ Có thể thêm scheduled reconciliation để phát hiện chênh lệch mà kh
 - Filter theo type hoạt động.
 - Budget warning đúng threshold.
 
-## 33. Acceptance criteria cho lần triển khai đầu
+## 34. Acceptance criteria cho lần triển khai đầu
 
 - User đăng nhập chỉ thấy dữ liệu của mình.
 - Theme đồng bộ giữa hai thiết bị.
@@ -1651,11 +1769,11 @@ Có thể thêm scheduled reconciliation để phát hiện chênh lệch mà kh
   transaction history.
 - Emulator tests bao phủ rules và mutation quan trọng.
 
-## 34. Ngoài phạm vi phiên bản đầu
+## 35. Ngoài phạm vi phiên bản đầu
 
 - Shared household hoặc multi-user wallet.
 - Multi-currency conversion.
-- Credit card statement cycle và debt model đầy đủ.
+- Credit card statement cycle, due date và payment flow đầy đủ.
 - Recurring transactions.
 - Attachment hóa đơn.
 - Full-text search toàn bộ lịch sử.
@@ -1667,7 +1785,7 @@ Có thể thêm scheduled reconciliation để phát hiện chênh lệch mà kh
 Thiết kế hiện tại vẫn để đường mở cho các chức năng này nhưng không tăng độ
 phức tạp của phiên bản đầu.
 
-## 35. Tài liệu Firestore tham khảo
+## 36. Tài liệu Firestore tham khảo
 
 - [Cloud Firestore data model](https://firebase.google.com/docs/firestore/data-model)
 - [Transactions and batched writes](https://firebase.google.com/docs/firestore/manage-data/transactions)
@@ -1678,7 +1796,7 @@ phức tạp của phiên bản đầu.
 - [Securely query data](https://firebase.google.com/docs/firestore/security/rules-query)
 - [Firestore best practices](https://firebase.google.com/docs/firestore/best-practices)
 
-## 36. Trạng thái
+## 37. Trạng thái
 
 ```text
 Status: Implementation contract for current expenses module
@@ -1687,6 +1805,7 @@ Mock data removal: Financial dashboard mock data removed from runtime
 Firebase integration: Settings/categories/wallets/budgets/transactions/monthlyStats active
 Budget UI: Web budget create/update/delete modal active
 Wallet balance flow: Initial setup plus adjustment transactions active
+Credit payment flow: creditPayment transactions active
 Wallet archive rules: Default/non-zero/last-active wallet protected
 ```
 

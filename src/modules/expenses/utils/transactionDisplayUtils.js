@@ -1,5 +1,5 @@
 export function getTransactionWalletLabel(transaction) {
-    if (transaction.type === "transfer") {
+    if (transaction.type === "transfer" || transaction.type === "creditPayment") {
         return [
             transaction.fromWalletName || transaction.fromWalletId,
             transaction.toWalletName || transaction.toWalletId,
@@ -14,6 +14,10 @@ export function getTransactionWalletLabel(transaction) {
 export function getTransactionCategoryLabel(transaction) {
     if (transaction.type === "transfer") {
         return "Chuyển khoản";
+    }
+
+    if (transaction.type === "creditPayment") {
+        return "Thanh toán thẻ tín dụng";
     }
 
     if (transaction.type === "adjustment") {
