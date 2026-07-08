@@ -615,9 +615,14 @@ export default function DashboardPage({ initialSettings, onLogout }) {
             className={`expenses-page expenses-dashboard-page${areThemeTransitionsEnabled ? " is-theme-ready" : ""}`}
             data-theme={settings.theme}
         >
-            {renderMobilePage()}
-            <ExpenseBottomNav activeId={activeMobilePage} items={expenseNavItems} onNavigate={handleMobileNavigate} />
-            {renderDesktopShell()}
+            {isMobileViewport ? (
+                <>
+                    {renderMobilePage()}
+                    <ExpenseBottomNav activeId={activeMobilePage} items={expenseNavItems} onNavigate={handleMobileNavigate} />
+                </>
+            ) : (
+                renderDesktopShell()
+            )}
         </div>
     );
 }

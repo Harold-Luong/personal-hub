@@ -12,7 +12,7 @@ export const expensePageMeta = {
         isRouted: true,
     },
     categories: {
-        label: "Danh mục chi tiêu",
+        label: "Mục chi tiêu",
         icon: "category",
         path: "/expenses/category-spending",
         isRouted: true,

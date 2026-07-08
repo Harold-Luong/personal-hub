@@ -12,7 +12,6 @@ import {
 import AmountText from "../components/shared/AmountText";
 import DonutChart from "../components/shared/DonutChart";
 import ExpenseEmoji from "../components/shared/ExpenseEmoji";
-import ProgressBar from "../components/shared/ProgressBar";
 import SummaryCardList from "../components/shared/SummaryCardList";
 import {
     budgetExceededThresholdPercentage,
@@ -20,8 +19,9 @@ import {
     categoryChartPinnedCategoryLimit,
     categoryChartTopCategoryLimit,
     categoryTransactionPageSize,
+    expenseRoutePaths,
 } from "../constant/expensesMetaData";
-import { BudgetIcon, CalendarIcon, ChevronIcon, ReportIcon, TransactionListIcon, XIcon } from "../icon/ExpenseIcons";
+import { BudgetIcon, CalendarIcon, ChevronIcon, ReportIcon, TransactionListIcon } from "../icon/ExpenseIcons";
 import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { formatCurrency } from "../utils/formatCurrency";
 import { getEmptyMonthlyStats } from "../utils/monthlyStatsUtils";
@@ -86,15 +86,6 @@ function getAverageDailyAmount(amount, monthKey) {
     return Math.round((amount ?? 0) / getMonthDayCount(monthKey));
 }
 
-function getTodayDateKey() {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, "0");
-
-    return `${year}-${month}-${day}`;
-}
-
 function getLatestTransaction(transactions) {
     return transactions.reduce((latestTransaction, transaction) => {
         if (!latestTransaction) {
@@ -134,6 +125,28 @@ function getCategoryRows(categorySpending, budgets, sortKey) {
 
             return (secondCategory.amount ?? 0) - (firstCategory.amount ?? 0);
         });
+}
+
+function getCategoryDetailRows(categories, categorySpending, budgets, sortKey, monthKey) {
+    const spendingByCategory = new Map(categorySpending.map((category) => [category.id, category]));
+
+    return getCategoryRows(
+        categories
+            .filter((category) => category.type === "expense")
+            .map((category) => {
+                const spending = spendingByCategory.get(category.id);
+
+                return {
+                    ...category,
+                    ...spending,
+                    amount: spending?.amount ?? 0,
+                    monthKey,
+                    percentage: spending?.percentage ?? 0,
+                };
+            }),
+        budgets,
+        sortKey,
+    );
 }
 
 function CategorySummaryCards({ categories, monthlyStats, budgets }) {
@@ -215,9 +228,8 @@ function CategoryChartOverview({ categories, onSelect, selectedCategoryId, total
             <div className="category-spending-page__chart-breakdown">
                 {visibleCategories.map((category) => (
                     <button
-                        className={`category-spending-page__chart-category${
-                            category.id === selectedCategory?.id ? " is-selected" : ""
-                        }`}
+                        aria-pressed={category.id === selectedCategory?.id}
+                        className={`category-spending-page__chart-category`}
                         key={category.id}
                         onClick={() => onSelect(category.id)}
                         type="button"
@@ -240,64 +252,21 @@ function CategoryChartOverview({ categories, onSelect, selectedCategoryId, total
     );
 }
 
-function CategoryRow({ category, isSelected, onSelect }) {
-    const hasBudget = category.budgetLimit > 0;
-    const budgetLabel = category.budgetLimit ? `${category.budgetPercentage}% ngân sách` : "Chưa đặt ngân sách";
-
+function CategoryDetailMetric({ label, value, tone = "neutral", valueFirst = false }) {
     return (
-        <button
-            aria-pressed={isSelected}
-            className={`category-spending-page__category-row${isSelected ? " is-selected" : ""}`}
-            onClick={() => onSelect(category.id)}
-            style={{ "--category-color": category.color }}
-            type="button"
-        >
-            <ExpenseEmoji appearance="emoji" color={category.color} icon={category.icon} label={category.name} />
-            <div className="category-spending-page__category-main">
-                <div className="category-spending-page__category-heading">
-                    <div className="category-spending-page__category-title">
-                        <strong>{category.name}</strong>
-                        <span
-                            className={`category-spending-page__budget-chip category-spending-page__budget-chip--${category.budgetTone}`}
-                        >
-                            {budgetLabel}
-                        </span>
-                    </div>
-                    <span>{category.percentage}% tổng chi tiêu</span>
-                </div>
-
-                <ProgressBar
-                    color={category.color}
-                    max={hasBudget ? category.budgetLimit : 100}
-                    value={hasBudget ? category.amount : 0}
-                />
-
-                <div className="category-spending-page__category-footer">
-                    <span className="category-spending-page__category-budget-amounts">
-                        {hasBudget ? <AmountText amount={category.amount} /> : "Chưa có hạn mức"}
-                    </span>
-                    <strong className="category-spending-page__category-amount">
-                        <AmountText amount={category.budgetLimit} />
-                    </strong>
-                </div>
-            </div>
-            <span className="category-spending-page__category-chevron" aria-hidden="true">
-                <ChevronIcon size={20} />
-            </span>
-        </button>
-    );
-}
-
-function CategoryDetailMetric({ icon: Icon, label, value, hint, tone = "green" }) {
-    return (
-        <article className={`category-spending-page__detail-metric category-spending-page__detail-metric--${tone}`}>
-            <span className="category-spending-page__detail-metric-icon" aria-hidden="true">
-                <Icon size={20} />
-            </span>
-            <span className="category-spending-page__detail-metric-label">{label}</span>
-            <strong>{value}</strong>
-            <small>{hint}</small>
-        </article>
+        <div className={`category-spending-page__detail-metric category-spending-page__detail-metric--${tone}`}>
+            {valueFirst ? (
+                <>
+                    <strong>{value}</strong>
+                    <span className="category-spending-page__detail-metric-label">{label}</span>
+                </>
+            ) : (
+                <>
+                    <span className="category-spending-page__detail-metric-label">{label}</span>
+                    <strong>{value}</strong>
+                </>
+            )}
+        </div>
     );
 }
 
@@ -306,187 +275,114 @@ function CategoryTransactionItem({ transaction }) {
     const { dateLabel, dateTime, timeLabel } = getTransactionDateParts(transaction);
 
     return (
-        <article className="category-spending-page__transaction">
-            <div className="category-spending-page__transaction-main">
-                <div>
+        <article className="category-spending-page__transaction transactions-page__row" role="row">
+            <div className="category-spending-page__transaction-main transactions-page__row-main" role="cell">
+                <ExpenseEmoji icon={transaction.icon ?? transaction.category} label={transaction.title} />
+                <div className="category-spending-page__transaction-copy transactions-page__row-copy">
                     <strong>{transaction.title}</strong>
-                    <span>{transaction.note || ""}</span>
+                    <span>{transaction.note || "Không có ghi chú"}</span>
                 </div>
             </div>
-            <span className="category-spending-page__transaction-wallet">{walletLabel}</span>
-            <time dateTime={dateTime}>
-                <CalendarIcon size={16} />
-                <span>
-                    {timeLabel} - {dateLabel}
-                </span>
-            </time>
-            <strong className="category-spending-page__transaction-amount">
+            <div
+                className="category-spending-page__transaction-date-cell transactions-page__cell transactions-page__date-cell"
+                role="cell"
+            >
+                <strong>
+                    <time dateTime={dateTime}>
+                        {timeLabel} - {dateLabel}
+                    </time>
+                </strong>
+            </div>
+            <div className="category-spending-page__transaction-mobile-meta transactions-page__mobile-meta" role="cell">
+                <time className="transactions-page__mobile-date" dateTime={dateTime}>
+                    <CalendarIcon size={18} />
+                    <span>
+                        {timeLabel} - {dateLabel}
+                    </span>
+                </time>
+            </div>
+            <div
+                className="category-spending-page__transaction-wallet-cell transactions-page__cell transactions-page__wallet-cell"
+                role="cell"
+            >
+                <strong>{walletLabel}</strong>
+            </div>
+            <div className="category-spending-page__transaction-amount transactions-page__amount" role="cell">
                 <AmountText amount={transaction.amount} showSign />
-            </strong>
+            </div>
         </article>
     );
 }
 
-function CategoryDetailPanel({
+function CategoryExpandedDetails({
     category,
-    className = "",
     detailError,
+    detailId,
     hasNextPage,
     isLoading,
-    onClose,
     onLoadMore,
-    onManageBudget,
     onViewTransactions,
     selectedMonth,
-    titleId,
     transactions,
 }) {
-    const hasBudget = (category?.budgetLimit ?? 0) > 0;
-    const budgetClassName = category ? `category-spending-page__detail--${hasBudget ? "budgeted" : "unbudgeted"}` : "";
-    const detailClassName = ["category-spending-page__detail", "section-card", budgetClassName, className]
-        .filter(Boolean)
-        .join(" ");
-
-    if (!category) {
-        return (
-            <section className={detailClassName}>
-                <p className="category-spending-page__empty">Chưa có danh mục chi tiêu trong tháng này.</p>
-            </section>
-        );
-    }
-
     const latestTransaction = getLatestTransaction(transactions);
     const latestTransactionParts = latestTransaction ? getTransactionDateParts(latestTransaction) : null;
-    const remainingBudget = hasBudget ? category.budgetLimit - category.amount : null;
-    const budgetStatusLabel = getBudgetStatusLabel(category);
-    const latestTransactionHint = latestTransaction?.date === getTodayDateKey() ? "Hôm nay" : "Gần nhất";
+    const remainingBudget = category.budgetLimit ? category.budgetLimit - category.amount : null;
 
     return (
-        <section className={detailClassName} aria-label={titleId ? undefined : `Chi tiết ${category.name}`}>
-            <header className="category-spending-page__detail-header">
-                <div>
-                    <span>Chi tiết danh mục</span>
-                    <h2 id={titleId}>{category.name}</h2>
-                </div>
-                <div className="category-spending-page__detail-actions">
-                    <ExpenseEmoji
-                        appearance="emoji"
-                        color={category.color}
-                        icon={category.icon}
-                        label={category.name}
-                    />
-                    {onClose ? (
-                        <button
-                            aria-label="Đóng chi tiết"
-                            className="category-spending-page__detail-close"
-                            onClick={onClose}
-                            type="button"
-                        >
-                            <XIcon size={18} />
-                        </button>
-                    ) : null}
-                </div>
-            </header>
-
-            <div className="category-spending-page__detail-total">
-                <div className="category-spending-page__detail-total-copy">
-                    <span>Tổng chi</span>
-                    <strong>
-                        <AmountText amount={category.amount} />
-                    </strong>
-                    <small>{category.percentage}% tổng chi trong tháng</small>
-                </div>
-                {hasBudget ? (
-                    <div
-                        className={`category-spending-page__detail-budget-badge category-spending-page__detail-budget-badge--${category.budgetTone}`}
-                    >
-                        <span>{budgetStatusLabel}</span>
-                        <strong>{category.budgetPercentage}%</strong>
-                    </div>
-                ) : null}
-            </div>
-
-
-            <div className="category-spending-page__detail-metrics" aria-label="Chỉ số danh mục">
+        <div className="category-spending-page__category-expanded" id={detailId}>
+            <section className="category-spending-page__detail-metrics" aria-label="Chỉ số danh mục">
                 <CategoryDetailMetric
-                    icon={TransactionListIcon}
-                    hint="Giao dịch"
-                    label="Số giao dịch"
+                    label="giao dịch"
                     value={`${transactions.length}${hasNextPage ? "+" : ""}`}
+                    valueFirst
                 />
                 <CategoryDetailMetric
-                    icon={CalendarIcon}
-                    hint={latestTransaction ? latestTransactionHint : "Chưa có"}
-                    label="Giao dịch gần nhất"
-                    tone="blue"
-                    value={
-                        latestTransactionParts
-                            ? `${latestTransactionParts.timeLabel} - ${latestTransactionParts.dateLabel}`
-                            : "-"
-                    }
+                    label="Gần nhất"
+                    value={latestTransactionParts ? latestTransactionParts.dateLabel : "-"}
                 />
                 <CategoryDetailMetric
-                    icon={ReportIcon}
-                    hint="Trong tháng"
-                    label="Chi trung bình/ngày"
-                    tone="purple"
+                    label="TB/ngày"
                     value={<AmountText amount={getAverageDailyAmount(category.amount, selectedMonth)} />}
                 />
                 <CategoryDetailMetric
-                    icon={BudgetIcon}
-                    hint={
-                        remainingBudget === null
-                            ? "Chưa có hạn mức"
-                            : remainingBudget < 0
-                              ? "Vượt ngân sách"
-                              : "Có thể chi"
-                    }
                     label="Còn lại"
-                    tone={remainingBudget !== null && remainingBudget < 0 ? "danger" : "orange"}
+                    tone={remainingBudget !== null && remainingBudget < 0 ? "danger" : "neutral"}
                     value={remainingBudget === null ? "-" : <AmountText amount={remainingBudget} />}
                 />
-            </div>
+            </section>
 
-            <div className="category-spending-page__detail-commands">
-                {onManageBudget ? (
-                    <button
-                        className="category-spending-page__manage-budget"
-                        onClick={() => onManageBudget(category.id)}
-                        type="button"
-                    >
-                        <BudgetIcon size={18} />
-                        <span>{hasBudget ? "Chỉnh ngân sách" : "Đặt hạn mức"}</span>
-                    </button>
-                ) : null}
-                <button className="category-spending-page__view-transactions" onClick={onViewTransactions} type="button">
-                    <TransactionListIcon size={18} />
-                    <span>Xem chi tiết trong giao dịch</span>
-                </button>
-            </div>
-
-            <div className="category-spending-page__transactions">
-                <header className="category-spending-page__transactions-header">
-                    <h3>Giao dịch</h3>
-                    <span>
-                        {transactions.length}
-                        {hasNextPage ? "+" : ""}
-                    </span>
-                </header>
-                <div className="category-spending-page__transaction-list">
-                    {isLoading && !transactions.length ? (
-                        <p className="category-spending-page__empty">Đang tải giao dịch...</p>
-                    ) : detailError ? (
-                        <p className="category-spending-page__empty">{detailError}</p>
-                    ) : transactions.length ? (
-                        transactions.map((transaction) => (
-                            <CategoryTransactionItem key={transaction.id} transaction={transaction} />
-                        ))
-                    ) : (
-                        <p className="category-spending-page__empty">Không có giao dịch phù hợp.</p>
-                    )}
+            <section
+                className="category-spending-page__transactions transactions-page__list"
+                aria-label={`Giao dịch của ${category.name}`}
+            >
+                <div className="category-spending-page__transactions-head transactions-page__table-head" role="row">
+                    <span>Giao dịch</span>
+                    <span>Thời gian</span>
+                    <span>Ví</span>
+                    <span>Số tiền</span>
                 </div>
-            </div>
-
+                {isLoading && !transactions.length ? (
+                    <p className="category-spending-page__empty transactions-page__empty">Đang tải giao dịch...</p>
+                ) : detailError ? (
+                    <p className="category-spending-page__empty transactions-page__empty">{detailError}</p>
+                ) : transactions.length ? (
+                    transactions.map((transaction) => (
+                        <CategoryTransactionItem key={transaction.id} transaction={transaction} />
+                    ))
+                ) : (
+                    <p className="category-spending-page__empty transactions-page__empty">
+                        Không có giao dịch phù hợp.
+                    </p>
+                )}
+            </section>
+            <button
+                className="category-spending-page__category-detail-link"
+                onClick={() => onViewTransactions?.(category.id)}
+                type="button"
+            >
+                <span>Xem thêm chi tiết</span>
+            </button>
             {hasNextPage ? (
                 <button
                     className="category-spending-page__load-more"
@@ -497,6 +393,174 @@ function CategoryDetailPanel({
                     {isLoading ? "Đang tải..." : "Tải thêm"}
                 </button>
             ) : null}
+        </div>
+    );
+}
+
+function CategoryTableRow({
+    category,
+    detailError,
+    hasNextPage,
+    isExpanded,
+    isLoading,
+    onExpand,
+    onLoadMore,
+    onViewTransactions,
+    selectedMonth,
+    transactions,
+}) {
+    const detailId = `category-spending-detail-${category.id}`;
+    const hasBudget = (category.budgetLimit ?? 0) > 0;
+    const budgetStatusLabel = getBudgetStatusLabel(category);
+    const expandLabel = isExpanded ? `Đóng chi tiết ${category.name}` : `Mở chi tiết ${category.name}`;
+    const rowClassName = [
+        "category-spending-page__category-row-group",
+        isExpanded ? "is-expanded" : "",
+        hasBudget
+            ? "category-spending-page__category-row-group--budgeted"
+            : "category-spending-page__category-row-group--unbudgeted",
+    ]
+        .filter(Boolean)
+        .join(" ");
+
+    return (
+        <article className={rowClassName} style={{ "--category-color": category.color }}>
+            <div className="category-spending-page__category-row" role="row">
+                <div className="category-spending-page__category-main" role="cell">
+                    <ExpenseEmoji
+                        appearance="emoji"
+                        color={category.color}
+                        icon={category.icon}
+                        label={category.name}
+                    />
+                    <div className="category-spending-page__category-copy">
+                        <strong>{category.name}</strong>
+                        <span>{category.percentage}% tổng chi trong tháng</span>
+                    </div>
+                </div>
+                <div className="category-spending-page__category-amount" role="cell">
+                    <AmountText amount={category.amount} />
+                </div>
+                <div className="category-spending-page__category-budget" role="cell">
+                    {hasBudget ? (
+                        <>
+                            <strong>{category.budgetPercentage}% ngân sách</strong>
+                            <span>
+                                <AmountText amount={category.amount} /> / <AmountText amount={category.budgetLimit} />
+                            </span>
+                        </>
+                    ) : (
+                        <>
+                            <strong>Chưa đặt</strong>
+                            <span>Không có hạn mức</span>
+                        </>
+                    )}
+                </div>
+                <div className="category-spending-page__category-status" role="cell">
+                    <span
+                        className={`category-spending-page__detail-budget-badge category-spending-page__detail-budget-badge--${category.budgetTone}`}
+                    >
+                        {budgetStatusLabel}
+                    </span>
+                </div>
+                <div className="category-spending-page__category-action" role="cell">
+                    <button
+                        aria-label={expandLabel}
+                        aria-controls={detailId}
+                        aria-expanded={isExpanded}
+                        className="category-spending-page__category-expand-button"
+                        onClick={() => onExpand(category.id)}
+                        title={expandLabel}
+                        type="button"
+                    >
+                        <ChevronIcon size={14} />
+                    </button>
+                </div>
+            </div>
+
+            {isExpanded ? (
+                <CategoryExpandedDetails
+                    category={category}
+                    detailError={detailError}
+                    detailId={detailId}
+                    hasNextPage={hasNextPage}
+                    isLoading={isLoading}
+                    onLoadMore={onLoadMore}
+                    onViewTransactions={onViewTransactions}
+                    selectedMonth={selectedMonth}
+                    transactions={transactions}
+                />
+            ) : null}
+        </article>
+    );
+}
+
+function CategoryDetailPanel({
+    category,
+    categories = [],
+    className = "",
+    detailError,
+    hasNextPage,
+    isLoading,
+    onCategorySelect,
+    onLoadMore,
+    onViewTransactions,
+    selectedMonth,
+    titleId,
+    transactions,
+}) {
+    const detailClassName = [
+        "category-spending-page__detail",
+        "section-card",
+        "category-spending-page__detail--table",
+        className,
+    ]
+        .filter(Boolean)
+        .join(" ");
+    const resolvedTitleId = titleId ?? "category-spending-detail-title";
+
+    if (!categories.length) {
+        return (
+            <section className={detailClassName}>
+                <p className="category-spending-page__empty">Chưa có danh mục chi tiêu.</p>
+            </section>
+        );
+    }
+
+    return (
+        <section className={detailClassName} aria-labelledby={resolvedTitleId}>
+            <header className="category-spending-page__detail-header">
+                <div>
+                    <span>{getMonthLabel(selectedMonth)}</span>
+                    <h2 id={resolvedTitleId}>Danh sách danh mục</h2>
+                </div>
+                <strong>{categories.length}</strong>
+            </header>
+
+            <section className="category-spending-page__category-table" aria-label="Danh sách danh mục" role="table">
+                <div className="category-spending-page__category-table-head" role="row">
+                    <span>Danh mục</span>
+                    <span>Tổng chi</span>
+                    <span>Ngân sách</span>
+                    <span>Trạng thái</span>
+                    <span>Chi tiết</span>
+                </div>
+                {categories.map((categoryRow) => (
+                    <CategoryTableRow
+                        category={categoryRow}
+                        detailError={detailError}
+                        hasNextPage={hasNextPage}
+                        isExpanded={categoryRow.id === category?.id}
+                        isLoading={isLoading}
+                        key={categoryRow.id}
+                        onExpand={onCategorySelect}
+                        onLoadMore={onLoadMore}
+                        onViewTransactions={onViewTransactions}
+                        selectedMonth={selectedMonth}
+                        transactions={categoryRow.id === category?.id ? transactions : []}
+                    />
+                ))}
+            </section>
         </section>
     );
 }
@@ -505,12 +569,12 @@ function CategorySpendingWorkspace({
     categories: controlledCategories,
     mode,
     monthOptions: controlledMonthOptions,
-    onManageBudget,
     onSelectedMonthChange,
     onSortKeyChange,
     selectedMonth: controlledSelectedMonth,
     sortKey: controlledSortKey,
 }) {
+    const navigate = useNavigate();
     const uid = useAuthSessionStore(selectAuthUid);
     const storeCategories = useExpenseDataStore(selectExpenseCategories);
     const budgetLimitsByMonth = useExpenseDataStore(selectExpenseBudgetLimitsByMonth);
@@ -519,7 +583,6 @@ function CategorySpendingWorkspace({
     const loadExpenseBudgets = useExpenseDataStore((state) => state.loadExpenseBudgets);
     const loadExpenseMonthlyStats = useExpenseDataStore((state) => state.loadExpenseMonthlyStats);
     const loadExpenseMonthOptions = useExpenseDataStore((state) => state.loadExpenseMonthOptions);
-    const navigate = useNavigate();
     const isDesktopMode = mode === "desktop";
     const currentMonthKey = getCurrentMonthKey();
     const currentYear = getCurrentYear();
@@ -531,7 +594,6 @@ function CategorySpendingWorkspace({
     const [internalSelectedMonth, setInternalSelectedMonth] = useState(currentMonthKey);
     const [internalSortKey, setInternalSortKey] = useState("amount");
     const [selectedCategoryId, setSelectedCategoryId] = useState("");
-    const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [loadError, setLoadError] = useState("");
     const [transactions, setTransactions] = useState([]);
@@ -541,10 +603,7 @@ function CategorySpendingWorkspace({
     const [transactionError, setTransactionError] = useState("");
     const selectedMonth = isSelectedMonthControlled ? controlledSelectedMonth : internalSelectedMonth;
     const monthlyStats = monthlyStatsByMonth[selectedMonth] ?? getEmptyMonthlyStats(selectedMonth);
-    const budgets = useMemo(
-        () => budgetLimitsByMonth[selectedMonth] ?? [],
-        [budgetLimitsByMonth, selectedMonth],
-    );
+    const budgets = useMemo(() => budgetLimitsByMonth[selectedMonth] ?? [], [budgetLimitsByMonth, selectedMonth]);
     const monthOptions = useMemo(
         () =>
             isMonthOptionsControlled
@@ -583,35 +642,15 @@ function CategorySpendingWorkspace({
             }),
         [categories, monthlyStats, selectedMonth],
     );
-    const categoryRows = useMemo(
+    const spendingCategoryRows = useMemo(
         () => getCategoryRows(categorySpending, budgets, sortKey),
         [budgets, categorySpending, sortKey],
     );
-    const budgetFormBudgets = useMemo(() => {
-        const rowsByCategoryId = new Map(categoryRows.map((category) => [category.id, category]));
-        const categoriesById = new Map(categories.map((category) => [category.id, category]));
-
-        return budgets
-            .map((budget) => {
-                const row = rowsByCategoryId.get(budget.categoryId);
-                const category = categoriesById.get(budget.categoryId);
-
-                return {
-                    id: budget.id,
-                    monthKey: budget.monthKey,
-                    categoryId: budget.categoryId,
-                    category: row?.name ?? category?.name ?? budget.categoryId,
-                    amount: row?.amount ?? 0,
-                    limit: budget.limitMinor,
-                    alertThreshold: budget.alertThreshold,
-                    color: row?.color ?? category?.color ?? "#b8bec8",
-                    icon: row?.icon ?? category?.icon ?? "more",
-                };
-            })
-            .filter((budget) => budget.limit > 0);
-    }, [budgets, categories, categoryRows]);
-    const selectedCategory =
-        categoryRows.find((category) => category.id === selectedCategoryId) ?? (isDesktopMode ? categoryRows[0] : null);
+    const categoryRows = useMemo(
+        () => getCategoryDetailRows(categories, categorySpending, budgets, sortKey, selectedMonth),
+        [budgets, categories, categorySpending, selectedMonth, sortKey],
+    );
+    const selectedCategory = categoryRows.find((category) => category.id === selectedCategoryId) ?? null;
     const displayedMonthOptions = useMemo(
         () => getVisibleMonthOptions([...monthOptions, selectedMonth], currentMonthKey),
         [currentMonthKey, monthOptions, selectedMonth],
@@ -749,49 +788,25 @@ function CategorySpendingWorkspace({
         }
     };
 
-    const handleViewTransactions = () => {
-        if (!selectedCategory?.id) {
-            return;
-        }
-
-        const query = new URLSearchParams({
-            categoryId: selectedCategory.id,
-            monthKey: selectedMonth,
-        });
-
-        navigate(`/expenses/transactions?${query.toString()}`);
-    };
-
-    const handleManageBudget = (categoryId) => {
-        if (!categoryId) {
-            return;
-        }
-
-        onManageBudget?.(categoryId, {
-            budgets: budgetFormBudgets,
-            monthKey: selectedMonth,
-        });
-
-        if (!isDesktopMode) {
-            setIsDetailSheetOpen(false);
-        }
-    };
-
     const handleSelectCategory = (categoryId) => {
-        setSelectedCategoryId(categoryId);
-
-        if (!isDesktopMode) {
-            setIsDetailSheetOpen(true);
-        }
+        setSelectedCategoryId((currentCategoryId) => (currentCategoryId === categoryId ? "" : categoryId));
     };
 
-    const handleCloseDetailSheet = () => {
-        setIsDetailSheetOpen(false);
-    };
+    const handleViewCategoryTransactions = useCallback(
+        (categoryId) => {
+            if (!categoryId) {
+                return;
+            }
 
-    const stopDetailSheetClose = (event) => {
-        event.stopPropagation();
-    };
+            const params = new URLSearchParams({
+                categoryId,
+                monthKey: selectedMonth,
+            });
+
+            navigate(`${expenseRoutePaths.transactions}?${params.toString()}`);
+        },
+        [navigate, selectedMonth],
+    );
 
     return (
         <div className={`category-spending-page category-spending-page--${mode}`}>
@@ -811,7 +826,6 @@ function CategorySpendingWorkspace({
                                 onChange={(event) => {
                                     setSelectedMonth(event.target.value);
                                     setSelectedCategoryId("");
-                                    setIsDetailSheetOpen(false);
                                 }}
                                 value={selectedMonth}
                             >
@@ -834,7 +848,7 @@ function CategorySpendingWorkspace({
                 </section>
             ) : null}
 
-            <CategorySummaryCards categories={categoryRows} monthlyStats={monthlyStats} budgets={budgets} />
+            <CategorySummaryCards categories={spendingCategoryRows} monthlyStats={monthlyStats} budgets={budgets} />
 
             {loadError ? <p className="category-spending-page__notice">{loadError}</p> : null}
 
@@ -846,13 +860,13 @@ function CategorySpendingWorkspace({
                                 <span>{getMonthLabel(selectedMonth)}</span>
                                 <h2>Tỷ trọng chi tiêu</h2>
                             </div>
-                            <strong>{categoryRows.length}</strong>
+                            <strong>{spendingCategoryRows.length}</strong>
                         </header>
                         {isLoading ? (
                             <p className="category-spending-page__empty">Đang tải dữ liệu...</p>
-                        ) : categoryRows.length ? (
+                        ) : spendingCategoryRows.length ? (
                             <CategoryChartOverview
-                                categories={categoryRows}
+                                categories={spendingCategoryRows}
                                 onSelect={handleSelectCategory}
                                 selectedCategoryId={selectedCategory?.id}
                                 totalExpense={monthlyStats.expenseMinor ?? 0}
@@ -861,77 +875,21 @@ function CategorySpendingWorkspace({
                             <p className="category-spending-page__empty">Tháng này chưa có chi tiêu.</p>
                         )}
                     </section>
-
-                    <section className="category-spending-page__categories section-card">
-                        <header>
-                            <div>
-                                <span>Danh sách đầy đủ</span>
-                                <h2>Danh mục</h2>
-                            </div>
-                            <strong>{categoryRows.length}</strong>
-                        </header>
-                        <div className="category-spending-page__category-list">
-                            {isLoading ? (
-                                <p className="category-spending-page__empty">Đang tải danh mục...</p>
-                            ) : categoryRows.length ? (
-                                categoryRows.map((category) => (
-                                    <CategoryRow
-                                        category={category}
-                                        isSelected={category.id === selectedCategory?.id}
-                                        key={category.id}
-                                        onSelect={handleSelectCategory}
-                                    />
-                                ))
-                            ) : (
-                                <p className="category-spending-page__empty">
-                                    Không có danh mục phát sinh trong tháng này.
-                                </p>
-                            )}
-                        </div>
-                    </section>
                 </div>
 
-                {isDesktopMode ? (
-                    <CategoryDetailPanel
-                        category={selectedCategory}
-                        detailError={transactionError}
-                        hasNextPage={hasNextTransactionPage}
-                        isLoading={isTransactionLoading}
-                        onLoadMore={handleLoadMoreTransactions}
-                        onManageBudget={onManageBudget ? handleManageBudget : undefined}
-                        onViewTransactions={handleViewTransactions}
-                        selectedMonth={selectedMonth}
-                        transactions={transactions}
-                    />
-                ) : null}
+                <CategoryDetailPanel
+                    category={selectedCategory}
+                    categories={categoryRows}
+                    detailError={transactionError}
+                    hasNextPage={hasNextTransactionPage}
+                    isLoading={isTransactionLoading}
+                    onCategorySelect={handleSelectCategory}
+                    onLoadMore={handleLoadMoreTransactions}
+                    onViewTransactions={handleViewCategoryTransactions}
+                    selectedMonth={selectedMonth}
+                    transactions={transactions}
+                />
             </section>
-
-            {!isDesktopMode && isDetailSheetOpen && selectedCategory ? (
-                <section
-                    aria-labelledby="category-spending-detail-title"
-                    aria-modal="true"
-                    className="category-spending-page__detail-sheet-backdrop"
-                    onClick={handleCloseDetailSheet}
-                    role="dialog"
-                >
-                    <div className="category-spending-page__detail-sheet-shell" onClick={stopDetailSheetClose}>
-                        <CategoryDetailPanel
-                            category={selectedCategory}
-                            className="category-spending-page__detail--sheet"
-                            detailError={transactionError}
-                            hasNextPage={hasNextTransactionPage}
-                            isLoading={isTransactionLoading}
-                            onClose={handleCloseDetailSheet}
-                            onLoadMore={handleLoadMoreTransactions}
-                            onManageBudget={onManageBudget ? handleManageBudget : undefined}
-                            onViewTransactions={handleViewTransactions}
-                            selectedMonth={selectedMonth}
-                            titleId="category-spending-detail-title"
-                            transactions={transactions}
-                        />
-                    </div>
-                </section>
-            ) : null}
         </div>
     );
 }
@@ -940,7 +898,6 @@ export default function CategorySpendingPage({
     categories,
     monthOptions,
     mode = "mobile",
-    onManageBudget,
     onSelectedMonthChange,
     onSortKeyChange,
     selectedMonth,
@@ -951,7 +908,6 @@ export default function CategorySpendingPage({
             categories={categories}
             monthOptions={monthOptions}
             mode={mode}
-            onManageBudget={onManageBudget}
             onSelectedMonthChange={onSelectedMonthChange}
             onSortKeyChange={onSortKeyChange}
             selectedMonth={selectedMonth}

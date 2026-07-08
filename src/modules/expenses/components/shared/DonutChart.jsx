@@ -1,3 +1,4 @@
+import { memo, useMemo } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { formatCurrency } from "../../utils/formatCurrency";
 
@@ -97,11 +98,33 @@ function DonutTooltip({ active, payload }) {
     );
 }
 
-export default function DonutChart({ categories = [], children }) {
-    const chartData = buildChartData(categories);
+function areChartCategoriesEqual(previousCategories = [], nextCategories = []) {
+    if (previousCategories === nextCategories) {
+        return true;
+    }
 
-    return (
-        <div className="category-spending-card__chart">
+    if (previousCategories.length !== nextCategories.length) {
+        return false;
+    }
+
+    return previousCategories.every((previousCategory, index) => {
+        const nextCategory = nextCategories[index];
+
+        return (
+            previousCategory.id === nextCategory?.id &&
+            previousCategory.name === nextCategory?.name &&
+            previousCategory.amount === nextCategory?.amount &&
+            previousCategory.percentage === nextCategory?.percentage &&
+            previousCategory.color === nextCategory?.color
+        );
+    });
+}
+
+const DonutChartCanvas = memo(
+    function DonutChartCanvas({ categories }) {
+        const chartData = useMemo(() => buildChartData(categories), [categories]);
+
+        return (
             <ResponsiveContainer height="100%" width="100%">
                 <PieChart margin={{ bottom: 22, left: 34, right: 34, top: 22 }}>
                     <Pie
@@ -124,9 +147,23 @@ export default function DonutChart({ categories = [], children }) {
                             <Cell fill={category.color} focusable={false} key={category.labelKey} />
                         ))}
                     </Pie>
-                    <Tooltip content={<DonutTooltip />} cursor={false} />
+                    <Tooltip
+                        animationDuration={0}
+                        content={<DonutTooltip />}
+                        cursor={false}
+                        isAnimationActive={false}
+                    />
                 </PieChart>
             </ResponsiveContainer>
+        );
+    },
+    (previousProps, nextProps) => areChartCategoriesEqual(previousProps.categories, nextProps.categories),
+);
+
+export default function DonutChart({ categories = [], children }) {
+    return (
+        <div className="category-spending-card__chart">
+            <DonutChartCanvas categories={categories} />
             {children ? <div className="category-spending-card__chart-center">{children}</div> : null}
         </div>
     );
