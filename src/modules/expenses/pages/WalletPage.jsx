@@ -2,17 +2,46 @@ import { useEffect, useState } from "react";
 import AmountText from "../components/shared/AmountText";
 import MobilePageHeader from "../components/mobile/MobilePageHeader";
 import ExpenseIcon from "../components/shared/ExpenseEmoji";
+import WebWalletPanel from "../components/web/WebWalletPanel";
 import WalletForm from "../components/wallet/WalletForm";
-import { walletTypeLabels } from "../constant/expensesMetaData";
+import { creditCardWalletTypeId, walletTypeLabels } from "../constant/expensesMetaData";
 import { XIcon } from "../icon/ExpenseIcons";
 
-export default function WalletPage({ onBack, onDeleteWallet, onSaveWallet, wallets = [] }) {
+function isCreditCardWallet(wallet) {
+    return wallet.type === creditCardWalletTypeId;
+}
+
+function WalletItemMeta({ wallet }) {
+    if (isCreditCardWallet(wallet)) {
+        return (
+            <small>
+                Dư nợ · còn lại <AmountText amount={wallet.availableCredit ?? 0} />
+            </small>
+        );
+    }
+
+    if (!wallet.isBalanceInitialized) {
+        return <small>Số dư tạm tính từ 0đ</small>;
+    }
+
+    return wallet.isDefault ? <small>Mặc định</small> : null;
+}
+
+export default function WalletPage({
+    mode = "mobile",
+    onBack,
+    onDeleteWallet,
+    onPayCreditCard,
+    onSaveWallet,
+    wallets = [],
+}) {
     const [selectedWalletId, setSelectedWalletId] = useState("");
     const [isFormOpen, setIsFormOpen] = useState(false);
+    const isDesktopMode = mode === "desktop";
     const totalBalance = wallets.reduce((total, wallet) => total + (wallet.balance ?? 0), 0);
 
     useEffect(() => {
-        if (!isFormOpen) {
+        if (!isFormOpen || isDesktopMode) {
             return undefined;
         }
 
@@ -22,7 +51,7 @@ export default function WalletPage({ onBack, onDeleteWallet, onSaveWallet, walle
         return () => {
             document.body.style.overflow = previousOverflow;
         };
-    }, [isFormOpen]);
+    }, [isDesktopMode, isFormOpen]);
 
     const closeForm = () => {
         setSelectedWalletId("");
@@ -50,20 +79,22 @@ export default function WalletPage({ onBack, onDeleteWallet, onSaveWallet, walle
     };
 
     return (
-        <main className="mobile-wallet-page">
-            <MobilePageHeader
-                actions={
-                    <button className="mobile-wallet-page__header-action" onClick={onBack} type="button">
-                        Cài đặt
-                    </button>
-                }
-                className="mobile-wallet-page__header"
-                subtitle={`${wallets.length} ví đang hoạt động`}
-                title="Ví của tôi"
-            />
+        <main className={`wallet-page wallet-page--${mode} mobile-wallet-page`}>
+            {!isDesktopMode ? (
+                <MobilePageHeader
+                    actions={
+                        <button className="mobile-wallet-page__header-action" onClick={onBack} type="button">
+                            Cài đặt
+                        </button>
+                    }
+                    className="mobile-wallet-page__header"
+                    subtitle={`${wallets.length} ví đang hoạt động`}
+                    title="Ví của tôi"
+                />
+            ) : null}
 
             <section className="mobile-wallet-page__summary">
-                <span>Tổng số dư</span>
+                <span>{wallets.some((wallet) => !isCreditCardWallet(wallet) && !wallet.isBalanceInitialized) ? "Tổng số dư tạm tính" : "Tổng số dư"}</span>
                 <strong>
                     <AmountText amount={totalBalance} />
                 </strong>
@@ -83,27 +114,41 @@ export default function WalletPage({ onBack, onDeleteWallet, onSaveWallet, walle
                 {wallets.length ? (
                     <div className="mobile-wallet-page__list section-card">
                         {wallets.map((wallet) => (
-                            <button
+                            <article
                                 className="mobile-wallet-item"
                                 key={wallet.id}
-                                onClick={() => openEditForm(wallet.id)}
-                                type="button"
                             >
-                                <ExpenseIcon
-                                    appearance="emoji"
-                                    color={wallet.color}
-                                    icon={wallet.icon}
-                                    label={wallet.name}
-                                />
-                                <span className="mobile-wallet-item__copy">
-                                    <strong>{wallet.name}</strong>
-                                    <span>{walletTypeLabels[wallet.type] ?? wallet.type}</span>
-                                </span>
-                                <span className="mobile-wallet-item__meta">
-                                    {wallet.isDefault ? <small>Mặc định</small> : null}
-                                    <AmountText amount={wallet.balance} />
-                                </span>
-                            </button>
+                                <button
+                                    className="mobile-wallet-item__edit"
+                                    onClick={() => openEditForm(wallet.id)}
+                                    type="button"
+                                >
+                                    <ExpenseIcon
+                                        appearance="emoji"
+                                        color={wallet.color}
+                                        icon={wallet.icon}
+                                        label={wallet.name}
+                                    />
+                                    <span className="mobile-wallet-item__copy">
+                                        <strong>{wallet.name}</strong>
+                                        <span>{walletTypeLabels[wallet.type] ?? wallet.type}</span>
+                                    </span>
+                                    <span className="mobile-wallet-item__meta">
+                                        <WalletItemMeta wallet={wallet} />
+                                        <AmountText amount={isCreditCardWallet(wallet) ? wallet.outstandingDebt : wallet.balance} />
+                                    </span>
+                                </button>
+                                {isCreditCardWallet(wallet) && (wallet.outstandingDebt ?? 0) > 0 ? (
+                                    <button
+                                        aria-label={`Thanh toán thẻ tín dụng ${wallet.name}`}
+                                        className="mobile-wallet-item__credit-payment"
+                                        onClick={() => onPayCreditCard?.(wallet)}
+                                        type="button"
+                                    >
+                                        Thanh toán
+                                    </button>
+                                ) : null}
+                            </article>
                         ))}
                     </div>
                 ) : (
@@ -117,7 +162,17 @@ export default function WalletPage({ onBack, onDeleteWallet, onSaveWallet, walle
                 )}
             </section>
 
-            {isFormOpen ? (
+            {isFormOpen && isDesktopMode ? (
+                <WebWalletPanel
+                    initialWalletId={selectedWalletId}
+                    onCancel={closeForm}
+                    onDelete={handleDeleteWallet}
+                    onSubmit={handleSaveWallet}
+                    wallets={wallets}
+                />
+            ) : null}
+
+            {isFormOpen && !isDesktopMode ? (
                 <section
                     aria-labelledby="mobile-wallet-form-title"
                     aria-modal="true"

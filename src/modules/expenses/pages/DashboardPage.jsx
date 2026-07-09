@@ -21,6 +21,7 @@ import ExpenseSidebar from "../components/layout/ExpenseSidebar";
 import MobileDashboardView from "../components/mobile/MobileDashboardView";
 import WebAddTransactionPanel from "../components/web/WebAddTransactionPanel";
 import WebDashboardView from "../components/web/WebDashboardView";
+import CreditCardPaymentDialog from "../components/wallet/CreditCardPaymentDialog";
 import AddTransactionPage from "./AddTransactionPage";
 import BudgetPage from "./BudgetPage";
 import CategorySpendingPage from "./CategorySpendingPage";
@@ -29,6 +30,7 @@ import SettingsPage from "./SettingsPage";
 import TransactionsPage from "./TransactionsPage";
 import WalletPage from "./WalletPage";
 import {
+    creditCardWalletTypeId,
     expenseMobileOnlyPageIds,
     expenseNavItems,
     expenseRoutePaths,
@@ -57,6 +59,7 @@ const desktopViewClasses = {
     categories: "web-category-spending-view",
     report: "web-report-view",
     transactions: "web-transactions-view",
+    wallets: "web-wallet-view",
 };
 
 const desktopMainClasses = {
@@ -64,6 +67,7 @@ const desktopMainClasses = {
     categories: "web-category-spending-view__main",
     report: "web-report-view__main",
     transactions: "web-transactions-view__main",
+    wallets: "web-wallet-view__main",
 };
 
 function getIsMobileViewport() {
@@ -113,6 +117,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     const [categorySortKey, setCategorySortKey] = useState("amount");
     const [reportMonth, setReportMonth] = useState(currentMonthKey);
     const [isDesktopAddTransactionOpen, setIsDesktopAddTransactionOpen] = useState(false);
+    const [creditPaymentCard, setCreditPaymentCard] = useState(null);
     const [isMobileViewport, setIsMobileViewport] = useState(getIsMobileViewport);
     const mobileBudgetInitialCategoryId = isMobileViewport ? budgetInitialCategoryId : "";
     const monthlyStats = monthlyStatsByMonth[currentMonthKey] ?? getEmptyMonthlyStats(currentMonthKey);
@@ -307,6 +312,29 @@ export default function DashboardPage({ initialSettings, onLogout }) {
         }
     };
 
+    const openDesktopAddTransaction = () => {
+        setIsDesktopAddTransactionOpen(true);
+    };
+
+    const closeDesktopAddTransaction = () => {
+        setIsDesktopAddTransactionOpen(false);
+    };
+
+    const getCreditPaymentSourceWallets = (creditWallet) =>
+        wallets.filter((wallet) => wallet.id !== creditWallet?.id && wallet.type !== creditCardWalletTypeId);
+
+    const getDefaultCreditPaymentSourceWallet = (creditWallet) =>
+        getCreditPaymentSourceWallets(creditWallet).find((wallet) => wallet.isDefault) ??
+        getCreditPaymentSourceWallets(creditWallet)[0];
+
+    const openCreditPaymentTransaction = (creditWallet) => {
+        setCreditPaymentCard(creditWallet);
+    };
+
+    const closeCreditPaymentDialog = () => {
+        setCreditPaymentCard(null);
+    };
+
     const handleAddTransaction = async (transaction) => {
         return createExpenseTransactionAction(uid, transaction, {
             currentMonthKey,
@@ -325,7 +353,15 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     const handleAddDesktopTransaction = async (transaction) => {
         const result = await handleAddTransaction(transaction);
 
-        setIsDesktopAddTransactionOpen(false);
+        closeDesktopAddTransaction();
+
+        return result;
+    };
+
+    const handleCreditPaymentSubmit = async (transaction) => {
+        const result = await handleAddTransaction(transaction);
+
+        closeCreditPaymentDialog();
 
         return result;
     };
@@ -407,6 +443,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                 <WalletPage
                     onBack={() => showMobilePage("settings")}
                     onDeleteWallet={handleDeleteWallet}
+                    onPayCreditCard={openCreditPaymentTransaction}
                     onSaveWallet={handleSaveWallet}
                     wallets={wallets}
                 />
@@ -418,7 +455,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                 <SettingsPage
                     onLogout={handleLogout}
                     onManageBudget={() => navigateExpenseRoute("budgets")}
-                    onManageWallet={() => showMobilePage("wallets")}
+                    onManageWallet={() => navigateExpenseRoute("wallets")}
                     wallets={wallets}
                 />
             );
@@ -493,6 +530,18 @@ export default function DashboardPage({ initialSettings, onLogout }) {
             );
         }
 
+        if (activeDesktopPage === "wallets") {
+            return (
+                <WalletPage
+                    mode="desktop"
+                    onDeleteWallet={handleDeleteWallet}
+                    onPayCreditCard={openCreditPaymentTransaction}
+                    onSaveWallet={handleSaveWallet}
+                    wallets={wallets}
+                />
+            );
+        }
+
         return (
             <WebDashboardView
                 budgets={budgets}
@@ -501,9 +550,9 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                 transactions={transactions}
                 wallets={wallets}
                 summary={summary}
-                onDeleteWallet={handleDeleteWallet}
                 onManageBudget={navigateBudgetPage}
-                onSaveWallet={handleSaveWallet}
+                onManageWallet={() => navigateExpenseRoute("wallets")}
+                onPayCreditCard={openCreditPaymentTransaction}
                 onSelectBudget={navigateBudgetPage}
                 onViewCategorySpending={() => navigateExpenseRoute("categories")}
                 onViewTransactions={() => navigateExpenseRoute("transactions")}
@@ -537,6 +586,11 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                 eyebrow: "Giao dịch",
                 subtitle: "Quản lý tất cả giao dịch thu chi của bạn",
                 title: "Giao dịch",
+            },
+            wallets: {
+                eyebrow: "Ví tiền",
+                subtitle: "Quản lý ví, số dư và ví mặc định",
+                title: "Ví tiền",
             },
         }[activeDesktopPage];
         const desktopViewClassName = ["web-dashboard-view", desktopViewClasses[activeDesktopPage]]
@@ -588,7 +642,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                 <main className={desktopMainClassName}>
                     <ExpenseHeader
                         eyebrow={desktopHeaderContent.eyebrow}
-                        onAddTransactionClick={() => setIsDesktopAddTransactionOpen(true)}
+                        onAddTransactionClick={openDesktopAddTransaction}
                         onLogout={handleLogout}
                         onToggleTheme={handleToggleTheme}
                         pageActions={desktopHeaderPageActions}
@@ -600,7 +654,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                     {isDesktopAddTransactionOpen ? (
                         <WebAddTransactionPanel
                             categories={categories}
-                            onCancel={() => setIsDesktopAddTransactionOpen(false)}
+                            onCancel={closeDesktopAddTransaction}
                             onSubmit={handleAddDesktopTransaction}
                             wallets={wallets}
                         />
@@ -623,6 +677,16 @@ export default function DashboardPage({ initialSettings, onLogout }) {
             ) : (
                 renderDesktopShell()
             )}
+            {creditPaymentCard ? (
+                <CreditCardPaymentDialog
+                    card={creditPaymentCard}
+                    initialWalletId={getDefaultCreditPaymentSourceWallet(creditPaymentCard)?.id}
+                    key={creditPaymentCard.id}
+                    onCancel={closeCreditPaymentDialog}
+                    onSubmit={handleCreditPaymentSubmit}
+                    sourceWallets={getCreditPaymentSourceWallets(creditPaymentCard)}
+                />
+            ) : null}
         </div>
     );
 }

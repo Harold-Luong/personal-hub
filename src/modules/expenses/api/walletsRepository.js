@@ -13,6 +13,8 @@ import {
 } from "firebase/firestore";
 import { firestore } from "../../../lib/firebase/firestore";
 import {
+    creditPaymentTransactionTypeId,
+    creditCardWalletTypeId,
     expenseCurrencyLabels,
     expenseDefaultCurrency,
     expenseDefaultTimezone,
@@ -75,6 +77,20 @@ async function hasActiveWalletTransactions(uid, walletId) {
     return !snapshot.empty
 }
 
+function getCreditCardProjection(creditLimit, outstandingDebt = 0) {
+    return {
+        availableCredit: Math.max(creditLimit - outstandingDebt, 0),
+        balance: 0,
+        creditLimit,
+        initialBalance: 0,
+        outstandingDebt,
+    }
+}
+
+function isCreditCardWallet(wallet) {
+    return wallet?.type === creditCardWalletTypeId
+}
+
 function sortWallets(firstWallet, secondWallet) {
     if (firstWallet.isDefault !== secondWallet.isDefault) {
         return firstWallet.isDefault ? -1 : 1;
@@ -88,6 +104,8 @@ function sortWallets(firstWallet, secondWallet) {
 
 function mapWallet(documentSnapshot) {
     const data = documentSnapshot.data();
+    const creditLimit = data.creditLimit ?? 0;
+    const outstandingDebt = data.outstandingDebt ?? 0;
 
     return {
         id: documentSnapshot.id,
@@ -97,9 +115,13 @@ function mapWallet(documentSnapshot) {
         color: data.color ?? expenseDefaultWalletTypeMeta.color,
         balance: data.balance ?? data.currentBalance ?? 0,
         initialBalance: data.initialBalance ?? 0,
+        creditLimit,
+        outstandingDebt,
+        availableCredit: data.availableCredit ?? Math.max(creditLimit - outstandingDebt, 0),
         currency: data.currency ?? expenseDefaultCurrency,
         order: data.order ?? data.sortOrder ?? Number.MAX_SAFE_INTEGER,
         isDefault: data.isDefault ?? false,
+        isBalanceInitialized: data.isBalanceInitialized ?? true,
         isArchived: data.isArchived ?? false,
         createdAt: data.createdAt,
         updatedAt: data.updatedAt,
@@ -116,11 +138,51 @@ function normalizeText(value, label) {
     return text
 }
 
+function normalizeWalletNameForComparison(value) {
+    return String(value ?? "")
+        .trim()
+        .replace(/\s+/g, " ")
+        .toLocaleLowerCase("vi")
+}
+
+function assertUniqueWalletName(activeWallets, wallet, excludedWalletId) {
+    const normalizedName = normalizeWalletNameForComparison(wallet.name)
+    const duplicateWallet = activeWallets.find(
+        (activeWallet) =>
+            activeWallet.id !== excludedWalletId &&
+            normalizeWalletNameForComparison(activeWallet.name) === normalizedName,
+    )
+
+    if (duplicateWallet) {
+        throw new Error(`Tên ví "${wallet.name}" đã tồn tại. Vui lòng chọn tên khác.`)
+    }
+}
+
 function normalizeInteger(value, label) {
     const numberValue = Math.round(Number(value ?? 0))
 
     if (!Number.isSafeInteger(numberValue)) {
         throw new Error(`${label} must be a safe integer.`)
+    }
+
+    return numberValue
+}
+
+function normalizeNonNegativeInteger(value, label) {
+    const numberValue = normalizeInteger(value, label)
+
+    if (numberValue < 0) {
+        throw new Error(`${label} must be greater than or equal to zero.`)
+    }
+
+    return numberValue
+}
+
+function normalizePositiveInteger(value, label) {
+    const numberValue = normalizeInteger(value, label)
+
+    if (numberValue <= 0) {
+        throw new Error(`${label} must be greater than zero.`)
     }
 
     return numberValue
@@ -197,6 +259,53 @@ function getTransactionSearchTokens({ title, note }) {
     return [...searchTokens].slice(0, expenseMaxSearchTokens)
 }
 
+function getTransactionWalletDelta(transaction, walletId) {
+    const amountMinor = transaction.amountMinor ?? 0
+
+    if (transaction.status !== "active") {
+        return 0
+    }
+
+    if (transaction.type === "income" && transaction.walletId === walletId) {
+        return amountMinor
+    }
+
+    if (transaction.type === "expense" && transaction.walletId === walletId) {
+        return -amountMinor
+    }
+
+    if (transaction.type === "adjustment" && transaction.walletId === walletId) {
+        return transaction.adjustmentDirection === "increase" ? amountMinor : -amountMinor
+    }
+
+    if (transaction.type === "transfer" || transaction.type === creditPaymentTransactionTypeId) {
+        if (transaction.fromWalletId === walletId) {
+            return -amountMinor
+        }
+
+        if (transaction.toWalletId === walletId) {
+            return amountMinor
+        }
+    }
+
+    return 0
+}
+
+async function getActiveWalletNetMovement(uid, walletId) {
+    const transactionsQuery = query(
+        getTransactionsCollectionRef(uid),
+        where("walletIds", "array-contains", walletId),
+        where("status", "==", "active"),
+        orderBy("occurredAt", "desc"),
+    )
+    const snapshot = await getDocsFromServer(transactionsQuery)
+
+    return snapshot.docs.reduce(
+        (total, transactionSnapshot) => total + getTransactionWalletDelta(transactionSnapshot.data(), walletId),
+        0,
+    )
+}
+
 function getLocalDateTimeParts(date = new Date()) {
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, "0")
@@ -220,6 +329,7 @@ function getWalletSnapshot(wallet) {
         name: wallet.name,
         icon: wallet.icon ?? expenseDefaultWalletTypeMeta.icon,
         color: wallet.color ?? expenseDefaultWalletTypeMeta.color,
+        type: wallet.type,
     }
 }
 
@@ -312,9 +422,30 @@ function normalizeWalletInput(input = {}, { existingWallet, includeBalance = tru
         currency: normalizeCurrency(input.currency ?? existingWallet?.currency),
         icon: normalizeText(input.icon ?? existingWallet?.icon ?? typeMeta.icon, 'Wallet icon'),
         isDefault: Boolean(input.isDefault ?? existingWallet?.isDefault ?? false),
+        isBalanceInitialized: Boolean(input.isBalanceInitialized ?? existingWallet?.isBalanceInitialized ?? true),
         name: normalizeText(input.name ?? existingWallet?.name, 'Wallet name'),
         order: normalizeInteger(input.order ?? existingWallet?.order ?? order, 'Wallet order'),
         type,
+    }
+
+    if (type === creditCardWalletTypeId) {
+        const creditLimit = normalizePositiveInteger(
+            input.creditLimit ?? existingWallet?.creditLimit,
+            'Credit limit',
+        )
+        const outstandingDebt = normalizeNonNegativeInteger(
+            existingWallet?.outstandingDebt ?? input.outstandingDebt ?? 0,
+            'Outstanding debt',
+        )
+
+        if (outstandingDebt > creditLimit) {
+            throw new Error('Outstanding debt cannot exceed credit limit.')
+        }
+
+        return {
+            ...wallet,
+            ...getCreditCardProjection(creditLimit, outstandingDebt),
+        }
     }
 
     if (includeBalance) {
@@ -333,6 +464,32 @@ function normalizeWalletInput(input = {}, { existingWallet, includeBalance = tru
     return wallet
 }
 
+function assertWalletTypeChangeAllowed(existingWallet, wallet) {
+    const isCreditCardBoundaryChange = isCreditCardWallet(existingWallet) !== isCreditCardWallet(wallet)
+
+    if (isCreditCardBoundaryChange) {
+        throw new Error('Không thể đổi qua lại giữa ví thường và thẻ tín dụng. Vui lòng tạo ví mới.')
+    }
+}
+
+function isUninitializedDefaultPlaceholderWallet(wallet) {
+    return Boolean(
+        wallet &&
+        wallet.isDefault &&
+        !wallet.isBalanceInitialized &&
+        !isCreditCardWallet(wallet) &&
+        (wallet.balance ?? 0) === 0,
+    )
+}
+
+async function shouldPromoteCreatedWalletToDefault(uid, activeWallets) {
+    if (activeWallets.length !== 1 || !isUninitializedDefaultPlaceholderWallet(activeWallets[0])) {
+        return false
+    }
+
+    return !(await hasActiveWalletTransactions(uid, activeWallets[0].id))
+}
+
 export async function getExpenseWallets(uid, { includeArchived = false } = {}) {
     const snapshot = await getDocsFromServer(getWalletsCollectionRef(uid));
 
@@ -348,7 +505,12 @@ export async function createExpenseWallet(uid, input) {
     const wallet = normalizeWalletInput(input, {
         order: getNextWalletOrder(activeWallets),
     })
-    const shouldBeDefault = wallet.isDefault || activeWallets.length === 0
+    assertUniqueWalletName(activeWallets, wallet)
+
+    const shouldBeDefault =
+        wallet.isDefault ||
+        activeWallets.length === 0 ||
+        (await shouldPromoteCreatedWalletToDefault(uid, activeWallets))
     const timestamp = serverTimestamp()
     const batch = writeBatch(firestore)
 
@@ -393,10 +555,18 @@ export async function updateExpenseWallet(uid, input) {
         ...normalizeWalletInput(input, { existingWallet, includeBalance: false }),
         isDefault: existingWallet.isDefault || Boolean(input?.isDefault),
     }
-    const targetBalance = hasTargetBalance
+    assertWalletTypeChangeAllowed(existingWallet, wallet)
+    assertUniqueWalletName(activeWallets, wallet, walletId)
+
+    const shouldApplyBalanceChange = hasTargetBalance && !isCreditCardWallet(wallet)
+    const shouldRecalculateOpeningBalance = shouldApplyBalanceChange && !existingWallet.isBalanceInitialized
+    const targetBalance = shouldApplyBalanceChange
         ? normalizeInteger(input.balance ?? input.currentBalance, 'Target wallet balance')
         : null
-    const shouldCreateAdjustment = hasTargetBalance
+    const netMovement = shouldRecalculateOpeningBalance
+        ? await getActiveWalletNetMovement(uid, walletId)
+        : 0
+    const shouldCreateAdjustment = shouldApplyBalanceChange && !shouldRecalculateOpeningBalance
         ? await hasActiveWalletTransactions(uid, walletId)
         : false
     const timestamp = serverTimestamp()
@@ -416,14 +586,18 @@ export async function updateExpenseWallet(uid, input) {
         }
 
         const currentBalance = currentWalletData.balance ?? 0
-        const balanceDelta = hasTargetBalance ? targetBalance - currentBalance : 0
+        const balanceDelta = shouldApplyBalanceChange ? targetBalance - currentBalance : 0
         const walletUpdate = {
             ...wallet,
             updatedAt: timestamp,
         }
         let adjustmentTransaction = null
 
-        if (balanceDelta !== 0 && shouldCreateAdjustment) {
+        if (shouldRecalculateOpeningBalance) {
+            walletUpdate.balance = targetBalance
+            walletUpdate.initialBalance = targetBalance - netMovement
+            walletUpdate.isBalanceInitialized = true
+        } else if (balanceDelta !== 0 && shouldCreateAdjustment) {
             const transactionRef = doc(getTransactionsCollectionRef(uid))
             const transactionData = createBalanceAdjustmentTransactionData({
                 balanceDelta,
@@ -443,6 +617,7 @@ export async function updateExpenseWallet(uid, input) {
         } else if (balanceDelta !== 0) {
             walletUpdate.balance = targetBalance
             walletUpdate.initialBalance = targetBalance
+            walletUpdate.isBalanceInitialized = true
         }
 
         if (wallet.isDefault) {
@@ -461,12 +636,20 @@ export async function updateExpenseWallet(uid, input) {
         const nextWallet = {
             ...existingWallet,
             ...wallet,
-            balance: balanceDelta !== 0 ? targetBalance : currentBalance,
+            balance: shouldRecalculateOpeningBalance || balanceDelta !== 0 ? targetBalance : currentBalance,
             initialBalance:
+                shouldRecalculateOpeningBalance
+                    ? targetBalance - netMovement
+                    : (
                 balanceDelta !== 0 && !shouldCreateAdjustment
                     ? targetBalance
-                    : (currentWalletData.initialBalance ?? existingWallet.initialBalance ?? 0),
+                    : (currentWalletData.initialBalance ?? existingWallet.initialBalance ?? 0)
+                    ),
             id: walletId,
+            isBalanceInitialized:
+                shouldRecalculateOpeningBalance || (balanceDelta !== 0 && !shouldCreateAdjustment)
+                    ? true
+                    : (currentWalletData.isBalanceInitialized ?? existingWallet.isBalanceInitialized ?? true),
             isArchived: false,
         }
 
@@ -503,7 +686,11 @@ export async function deleteExpenseWallet(uid, input) {
         throw new Error('Choose another default wallet before archiving this wallet.')
     }
 
-    if ((wallet.balance ?? 0) !== 0) {
+    if (isCreditCardWallet(wallet) && (wallet.outstandingDebt ?? 0) !== 0) {
+        throw new Error('Credit card debt must be zero before archiving.')
+    }
+
+    if (!isCreditCardWallet(wallet) && (wallet.balance ?? 0) !== 0) {
         throw new Error('Wallet balance must be zero before archiving.')
     }
 

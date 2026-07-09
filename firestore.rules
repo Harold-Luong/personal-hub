@@ -164,9 +164,13 @@ service cloud.firestore {
         'color',
         'balance',
         'initialBalance',
+        'creditLimit',
+        'outstandingDebt',
+        'availableCredit',
         'currency',
         'order',
         'isDefault',
+        'isBalanceInitialized',
         'isArchived',
         'createdAt',
         'updatedAt',
@@ -178,10 +182,46 @@ service cloud.firestore {
         'cash',
         'bank',
         'eWallet',
-        'card',
+        'credit-card',
         'saving',
         'other',
       ];
+    }
+
+    function creditCardWalletKeys() {
+      return [
+        'creditLimit',
+        'outstandingDebt',
+        'availableCredit',
+      ];
+    }
+
+    function isValidCreditCardWalletProjection(data) {
+      return data.keys().hasAll(creditCardWalletKeys())
+        && data.balance == 0
+        && data.initialBalance == 0
+        && data.creditLimit is number
+        && data.creditLimit > 0
+        && data.outstandingDebt is number
+        && data.outstandingDebt >= 0
+        && data.outstandingDebt <= data.creditLimit
+        && data.availableCredit is number
+        && data.availableCredit == data.creditLimit - data.outstandingDebt;
+    }
+
+    function isValidStandardWalletProjection(data) {
+      return !data.keys().hasAny(creditCardWalletKeys());
+    }
+
+    function isValidWalletProjection(data) {
+      return (
+          data.type == 'credit-card'
+          && isValidCreditCardWalletProjection(data)
+        )
+        || (
+          data.type != 'credit-card'
+          && isValidStandardWalletProjection(data)
+        );
     }
 
     function isValidWalletCreate(data) {
@@ -196,6 +236,7 @@ service cloud.firestore {
           'currency',
           'order',
           'isDefault',
+          'isBalanceInitialized',
           'isArchived',
           'createdAt',
           'updatedAt',
@@ -206,9 +247,11 @@ service cloud.firestore {
         && isValidString(data.color)
         && data.balance is number
         && data.initialBalance is number
+        && isValidWalletProjection(data)
         && isValidCurrency(data.currency)
         && data.order is int
         && data.isDefault is bool
+        && data.isBalanceInitialized is bool
         && data.isArchived is bool
         && data.createdAt == request.time
         && data.updatedAt == request.time;
@@ -223,9 +266,13 @@ service cloud.firestore {
             'color',
             'balance',
             'initialBalance',
+            'creditLimit',
+            'outstandingDebt',
+            'availableCredit',
             'currency',
             'order',
             'isDefault',
+            'isBalanceInitialized',
             'isArchived',
             'updatedAt',
           ])
@@ -236,9 +283,11 @@ service cloud.firestore {
         && isValidString(request.resource.data.color)
         && request.resource.data.balance is number
         && request.resource.data.initialBalance is number
+        && isValidWalletProjection(request.resource.data)
         && isValidCurrency(request.resource.data.currency)
         && request.resource.data.order is int
         && request.resource.data.isDefault is bool
+        && request.resource.data.isBalanceInitialized is bool
         && request.resource.data.isArchived is bool
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.updatedAt == request.time;
@@ -381,6 +430,7 @@ service cloud.firestore {
         'expense',
         'income',
         'transfer',
+        'creditPayment',
         'adjustment',
       ];
     }
@@ -391,10 +441,15 @@ service cloud.firestore {
           'name',
           'icon',
           'color',
+          'type',
         ])
         && isValidString(snapshot.name)
         && isValidString(snapshot.icon)
-        && isValidString(snapshot.color);
+        && isValidString(snapshot.color)
+        && (
+          !snapshot.keys().hasAny(['type'])
+          || isValidString(snapshot.type)
+        );
     }
 
     function isValidSearchTokens(tokens) {
@@ -443,6 +498,26 @@ service cloud.firestore {
         && !data.keys().hasAny(['adjustmentDirection']);
     }
 
+    function isValidCreditPaymentTransaction(data) {
+      return data.type == 'creditPayment'
+        && data.categoryId == null
+        && data.walletId == null
+        && isValidString(data.fromWalletId)
+        && isValidString(data.toWalletId)
+        && data.fromWalletId != data.toWalletId
+        && data.walletIds is list
+        && data.walletIds.size() == 2
+        && data.walletIds[0] == data.fromWalletId
+        && data.walletIds[1] == data.toWalletId
+        && data.categorySnapshot == null
+        && data.walletSnapshot == null
+        && isValidSnapshot(data.fromWalletSnapshot)
+        && isValidSnapshot(data.toWalletSnapshot)
+        && data.fromWalletSnapshot.type != 'credit-card'
+        && data.toWalletSnapshot.type == 'credit-card'
+        && !data.keys().hasAny(['adjustmentDirection']);
+    }
+
     function isValidAdjustmentTransaction(data) {
       return data.type == 'adjustment'
         && data.adjustmentDirection in [
@@ -484,6 +559,7 @@ service cloud.firestore {
         && (
           isValidExpenseOrIncomeTransaction(data)
           || isValidTransferTransaction(data)
+          || isValidCreditPaymentTransaction(data)
           || isValidAdjustmentTransaction(data)
         );
     }
@@ -512,6 +588,7 @@ service cloud.firestore {
         && (
           isValidExpenseOrIncomeTransaction(request.resource.data)
           || isValidTransferTransaction(request.resource.data)
+          || isValidCreditPaymentTransaction(request.resource.data)
           || isValidAdjustmentTransaction(request.resource.data)
         );
     }

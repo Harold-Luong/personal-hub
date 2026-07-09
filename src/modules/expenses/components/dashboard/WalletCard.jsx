@@ -1,8 +1,29 @@
 import AmountText from "../shared/AmountText";
 import ExpenseIcon from "../shared/ExpenseEmoji";
 import SectionCard from "../shared/SectionCard";
+import { creditCardWalletTypeId } from "../../constant/expensesMetaData";
 
-export default function WalletCard({ onEditWallet, onManageWallet, wallets = [] }) {
+function isCreditCardWallet(wallet) {
+    return wallet.type === creditCardWalletTypeId;
+}
+
+function getWalletMeta(wallet) {
+    if (isCreditCardWallet(wallet)) {
+        return (
+            <small>
+                Dư nợ · còn lại <AmountText amount={wallet.availableCredit ?? 0} />
+            </small>
+        );
+    }
+
+    if (!wallet.isBalanceInitialized) {
+        return <small>Số dư tạm tính từ 0đ</small>;
+    }
+
+    return wallet.isDefault ? <small>Mặc định</small> : null;
+}
+
+export default function WalletCard({ onManageWallet, onPayCreditCard, wallets = [] }) {
     return (
         <SectionCard
             actionLabel={wallets.length ? "Quản lý" : "Tạo ví"}
@@ -12,21 +33,26 @@ export default function WalletCard({ onEditWallet, onManageWallet, wallets = [] 
         >
             {wallets.length ? (
                 wallets.map((wallet) => (
-                    <button
-                        className="wallet-item"
-                        key={wallet.id}
-                        onClick={() => onEditWallet?.(wallet.id)}
-                        type="button"
-                    >
+                    <article className="wallet-item" key={wallet.id}>
                         <ExpenseIcon color={wallet.color} icon={wallet.icon} label={wallet.name} />
                         <span>
                             <strong>{wallet.name}</strong>
-                            {wallet.isDefault ? <small>Mặc định</small> : null}
+                            {getWalletMeta(wallet)}
                         </span>
                         <strong>
-                            <AmountText amount={wallet.balance} />
+                            <AmountText amount={isCreditCardWallet(wallet) ? wallet.outstandingDebt : wallet.balance} />
                         </strong>
-                    </button>
+                        {isCreditCardWallet(wallet) && (wallet.outstandingDebt ?? 0) > 0 ? (
+                            <button
+                                aria-label={`Thanh toán thẻ tín dụng ${wallet.name}`}
+                                className="wallet-item__credit-payment"
+                                onClick={() => onPayCreditCard?.(wallet)}
+                                type="button"
+                            >
+                                Thanh toán
+                            </button>
+                        ) : null}
+                    </article>
                 ))
             ) : (
                 <p className="wallet-card__empty">Chưa có ví nào để ghi nhận giao dịch.</p>

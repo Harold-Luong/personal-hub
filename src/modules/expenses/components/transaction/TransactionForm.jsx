@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+    creditCardWalletTypeId,
     expenseWeekdayLabels,
     transactionFallbackCategoryOptions,
     transactionTypeOptions,
@@ -7,6 +8,7 @@ import {
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "../../utils/formatCurrency";
 import { getSignedTransactionAmount } from "../../utils/expenseCalculations";
 import { getLocalDateValue, getLocalTimeValue } from "../../utils/transactionFormUtils";
+import { getWalletDisplayName } from "../../utils/walletDisplayUtils";
 
 function getCategoryOptions(type, categories) {
     if (type === "transfer") {
@@ -16,6 +18,18 @@ function getCategoryOptions(type, categories) {
     const typedCategories = categories.filter((category) => (category.type ?? "expense") === type);
 
     return typedCategories.length > 0 ? typedCategories : [];
+}
+
+function isCreditCardWallet(wallet) {
+    return wallet?.type === creditCardWalletTypeId;
+}
+
+function getWalletOptions(type, wallets) {
+    if (type === "expense") {
+        return wallets;
+    }
+
+    return wallets.filter((wallet) => !isCreditCardWallet(wallet));
 }
 
 function getTransactionSubtitle(date, time) {
@@ -58,18 +72,33 @@ export default function TransactionForm({
     const [submitError, setSubmitError] = useState("");
 
     const categoryOptions = getCategoryOptions(type, categories);
+    const walletOptions = getWalletOptions(type, wallets);
+    const isTransfer = type === "transfer";
     const selectedCategoryId = categoryOptions.some((category) => category.id === categoryId)
         ? categoryId
         : (categoryOptions[0]?.id ?? "");
-    const selectedWalletId = wallets.some((wallet) => wallet.id === walletId) ? walletId : (wallets[0]?.id ?? "");
-    const selectedToWalletId = wallets.some((wallet) => wallet.id === toWalletId && wallet.id !== selectedWalletId)
+    const selectedWalletId = walletOptions.some((wallet) => wallet.id === walletId)
+        ? walletId
+        : (walletOptions[0]?.id ?? "");
+    const selectedToWalletId = walletOptions.some((wallet) => wallet.id === toWalletId && wallet.id !== selectedWalletId)
         ? toWalletId
-        : (wallets.find((wallet) => wallet.id !== selectedWalletId)?.id ?? "");
+        : (walletOptions.find((wallet) => wallet.id !== selectedWalletId)?.id ?? "");
     const selectedTransactionType = transactionTypeOptions.find((transactionType) => transactionType.id === type);
-    const selectedWallet = wallets.find((wallet) => wallet.id === selectedWalletId);
+    const selectedWallet = walletOptions.find((wallet) => wallet.id === selectedWalletId);
+    const isSelectedCreditCard = type === "expense" && isCreditCardWallet(selectedWallet);
+    const isSelectedBalanceTemporary = Boolean(
+        selectedWallet && !isSelectedCreditCard && !selectedWallet.isBalanceInitialized,
+    );
     const numericAmount = parseCurrencyInput(amount);
-    const currentWalletBalance = selectedWallet?.balance ?? 0;
-    const previewBalance = currentWalletBalance + getSignedTransactionAmount(numericAmount, type);
+    const currentWalletBalance = isSelectedCreditCard
+        ? (selectedWallet?.outstandingDebt ?? 0)
+        : (selectedWallet?.balance ?? 0);
+    const previewBalance = isSelectedCreditCard
+        ? currentWalletBalance + numericAmount
+        : currentWalletBalance + getSignedTransactionAmount(numericAmount, type);
+    const previewAvailableCredit = isSelectedCreditCard
+        ? (selectedWallet?.availableCredit ?? 0) - numericAmount
+        : null;
 
     const handleTypeChange = (nextType) => {
         const nextCategoryOptions = getCategoryOptions(nextType, categories);
@@ -84,7 +113,6 @@ export default function TransactionForm({
 
         const numericAmount = parseCurrencyInput(amount);
         const selectedCategory = categoryOptions.find((category) => category.id === selectedCategoryId);
-        const isTransfer = type === "transfer";
 
         if (
             !numericAmount ||
@@ -163,19 +191,33 @@ export default function TransactionForm({
                             <dd>{selectedTransactionType?.label ?? "-"}</dd>
                         </div>
                         <div>
-                            <dt>Ví</dt>
-                            <dd>{selectedWallet?.name ?? "-"}</dd>
+                            <dt>{isTransfer ? "Ví chuyển" : "Ví"}</dt>
+                            <dd>{getWalletDisplayName(selectedWallet) || "-"}</dd>
                         </div>
                         <div>
-                            <dt>Số dư hiện tại</dt>
+                            <dt>
+                                {isSelectedCreditCard
+                                    ? "Dư nợ hiện tại"
+                                    : isSelectedBalanceTemporary
+                                        ? "Số dư tạm tính"
+                                        : "Số dư hiện tại"}
+                            </dt>
                             <dd>{formatCurrency(currentWalletBalance)}</dd>
                         </div>
                         <div>
-                            <dt>Số dư sau giao dịch</dt>
+                            <dt>{isSelectedCreditCard ? "Dư nợ sau giao dịch" : "Số dư sau giao dịch"}</dt>
                             <dd className={previewBalance < 0 ? "is-negative" : "is-positive"}>
                                 {formatCurrency(previewBalance)}
                             </dd>
                         </div>
+                        {isSelectedCreditCard ? (
+                            <div>
+                                <dt>Hạn mức còn lại</dt>
+                                <dd className={previewAvailableCredit < 0 ? "is-negative" : "is-positive"}>
+                                    {formatCurrency(previewAvailableCredit)}
+                                </dd>
+                            </div>
+                        ) : null}
                     </dl>
                 </div>
 
@@ -218,9 +260,9 @@ export default function TransactionForm({
                             required
                             value={selectedWalletId}
                         >
-                            {wallets.map((wallet) => (
+                            {walletOptions.map((wallet) => (
                                 <option key={wallet.id} value={wallet.id}>
-                                    {wallet.name}
+                                    {getWalletDisplayName(wallet)}
                                 </option>
                             ))}
                         </select>
@@ -235,11 +277,11 @@ export default function TransactionForm({
                                 required
                                 value={selectedToWalletId}
                             >
-                                {wallets
+                                {walletOptions
                                     .filter((wallet) => wallet.id !== selectedWalletId)
                                     .map((wallet) => (
                                         <option key={wallet.id} value={wallet.id}>
-                                            {wallet.name}
+                                            {getWalletDisplayName(wallet)}
                                         </option>
                                     ))}
                             </select>

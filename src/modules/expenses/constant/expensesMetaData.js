@@ -33,6 +33,7 @@ export const expensePageMeta = {
         label: "Ví tiền",
         icon: "wallet",
         path: "/expenses/wallets",
+        isRouted: true,
     },
     settings: {
         label: "Cài đặt",
@@ -61,7 +62,7 @@ export const expenseRoutePaths = Object.fromEntries(
         .map(([id, item]) => [id, item.path]),
 );
 
-export const expenseMobileOnlyPageIds = ["add", "wallets", "settings"];
+export const expenseMobileOnlyPageIds = ["add", "settings"];
 
 export const expenseCurrencies = [
     {
@@ -102,11 +103,13 @@ export const expenseThemeOptions = [
 export const expenseThemeIds = expenseThemeOptions.map((themeOption) => themeOption.id);
 export const expenseDefaultTheme = expenseThemeOptions[0].id;
 
+export const creditCardWalletTypeId = "credit-card";
+
 export const walletTypeOptions = [
     { id: "cash", label: "Tiền mặt", icon: "wallet", color: "#56b879" },
     { id: "bank", label: "Ngân hàng", icon: "bank", color: "#4f93d7" },
-    { id: "card", label: "Thẻ", icon: "card", color: "#9b7bd8" },
     { id: "eWallet", label: "Ví điện tử", icon: "momo", color: "#d77fa1" },
+    { id: creditCardWalletTypeId, label: "Thẻ tín dụng", icon: "card", color: "#9b7bd8" },
     { id: "saving", label: "Tiết kiệm", icon: "saving", color: "#d9a441" },
     { id: "other", label: "Khác", icon: "more", color: "#b8bec8" },
 ];
@@ -152,8 +155,9 @@ export const budgetStatusLabels = Object.fromEntries(
 export const budgetExceededThresholdPercentage = 100;
 export const budgetWarningThresholdPercentage = 80;
 
+export const creditPaymentTransactionTypeId = "creditPayment";
 export const editableTransactionTypeIds = ["expense", "income", "transfer"];
-export const transactionTypeIds = [...editableTransactionTypeIds, "adjustment"];
+export const transactionTypeIds = [...editableTransactionTypeIds, creditPaymentTransactionTypeId, "adjustment"];
 
 export const transactionTypeMeta = {
     expense: {
@@ -166,6 +170,10 @@ export const transactionTypeMeta = {
     },
     transfer: {
         label: "Chuyển khoản",
+        tone: "transfer",
+    },
+    [creditPaymentTransactionTypeId]: {
+        label: "Thanh toán thẻ tín dụng",
         tone: "transfer",
     },
     adjustment: {

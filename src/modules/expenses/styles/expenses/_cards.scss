@@ -793,7 +793,6 @@
   background: transparent;
   border: 0;
   color: inherit;
-  cursor: pointer;
   grid-template-columns: auto minmax(0, 1fr) auto;
   padding: 0;
   text-align: left;
@@ -822,6 +821,21 @@
 .wallet-item>strong {
   font-size: 14px;
   justify-self: end;
+}
+
+.wallet-item__credit-payment {
+  background: color-mix(in srgb, var(--expense-active-strong) 9%, var(--expense-surface-solid));
+  border: 1px solid color-mix(in srgb, var(--expense-active-strong) 22%, var(--expense-border-strong));
+  border-radius: 8px;
+  color: var(--expense-active-strong);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  grid-column: 2 / -1;
+  justify-self: end;
+  min-height: 32px;
+  padding: 0 10px;
 }
 
 .wallet-card__empty {

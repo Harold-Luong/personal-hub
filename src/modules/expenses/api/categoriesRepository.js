@@ -1,5 +1,4 @@
-import { collection, getDocsFromServer } from "firebase/firestore";
-import { firestore } from "../../../lib/firebase/firestore";
+import { getDocsFromServer } from "firebase/firestore";
 import { getCollectionReference } from "./getReference";
 const CATEGORIES_COLLECTION = "categories";
 

@@ -10,6 +10,7 @@ import {
 } from "../../../stores/expenseDataStore";
 import {
     colorsFallback,
+    creditPaymentTransactionTypeId,
     expenseTransactionFilters,
     transactionDefaultPageSize,
     transactionDefaultSort,
@@ -37,6 +38,7 @@ import ExpenseEmoji from "../components/shared/ExpenseEmoji";
 import SummaryCardList from "../components/shared/SummaryCardList";
 import WebAddTransactionPanel from "../components/web/WebAddTransactionPanel";
 import { getTransactionWalletLabel } from "../utils/transactionDisplayUtils";
+import { getWalletDisplayName } from "../utils/walletDisplayUtils";
 
 const transactionSummaryIcons = {
     count: TransactionListIcon,
@@ -48,6 +50,10 @@ const transactionSummaryIcons = {
 function getTransactionCategoryLabel(transaction) {
     if (transaction.type === "transfer") {
         return "Chuyển khoản";
+    }
+
+    if (transaction.type === "creditPayment") {
+        return "Credit Payment";
     }
 
     if (transaction.type === "adjustment") {
@@ -90,6 +96,10 @@ function getMonthDayOptions(monthKey) {
 }
 
 function getCategoryFilterOptions(categories, activeType) {
+    if (activeType !== "all" && activeType !== "expense" && activeType !== "income") {
+        return [];
+    }
+
     return categories
         .filter((category) => {
             const categoryType = category.type ?? "expense";
@@ -123,7 +133,7 @@ function addWalletFilterOption(optionsById, wallet, isArchived = false) {
     optionsById.set(wallet.id, {
         id: wallet.id,
         isArchived: Boolean(wallet.isArchived ?? isArchived),
-        name: wallet.name || currentOption?.name || wallet.id,
+        name: getWalletDisplayName(wallet) || currentOption?.name || wallet.id,
         order: wallet.order ?? currentOption?.order ?? Number.MAX_SAFE_INTEGER,
     });
 }
@@ -236,7 +246,7 @@ function TransactionRow({ onDelete, onEdit, transaction }) {
     const walletLabel = getTransactionWalletLabel(transaction);
     const categoryLabel = getTransactionCategoryLabel(transaction);
     const { dateLabel, dateTime, timeLabel } = getTransactionDateParts(transaction);
-    const canEdit = transaction.type !== "adjustment";
+    const canEdit = transaction.type !== "adjustment" && transaction.type !== creditPaymentTransactionTypeId;
 
     return (
         <article className="transactions-page__row" role="row">
@@ -269,7 +279,7 @@ function TransactionRow({ onDelete, onEdit, transaction }) {
             <div className="transactions-page__cell transactions-page__date-cell" role="cell">
                 <strong>
                     <time dateTime={dateTime}>
-                         {timeLabel} - {dateLabel}
+                        {timeLabel} - {dateLabel}
                     </time>
                 </strong>
             </div>
@@ -420,7 +430,8 @@ function TransactionsWorkspace({
     };
 
     const getSortButtonLabel = (key, label) => {
-        const nextDirection = transactionSort.key === key && transactionSort.direction === "desc" ? "tăng dần" : "giảm dần";
+        const nextDirection =
+            transactionSort.key === key && transactionSort.direction === "desc" ? "tăng dần" : "giảm dần";
 
         return `Sắp xếp ${label} ${nextDirection}`;
     };
@@ -654,7 +665,9 @@ function TransactionsWorkspace({
                 <button
                     aria-expanded={isFilterPanelOpen}
                     className={
-                        activeFilterCount ? "transactions-page__filter-button is-active" : "transactions-page__filter-button"
+                        activeFilterCount
+                            ? "transactions-page__filter-button is-active"
+                            : "transactions-page__filter-button"
                     }
                     onClick={() => setIsFilterPanelOpen((isOpen) => !isOpen)}
                     type="button"
