@@ -338,9 +338,10 @@ projection này qua các flow nghiệp vụ có kiểm soát:
   chưa có giao dịch và `balance = 0`, ví mới sẽ tự trở thành ví default.
 - Tạo credit-card wallet: nhập `creditLimit`, đặt `outstandingDebt = 0` và
   `availableCredit = creditLimit`; không tạo opening balance.
-- Khi user lần đầu cập nhật số dư cho ví chưa initialized, repository tính lại
-  `initialBalance = targetBalance - netMovement(active transactions)` và đặt
-  `isBalanceInitialized = true`, không tạo transaction `adjustment`.
+- Khi user lần đầu thiết lập số dư cho ví chưa initialized, form nhận
+  `initialBalance`; repository tính `balance = initialBalance + netMovement(active
+  transactions)`, đặt `isBalanceInitialized = true` và không tạo transaction
+  `adjustment`.
 - Sửa balance của wallet chưa có active transaction: cập nhật trực tiếp
   `initialBalance` và `balance`; đây là bước thiết lập số dư ban đầu.
 - Sửa balance của wallet đã có active transaction: tạo transaction
@@ -1075,9 +1076,9 @@ Credit-card không cho sửa số dư trực tiếp. Dư nợ chỉ thay đổi 
 chi tiêu bằng thẻ hoặc flow thanh toán thẻ riêng trong giai đoạn sau.
 
 Nếu wallet thường được auto-init và chưa có số dư thật, app vẫn cho ghi giao
-dịch từ mốc `0`. Balance lúc này là số dư tạm tính. Khi user nhập số dư hiện
-tại lần đầu, repository tính lại `initialBalance` từ toàn bộ active transaction
-của ví để `balance` khớp số dư user nhập mà không tạo adjustment.
+dịch từ mốc `0`. Balance lúc này là số dư tạm tính. Khi user nhập số dư ban đầu
+lần đầu, repository cộng toàn bộ active transaction của ví vào mốc này để tính
+`balance`, rồi không tạo adjustment.
 
 Khi user đổi số dư hiện tại:
 

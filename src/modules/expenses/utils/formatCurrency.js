@@ -26,8 +26,27 @@ export function parseCurrencyInput(value) {
     return digits ? Number(digits) : 0;
 }
 
+export function parseSignedCurrencyInput(value) {
+    const normalizedValue = String(value ?? "").trim();
+    const amount = parseCurrencyInput(normalizedValue);
+
+    return normalizedValue.startsWith("-") ? -amount : amount;
+}
+
 export function formatCurrencyInput(value, locale = expenseDefaultLocale) {
     const amount = parseCurrencyInput(value);
 
     return amount ? new Intl.NumberFormat(locale).format(amount) : "";
+}
+
+export function formatSignedCurrencyInput(value, locale = expenseDefaultLocale) {
+    const normalizedValue = String(value ?? "").trim();
+
+    if (normalizedValue === "-") {
+        return normalizedValue;
+    }
+
+    const amount = parseSignedCurrencyInput(normalizedValue);
+
+    return amount ? `${amount < 0 ? "-" : ""}${new Intl.NumberFormat(locale).format(Math.abs(amount))}` : "";
 }
