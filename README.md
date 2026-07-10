@@ -5,6 +5,7 @@ React + Vite app for personal modules. The active module is `expenses`.
 ## Expenses Status
 
 - Firebase Authentication session bootstrap is wired.
+- Firebase App Check is wired with reCAPTCHA v3 via `VITE_RECAPTCHA_V3_SITE_KEY`.
 - Firestore settings init is wired at `users/{uid}/modules/expenses/settings/main`.
 - Default expense data init creates the module root, one default cash wallet, and default expense/income categories.
 - Categories, wallets, budgets, transactions, monthly stats, and dashboard aggregates are read from Firestore repositories.
@@ -26,4 +27,7 @@ Build check:
 npm run build
 ```
 
-More details for the expenses data model live in `src/modules/expenses/README.md`.
+More details:
+
+- Expenses data model: `src/modules/expenses/README.md`.
+- Firebase security layers and App Check setup: `SECURITY.md`.
