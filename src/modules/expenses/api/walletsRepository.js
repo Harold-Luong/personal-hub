@@ -513,6 +513,7 @@ export async function updateExpenseWallet(uid, input) {
     const activeWallets = await getExpenseWallets(uid)
     const existingWallet = activeWallets.find((wallet) => wallet.id === walletId)
     const hasTargetBalance = input?.balance != null || input?.currentBalance != null
+    const hasInitialBalance = input?.initialBalance != null
 
     if (!existingWallet) {
         throw new Error('Wallet not found.')
@@ -525,10 +526,22 @@ export async function updateExpenseWallet(uid, input) {
     assertWalletTypeChangeAllowed(existingWallet, wallet)
     assertUniqueWalletName(activeWallets, wallet, walletId)
 
-    const shouldApplyBalanceChange = hasTargetBalance && !isCreditCardWallet(wallet)
-    const shouldRecalculateOpeningBalance = shouldApplyBalanceChange && !existingWallet.isBalanceInitialized
+    const isRegularWallet = !isCreditCardWallet(wallet)
+    const shouldSetInitialBalance = hasInitialBalance && isRegularWallet && !existingWallet.isBalanceInitialized
+
+    if (hasInitialBalance && !shouldSetInitialBalance) {
+        throw new Error('Initial wallet balance can only be set during initial setup.')
+    }
+
+    const shouldApplyBalanceChange = (hasTargetBalance || shouldSetInitialBalance) && isRegularWallet
+    const shouldRecalculateOpeningBalance = shouldApplyBalanceChange && !existingWallet.isBalanceInitialized && !shouldSetInitialBalance
+    const initialBalance = shouldSetInitialBalance
+        ? normalizeNonNegativeInteger(input.initialBalance, 'Initial wallet balance')
+        : null
     const targetBalance = shouldApplyBalanceChange
-        ? normalizeInteger(input.balance ?? input.currentBalance, 'Target wallet balance')
+        ? shouldSetInitialBalance
+            ? initialBalance + (await getActiveWalletNetMovement(uid, walletId))
+            : normalizeInteger(input.balance ?? input.currentBalance, 'Target wallet balance')
         : null
     const netMovement = shouldRecalculateOpeningBalance
         ? await getActiveWalletNetMovement(uid, walletId)
@@ -560,7 +573,11 @@ export async function updateExpenseWallet(uid, input) {
         }
         let adjustmentTransaction = null
 
-        if (shouldRecalculateOpeningBalance) {
+        if (shouldSetInitialBalance) {
+            walletUpdate.balance = targetBalance
+            walletUpdate.initialBalance = initialBalance
+            walletUpdate.isBalanceInitialized = true
+        } else if (shouldRecalculateOpeningBalance) {
             walletUpdate.balance = targetBalance
             walletUpdate.initialBalance = targetBalance - netMovement
             walletUpdate.isBalanceInitialized = true
@@ -612,9 +629,11 @@ export async function updateExpenseWallet(uid, input) {
         const nextWallet = {
             ...existingWallet,
             ...wallet,
-            balance: shouldRecalculateOpeningBalance || balanceDelta !== 0 ? targetBalance : currentBalance,
+            balance: shouldSetInitialBalance || shouldRecalculateOpeningBalance || balanceDelta !== 0 ? targetBalance : currentBalance,
             initialBalance:
-                shouldRecalculateOpeningBalance
+                shouldSetInitialBalance
+                    ? initialBalance
+                    : shouldRecalculateOpeningBalance
                     ? targetBalance - netMovement
                     : (
                 balanceDelta !== 0 && !shouldCreateAdjustment
@@ -623,7 +642,7 @@ export async function updateExpenseWallet(uid, input) {
                     ),
             id: walletId,
             isBalanceInitialized:
-                shouldRecalculateOpeningBalance || (balanceDelta !== 0 && !shouldCreateAdjustment)
+                shouldSetInitialBalance || shouldRecalculateOpeningBalance || (balanceDelta !== 0 && !shouldCreateAdjustment)
                     ? true
                     : (currentWalletData.isBalanceInitialized ?? existingWallet.isBalanceInitialized ?? true),
             isArchived: false,

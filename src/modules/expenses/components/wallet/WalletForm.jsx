@@ -7,7 +7,13 @@ import {
     walletTypeOptions,
 } from "../../constant/expensesMetaData";
 import { expenseUiText } from "../../constant/expensesUiMetaData";
-import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "../../utils/formatCurrency";
+import {
+    formatCurrency,
+    formatCurrencyInput,
+    formatSignedCurrencyInput,
+    parseCurrencyInput,
+    parseSignedCurrencyInput,
+} from "../../utils/formatCurrency";
 import ExpenseButton from "../shared/ExpenseButton";
 import ExpenseField from "../shared/ExpenseField";
 import ExpenseStateMessage from "../shared/ExpenseStateMessage";
@@ -34,9 +40,16 @@ function getWalletForId(wallets, walletId) {
 
 function getFormState(wallet) {
     const walletType = getWalletType(wallet?.type);
+    const isOpeningBalanceSetup = Boolean(
+        wallet && wallet.type !== creditCardWalletTypeId && !wallet.isBalanceInitialized,
+    );
 
     return {
-        balance: wallet?.balance ? formatCurrencyInput(wallet.balance) : "",
+        balance: isOpeningBalanceSetup
+            ? (formatCurrencyInput(wallet.initialBalance ?? 0) || "0")
+            : wallet?.balance
+              ? formatSignedCurrencyInput(wallet.balance)
+              : "",
         color: wallet?.color ?? walletType.color,
         creditLimit: wallet?.creditLimit ? formatCurrencyInput(wallet.creditLimit) : "",
         currency: wallet?.currency ?? expenseDefaultCurrency,
@@ -75,9 +88,10 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
     const isEditing = Boolean(selectedWallet);
     const isCreditCard = formState.type === creditCardWalletTypeId;
     const selectedWalletIsCreditCard = selectedWallet?.type === creditCardWalletTypeId;
-    const selectedWalletNeedsBalanceSetup = Boolean(
+    const isOpeningBalanceSetup = Boolean(
         selectedWallet && !selectedWalletIsCreditCard && !selectedWallet.isBalanceInitialized,
     );
+    const usesSignedBalanceInput = isEditing && !isCreditCard && !isOpeningBalanceSetup;
     const isWorking = isSubmitting || isDeleting;
     const hasBalance = selectedWalletIsCreditCard
         ? (selectedWallet?.outstandingDebt ?? 0) !== 0
@@ -154,7 +168,15 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
             wallet.creditLimit = creditLimit;
             wallet.initialBalance = 0;
         } else {
-            wallet.balance = parseCurrencyInput(formState.balance);
+            const balance = usesSignedBalanceInput
+                ? parseSignedCurrencyInput(formState.balance)
+                : parseCurrencyInput(formState.balance);
+
+            if (isOpeningBalanceSetup) {
+                wallet.initialBalance = balance;
+            } else {
+                wallet.balance = balance;
+            }
         }
 
         if (!isEditing && !isCreditCard) {
@@ -257,16 +279,25 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
 
                 <ExpenseField
                     className="wallet-form__field wallet-form__field--amount"
-                    label={isCreditCard ? "Hạn mức thẻ" : isEditing ? "Số dư hiện tại" : "Số dư ban đầu"}
+                    label={
+                        isCreditCard
+                            ? "Hạn mức thẻ"
+                            : isOpeningBalanceSetup || !isEditing
+                              ? "Số dư ban đầu"
+                              : "Số dư thực tế hiện tại"
+                    }
                 >
                     <span className="wallet-form__amount-control">
                         <input
                             disabled={isWorking}
-                            inputMode="numeric"
+                            inputMode={usesSignedBalanceInput ? "text" : "numeric"}
                             name={isCreditCard ? "creditLimit" : "balance"}
                             onChange={(event) =>
                                 updateFormState({
-                                    [isCreditCard ? "creditLimit" : "balance"]: formatCurrencyInput(event.target.value),
+                                    [isCreditCard ? "creditLimit" : "balance"]:
+                                        isCreditCard || !usesSignedBalanceInput
+                                            ? formatCurrencyInput(event.target.value)
+                                            : formatSignedCurrencyInput(event.target.value),
                                 })
                             }
                             placeholder="0"
@@ -285,10 +316,10 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                     </p>
                 ) : null}
 
-                {selectedWalletNeedsBalanceSetup ? (
+                {isOpeningBalanceSetup ? (
                     <p className="wallet-form__hint">
-                        Ví này đang tạm tính từ 0đ. Khi lưu số dư hiện tại, hệ thống sẽ tính lại số dư ban
-                        đầu theo các giao dịch đã ghi, không tạo giao dịch điều chỉnh.
+                        Nhập số dư có trước các giao dịch đã ghi. Hệ thống sẽ tự tính số dư hiện tại theo lịch sử,
+                        không tạo giao dịch điều chỉnh.
                     </p>
                 ) : null}
 
@@ -315,6 +346,8 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                 <p className="wallet-form__hint">
                     {isCreditCard
                         ? "Chi tiêu bằng thẻ tín dụng sẽ tăng dư nợ và giảm hạn mức còn lại, không trừ tiền ngân hàng ngay."
+                        : isOpeningBalanceSetup
+                        ? "Sau khi lưu, số dư hiện tại sẽ bằng số dư ban đầu cộng các giao dịch đã ghi."
                         : isEditing
                         ? "Nếu đổi số dư hiện tại, hệ thống sẽ tạo một giao dịch điều chỉnh để giữ lịch sử."
                         : "Ví mới sẽ dùng cho giao dịch thu, chi và chuyển khoản."}
