@@ -1,5 +1,7 @@
 import ProgressBar from "../shared/ProgressBar";
+import SectionCardHeader from "../shared/SectionCardHeader";
 import { budgetStatusColors } from "../../constant/expensesMetaData";
+import { expenseUiText } from "../../constant/expensesUiMetaData";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { calculateMonthlyBudgetTotals, getBudgetUsageStatus } from "../../utils/expenseCalculations";
 
@@ -10,15 +12,14 @@ export default function MonthlyBudgetCard({ budgets = [], monthLabel, onManageBu
 
     return (
         <section className={`monthly-budget-card monthly-budget-card--${status}`}>
-            <header className="monthly-budget-card__header">
-                <div className="monthly-budget-card__title">
-                    <h2>Ngân sách của bạn</h2>
-                    {monthLabel ? <span>({monthLabel})</span> : null}
-                </div>
-                <button onClick={onManageBudget} type="button">
-                    {budgets.length ? "Quản lý" : "Tạo mới"}
-                </button>
-            </header>
+            <SectionCardHeader
+                actionLabel={budgets.length ? expenseUiText.actions.MANAGE : expenseUiText.actions.CREATE_NEW}
+                className="monthly-budget-card__header"
+                monthLabel={monthLabel}
+                onAction={onManageBudget}
+                title="Ngân sách của bạn"
+                titleClassName="monthly-budget-card__title"
+            />
 
             <div className="monthly-budget-card__summary">
                 <p>

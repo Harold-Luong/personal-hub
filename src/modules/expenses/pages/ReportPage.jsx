@@ -3,10 +3,12 @@ import {
     Bar,
     BarChart,
     CartesianGrid,
+    Cell,
     LabelList,
     Line,
     LineChart,
     ResponsiveContainer,
+    Rectangle,
     Tooltip,
     XAxis,
     YAxis,
@@ -23,33 +25,31 @@ import {
 } from "../../../stores/expenseDataStore";
 import MobilePageHeader from "../components/mobile/MobilePageHeader";
 import AmountText from "../components/shared/AmountText";
+import ExpenseButton from "../components/shared/ExpenseButton";
+import ExpenseStateMessage from "../components/shared/ExpenseStateMessage";
 import ProgressBar from "../components/shared/ProgressBar";
 import SummaryCardList from "../components/shared/SummaryCardList";
 import {
+    expenseDefaultLocale,
     reportCategoryComparisonLimit,
     reportChartSeries,
     reportComparisonMonthCount,
-    reportSavingsTargetPercentage,
     reportTopTransactionLimit,
     reportTrendMonthCount,
+    transactionTypes,
 } from "../constant/expensesMetaData";
+import { expenseReportTrendViews, expenseUiText } from "../constant/expensesUiMetaData";
 import {
     ArrowDownIcon,
     ArrowUpIcon,
     BudgetIcon,
     ReportIcon,
     TransactionListIcon,
-    WalletIcon,
 } from "../icon/ExpenseIcons";
 import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { formatCurrency } from "../utils/formatCurrency";
 import { calculateTrend, getEmptyMonthlyStats, getPreviousMonthKey } from "../utils/monthlyStatsUtils";
-import {
-    getCompactMonthLabel,
-    getCurrentMonthKey,
-    getCurrentYear,
-    getMonthLabel,
-} from "../utils/monthUtils";
+import { getCompactMonthLabel, getCurrentMonthKey, getCurrentYear, getMonthLabel } from "../utils/monthUtils";
 
 function getTrailingMonthKeys(monthKey, count = reportTrendMonthCount) {
     const [year, month] = String(monthKey ?? "")
@@ -80,18 +80,25 @@ function getMonthDayCount(monthKey) {
     return year && month ? new Date(year, month, 0).getDate() : 30;
 }
 
-function getElapsedMonthDays(monthKey) {
-    if (monthKey !== getCurrentMonthKey()) {
-        return getMonthDayCount(monthKey);
-    }
-
-    return new Date().getDate();
-}
-
 function getDateLabel(dateKey) {
     const [, month, day] = String(dateKey ?? "").split("-");
 
     return day && month ? `${day}/${month}` : dateKey;
+}
+
+const reportWeekdayFormatter = new Intl.DateTimeFormat(expenseDefaultLocale, {
+    weekday: "short",
+});
+
+function getLocalDateKey(date) {
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+
+    return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function getReportWeekdayLabel(date) {
+    return reportWeekdayFormatter.format(date).replace("Th ", "T").replace(".", "");
 }
 
 function getShortMoney(value) {
@@ -186,7 +193,6 @@ function getCategoryComparisonRows(categories, monthlyStats, previousMonthlyStat
 
 function getDailyExpenseRows(monthKey, transactions) {
     const dayCount = getMonthDayCount(monthKey);
-    const [, month = ""] = String(monthKey ?? "").split("-");
     const totalsByDay = transactions.reduce((result, transaction) => {
         const day = Number(String(transaction.date ?? "").slice(-2));
 
@@ -207,10 +213,6 @@ function getDailyExpenseRows(monthKey, transactions) {
 
         return result;
     }, {});
-    const totalAmount = Object.values(totalsByDay).reduce((total, day) => total + day.amount, 0);
-    const averageDailyAmount = totalAmount / Math.max(dayCount, 1);
-    const maxAmount = Math.max(...Object.values(totalsByDay).map((day) => day.amount), 1);
-
     return Array.from({ length: dayCount }, (_, index) => {
         const day = index + 1;
         const dayStats = totalsByDay[day] ?? {
@@ -222,46 +224,74 @@ function getDailyExpenseRows(monthKey, transactions) {
             Object.entries(dayStats.categories).sort(
                 (firstCategory, secondCategory) => secondCategory[1] - firstCategory[1],
             )[0]?.[0] ?? "-";
-        const averageDeltaPercentage =
-            averageDailyAmount > 0
-                ? Math.round(((dayStats.amount - averageDailyAmount) / averageDailyAmount) * 100)
-                : 0;
-
         return {
             amount: dayStats.amount,
-            averageDeltaPercentage,
             day,
-            dayLabel: `${String(day).padStart(2, "0")}/${month || "--"}`,
-            intensity: dayStats.amount > 0 ? Math.max(Math.ceil((dayStats.amount / maxAmount) * 4), 1) : 0,
             topCategory,
             transactionCount: dayStats.transactionCount,
         };
     });
 }
 
-function getWeeklyExpenseRows(monthKey, transactions) {
-    const dayCount = getMonthDayCount(monthKey);
-    const weekCount = Math.ceil(dayCount / 7);
-    const weeks = Array.from({ length: weekCount }, (_, index) => {
-        const startDay = index * 7 + 1;
-        const endDay = Math.min(startDay + 6, dayCount);
+function getWeeklyExpenseRows(monthKey, dailyRows) {
+    const [year, month] = String(monthKey ?? "")
+        .split("-")
+        .map(Number);
 
-        return {
-            amount: 0,
-            id: `week-${index + 1}`,
-            label: `Tuần ${index + 1}`,
-            rangeLabel: `${String(startDay).padStart(2, "0")}-${String(endDay).padStart(2, "0")}`,
-        };
-    });
+    if (!Number.isInteger(year) || !Number.isInteger(month)) {
+        return [];
+    }
 
-    transactions.forEach((transaction) => {
-        const day = Number(String(transaction.date ?? "").slice(-2));
+    const monthIndex = month - 1;
+    const firstMonthDate = new Date(year, monthIndex, 1, 12);
+    const lastMonthDate = new Date(year, month, 0, 12);
+    const firstWeekDate = new Date(firstMonthDate);
+    const mondayOffset = (firstWeekDate.getDay() + 6) % 7;
+    const todayKey = getLocalDateKey(new Date());
 
-        if (Number.isInteger(day) && day > 0 && day <= dayCount) {
-            const weekIndex = Math.floor((day - 1) / 7);
-            weeks[weekIndex].amount += Math.abs(transaction.amountMinor ?? transaction.amount ?? 0);
-        }
-    });
+    firstWeekDate.setDate(firstWeekDate.getDate() - mondayOffset);
+
+    const weeks = [];
+    const weekStartDate = new Date(firstWeekDate);
+
+    while (weekStartDate <= lastMonthDate) {
+        const days = Array.from({ length: 7 }, (_, dayIndex) => {
+            const date = new Date(weekStartDate);
+            date.setDate(weekStartDate.getDate() + dayIndex);
+
+            const isInSelectedMonth = date.getFullYear() === year && date.getMonth() === monthIndex;
+            const dayStats = isInSelectedMonth ? dailyRows[date.getDate() - 1] : null;
+            const dateKey = getLocalDateKey(date);
+            const dateLabel = getDateLabel(dateKey);
+
+            return {
+                amount: dayStats?.amount ?? 0,
+                axisLabel: `${getReportWeekdayLabel(date)} ${dateLabel}`,
+                dateKey,
+                dateLabel,
+                isInSelectedMonth,
+                isToday: dateKey === todayKey,
+                rangeLabel: isInSelectedMonth
+                    ? `${dayStats?.transactionCount ?? 0} giao dịch · ${dayStats?.topCategory ?? "-"}`
+                    : "Ngoài tháng đang xem",
+                tooltipLabel: `${getReportWeekdayLabel(date)}, ${dateLabel}`,
+                transactionCount: dayStats?.transactionCount ?? 0,
+            };
+        });
+        const firstDay = days[0];
+        const lastDay = days[days.length - 1];
+        const weekNumber = weeks.length + 1;
+
+        weeks.push({
+            amount: days.reduce((total, day) => total + day.amount, 0),
+            days,
+            id: firstDay.dateKey,
+            label: `Tuần ${weekNumber}`,
+            rangeLabel: `${firstDay.dateLabel} - ${lastDay.dateLabel}`,
+            tooltipLabel: `Tuần ${weekNumber}`,
+        });
+        weekStartDate.setDate(weekStartDate.getDate() + 7);
+    }
 
     return weeks;
 }
@@ -359,6 +389,7 @@ function ReportLineChart({ months }) {
                         width={42}
                     />
                     <Tooltip
+                        isAnimationActive={false}
                         content={<ReportChartTooltip />}
                         cursor={{ stroke: "var(--expense-border)", strokeDasharray: "4 4" }}
                     />
@@ -416,7 +447,32 @@ function renderBarValueLabel({ height, value, width, x, y }) {
     );
 }
 
-function ReportWeeklyBarChart({ weeks }) {
+function ReportWeekBarShape({ onSelectWeek, payload, ...shapeProps }) {
+    const selectWeek = () => {
+        if (payload?.id) {
+            onSelectWeek?.(payload.id);
+        }
+    };
+
+    return (
+        <Rectangle
+            {...shapeProps}
+            aria-label={`Xem chi tiết ${payload?.label ?? "tuần"}`}
+            className="report-week-chart__bar"
+            onClick={selectWeek}
+            onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    selectWeek();
+                }
+            }}
+            role="button"
+            tabIndex={0}
+        />
+    );
+}
+
+function ReportWeeklyBarChart({ onSelectWeek, weeks }) {
     const chartData = weeks.map((week) => ({
         ...week,
         tooltipLabel: week.label,
@@ -442,10 +498,58 @@ function ReportWeeklyBarChart({ weeks }) {
                         width={42}
                     />
                     <Tooltip
+                        isAnimationActive={false}
                         content={<ReportChartTooltip />}
                         cursor={{ fill: "color-mix(in srgb, var(--expense-active-soft) 22%, transparent)" }}
                     />
-                    <Bar dataKey="amount" fill="#f4323d" maxBarSize={72} name="Chi tiêu" radius={[8, 8, 3, 3]}>
+                    <Bar
+                        dataKey="amount"
+                        fill="#f4323d"
+                        maxBarSize={72}
+                        name="Chi tiêu"
+                        radius={[8, 8, 3, 3]}
+                        shape={<ReportWeekBarShape onSelectWeek={onSelectWeek} />}
+                    >
+                        <LabelList content={renderBarValueLabel} dataKey="amount" />
+                    </Bar>
+                </BarChart>
+            </ResponsiveContainer>
+        </div>
+    );
+}
+
+function ReportDailyBarChart({ days }) {
+    return (
+        <div className="report-week-chart report-recharts">
+            <ResponsiveContainer height="100%" width="100%">
+                <BarChart barCategoryGap="24%" data={days} margin={{ bottom: 6, left: 0, right: 12, top: 26 }}>
+                    <CartesianGrid stroke="var(--expense-border)" strokeDasharray="4 6" vertical={false} />
+                    <XAxis
+                        axisLine={false}
+                        dataKey="axisLabel"
+                        interval={0}
+                        tick={{ fill: "var(--expense-muted)", fontSize: 11, fontWeight: 800 }}
+                        tickLine={false}
+                    />
+                    <YAxis
+                        axisLine={false}
+                        tick={{ fill: "var(--expense-muted)", fontSize: 11, fontWeight: 800 }}
+                        tickFormatter={getShortMoney}
+                        tickLine={false}
+                        width={42}
+                    />
+                    <Tooltip
+                        isAnimationActive={false}
+                        content={<ReportChartTooltip />}
+                        cursor={{ fill: "color-mix(in srgb, var(--expense-active-soft) 22%, transparent)" }}
+                    />
+                    <Bar dataKey="amount" maxBarSize={72} name="Chi tiêu" radius={[8, 8, 3, 3]}>
+                        {days.map((day) => (
+                            <Cell
+                                fill={day.isInSelectedMonth ? "#f4323d" : "var(--expense-border)"}
+                                key={day.dateKey}
+                            />
+                        ))}
                         <LabelList content={renderBarValueLabel} dataKey="amount" />
                     </Bar>
                 </BarChart>
@@ -463,7 +567,7 @@ function ReportInsightCard({ label, tone, value }) {
             <div>
                 <strong>{label}</strong>
                 <p>{value}</p>
-                <button type="button">Xem chi tiết →</button>
+                {/* <button type="button">Xem chi tiết →</button> */}
             </div>
         </article>
     );
@@ -516,7 +620,9 @@ function CategoryComparisonBars({ rows, tone }) {
                     </div>
                 ))
             ) : (
-                <p className="report-page__empty">Không có danh mục {tone === "increase" ? "tăng chi" : "giảm chi"}.</p>
+                <ExpenseStateMessage className="report-page__empty">
+                    Không có danh mục {tone === "increase" ? "tăng chi" : "giảm chi"}.
+                </ExpenseStateMessage>
             )}
         </div>
     );
@@ -526,7 +632,7 @@ function ReportCategoryComparison({ rows }) {
     const { decreases, increases } = getCategoryComparisonChartGroups(rows);
 
     if (!decreases.length && !increases.length) {
-        return <p className="report-page__empty">Chưa có dữ liệu danh mục để so sánh.</p>;
+        return <ExpenseStateMessage className="report-page__empty" message="Chưa có dữ liệu danh mục để so sánh." />;
     }
 
     return (
@@ -545,63 +651,6 @@ function ReportCategoryComparison({ rows }) {
                 </header>
                 <CategoryComparisonBars rows={increases} tone="increase" />
             </section>
-        </div>
-    );
-}
-
-function getAverageDeltaLabel(percentage) {
-    if (percentage > 0) {
-        return `Cao hơn trung bình ngày ${percentage}%`;
-    }
-
-    if (percentage < 0) {
-        return `Thấp hơn trung bình ngày ${Math.abs(percentage)}%`;
-    }
-
-    return "Bằng trung bình ngày";
-}
-
-function ReportHeatmap({ days }) {
-    const paddedDays = [...Array(7).fill(null), ...days];
-
-    return (
-        <div className="report-heatmap">
-            <div className="report-heatmap__weekdays">
-                {["T2", "T3", "T4", "T5", "T6", "T7", "CN"].map((day) => (
-                    <span key={day}>{day}</span>
-                ))}
-            </div>
-            <div className="report-heatmap__grid">
-                {paddedDays.map((day, index) =>
-                    day ? (
-                        <button
-                            className={`report-heatmap__day report-heatmap__day--${day.intensity}`}
-                            key={day.day}
-                            type="button"
-                        >
-                            {day.day}
-                            <span className="report-heatmap__tooltip" role="tooltip">
-                                <strong>{day.dayLabel}</strong>
-                                <span>
-                                    Đã chi: <b>{formatCurrency(day.amount)}</b>
-                                </span>
-                                <span>{day.transactionCount} giao dịch</span>
-                                <span>{getAverageDeltaLabel(day.averageDeltaPercentage)}</span>
-                                <span>
-                                    Danh mục nhiều nhất: <b>{day.topCategory}</b>
-                                </span>
-                            </span>
-                        </button>
-                    ) : (
-                        <span className="report-heatmap__day report-heatmap__day--empty" key={`empty-${index}`} />
-                    ),
-                )}
-            </div>
-            <div className="report-heatmap__scale">
-                <span>Thấp</span>
-                <i />
-                <span>Cao</span>
-            </div>
         </div>
     );
 }
@@ -637,6 +686,8 @@ function ReportWorkspace({
     const [transactions, setTransactions] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [loadError, setLoadError] = useState("");
+    const [selectedWeekId, setSelectedWeekId] = useState("");
+    const [trendView, setTrendView] = useState(expenseReportTrendViews.WEEKLY);
     const selectedMonth = isSelectedMonthControlled ? controlledSelectedMonth : internalSelectedMonth;
     const previousMonthKey = getPreviousMonthKey(selectedMonth);
     const trendMonthKeys = useMemo(() => getTrailingMonthKeys(selectedMonth), [selectedMonth]);
@@ -646,10 +697,7 @@ function ReportWorkspace({
         () => trendMonthKeys.map((monthKey) => monthlyStatsByMonth[monthKey] ?? getEmptyMonthlyStats(monthKey)),
         [monthlyStatsByMonth, trendMonthKeys],
     );
-    const budgets = useMemo(
-        () => budgetLimitsByMonth[selectedMonth] ?? [],
-        [budgetLimitsByMonth, selectedMonth],
-    );
+    const budgets = useMemo(() => budgetLimitsByMonth[selectedMonth] ?? [], [budgetLimitsByMonth, selectedMonth]);
     const monthOptions = useMemo(
         () =>
             isMonthOptionsControlled
@@ -663,6 +711,8 @@ function ReportWorkspace({
                 setInternalSelectedMonth(nextMonth);
             }
 
+            setSelectedWeekId("");
+            setTrendView(expenseReportTrendViews.WEEKLY);
             onSelectedMonthChange?.(nextMonth);
         },
         [isSelectedMonthControlled, onSelectedMonthChange],
@@ -705,7 +755,7 @@ function ReportWorkspace({
                     getExpenseTransactionsPage(uid, {
                         monthKey: selectedMonth,
                         pageSize: 50,
-                        type: "expense",
+                        type: transactionTypes.EXPENSE,
                     }),
                 ]),
             )
@@ -758,7 +808,9 @@ function ReportWorkspace({
     );
     const overBudgetCount = budgetRows.filter((budget) => budget.amount > budget.limitMinor).length;
     const dailyRows = useMemo(() => getDailyExpenseRows(selectedMonth, transactions), [selectedMonth, transactions]);
-    const weeklyRows = useMemo(() => getWeeklyExpenseRows(selectedMonth, transactions), [selectedMonth, transactions]);
+    const weeklyRows = useMemo(() => getWeeklyExpenseRows(selectedMonth, dailyRows), [dailyRows, selectedMonth]);
+    const defaultSelectedWeek = weeklyRows.find((week) => week.days.some((day) => day.isToday)) ?? weeklyRows.at(-1);
+    const selectedWeek = weeklyRows.find((week) => week.id === selectedWeekId) ?? defaultSelectedWeek;
     const walletRows = useMemo(() => getWalletRows(transactions, wallets), [transactions, wallets]);
     const topTransactions = useMemo(
         () =>
@@ -830,13 +882,6 @@ function ReportWorkspace({
     ];
     const topCategory = categorySpending[0];
     const weekendRatio = getWeekendInsight(transactions);
-    const monthDayCount = getMonthDayCount(selectedMonth);
-    const elapsedDays = Math.max(getElapsedMonthDays(selectedMonth), 1);
-    const projectedExpense = Math.round((expense / elapsedDays) * monthDayCount);
-    const projectedSavingRate = income > 0 ? Math.round(((income - projectedExpense) / income) * 1000) / 10 : 0;
-    const targetSavingAmount = Math.round((income * reportSavingsTargetPercentage) / 100);
-    const additionalSavingNeeded = Math.max(projectedExpense + targetSavingAmount - income, 0);
-    const highestDailyAmount = Math.max(...dailyRows.map((day) => day.amount), 0);
     const topTransaction = topTransactions[0];
     const insights = [
         {
@@ -874,6 +919,17 @@ function ReportWorkspace({
     };
     const handleViewCategories = () => {
         onNavigate?.("categories");
+    };
+    const handleSelectWeek = (weekId) => {
+        setSelectedWeekId(weekId);
+        setTrendView(expenseReportTrendViews.DAILY);
+    };
+    const handleTrendViewChange = (nextView) => {
+        if (nextView === expenseReportTrendViews.DAILY && !selectedWeek) {
+            return;
+        }
+
+        setTrendView(nextView);
     };
 
     const reportContent = (
@@ -931,7 +987,10 @@ function ReportWorkspace({
                         </div>
                     </header>
                     {isLoading ? (
-                        <p className="report-page__empty">Đang tải dữ liệu...</p>
+                        <ExpenseStateMessage
+                            className="report-page__empty"
+                            message={expenseUiText.status.LOADING_DATA}
+                        />
                     ) : (
                         <ReportLineChart months={lineMonths} />
                     )}
@@ -955,14 +1014,52 @@ function ReportWorkspace({
                 <article className="report-panel report-panel--weekly-trend">
                     <header className="report-panel__header">
                         <div>
-                            <h2>Xu hướng chi tiêu theo tuần</h2>
-                            <span>{getMonthLabel(selectedMonth)}</span>
+                            <h2>
+                                {trendView === expenseReportTrendViews.WEEKLY
+                                    ? "Xu hướng chi tiêu theo tuần"
+                                    : "Chi tiêu theo ngày"}
+                            </h2>
+                            <span>
+                                {trendView === expenseReportTrendViews.WEEKLY
+                                    ? getMonthLabel(selectedMonth)
+                                    : `${selectedWeek?.label ?? "Tuần"} · ${selectedWeek?.rangeLabel ?? ""}`}
+                            </span>
+                        </div>
+                        <div aria-label="Kiểu hiển thị xu hướng chi tiêu" className="report-trend-toggle" role="group">
+                            <ExpenseButton
+                                aria-pressed={trendView === expenseReportTrendViews.WEEKLY}
+                                className={trendView === expenseReportTrendViews.WEEKLY ? "is-active" : ""}
+                                label={expenseUiText.report.WEEKLY_VIEW}
+                                onClick={() => handleTrendViewChange(expenseReportTrendViews.WEEKLY)}
+                            />
+                            <ExpenseButton
+                                aria-pressed={trendView === expenseReportTrendViews.DAILY}
+                                className={trendView === expenseReportTrendViews.DAILY ? "is-active" : ""}
+                                disabled={!selectedWeek}
+                                label={expenseUiText.report.DAILY_VIEW}
+                                onClick={() => handleTrendViewChange(expenseReportTrendViews.DAILY)}
+                            />
                         </div>
                     </header>
                     {isLoading ? (
-                        <p className="report-page__empty">Đang tải dữ liệu...</p>
+                        <ExpenseStateMessage
+                            className="report-page__empty"
+                            message={expenseUiText.status.LOADING_DATA}
+                        />
+                    ) : trendView === expenseReportTrendViews.WEEKLY ? (
+                        <>
+                            <ReportWeeklyBarChart onSelectWeek={handleSelectWeek} weeks={weeklyRows} />
+                            <p className="report-panel__muted">{expenseUiText.report.SELECT_WEEK_HINT}</p>
+                        </>
+                    ) : selectedWeek ? (
+                        <>
+                            <ReportDailyBarChart days={selectedWeek.days} />
+                            <p className="report-panel__muted">
+                                Tổng {selectedWeek.label.toLowerCase()}: {formatCurrency(selectedWeek.amount)}
+                            </p>
+                        </>
                     ) : (
-                        <ReportWeeklyBarChart weeks={weeklyRows} />
+                        <ExpenseStateMessage className="report-page__empty" message="Chưa có dữ liệu theo ngày." />
                     )}
                 </article>
             </section>
@@ -975,30 +1072,18 @@ function ReportWorkspace({
                             {getMonthLabel(selectedMonth)} so với {getMonthLabel(previousMonthKey)}
                         </span>
                     </div>
-                    <button className="report-panel__link" onClick={handleViewCategories} type="button">
+                    <ExpenseButton className="report-panel__link" onClick={handleViewCategories}>
                         Xem chi tiết danh mục <span>›</span>
-                    </button>
+                    </ExpenseButton>
                 </header>
                 {isLoading ? (
-                    <p className="report-page__empty">Đang tải dữ liệu...</p>
+                    <ExpenseStateMessage className="report-page__empty" message={expenseUiText.status.LOADING_DATA} />
                 ) : (
                     <ReportCategoryComparison rows={categoryComparisonRows} />
                 )}
             </section>
 
             <section className="report-page__secondary-grid">
-                <article className="report-panel report-panel--daily-heatmap">
-                    <header className="report-panel__header">
-                        <div>
-                            <h2>Chi tiêu theo ngày</h2>
-                        </div>
-                    </header>
-                    <ReportHeatmap days={dailyRows} />
-                    <p className="report-panel__muted">
-                        Ngày cao nhất: {highestDailyAmount ? formatCurrency(highestDailyAmount) : "-"}
-                    </p>
-                </article>
-
                 <article className="report-panel report-panel--top-transactions">
                     <header className="report-panel__header">
                         <div>
@@ -1023,12 +1108,12 @@ function ReportWorkspace({
                                 </div>
                             ))
                         ) : (
-                            <p className="report-page__empty">Chưa có giao dịch chi tiêu.</p>
+                            <ExpenseStateMessage className="report-page__empty" message="Chưa có giao dịch chi tiêu." />
                         )}
                     </div>
-                    <button className="report-panel__link" onClick={handleViewTransactions} type="button">
+                    <ExpenseButton className="report-panel__link" onClick={handleViewTransactions}>
                         Xem tất cả giao dịch <span>›</span>
-                    </button>
+                    </ExpenseButton>
                 </article>
 
                 <article className="report-panel report-panel--wallet-breakdown">
@@ -1052,7 +1137,7 @@ function ReportWorkspace({
                                 </div>
                             ))
                         ) : (
-                            <p className="report-page__empty">Chưa có chi tiêu theo ví.</p>
+                            <ExpenseStateMessage className="report-page__empty" message="Chưa có chi tiêu theo ví." />
                         )}
                     </div>
                     {/* <button className="report-panel__link" type="button">
@@ -1096,58 +1181,7 @@ function ReportWorkspace({
                     </div>
                 </article>
 
-                <article className="report-panel report-panel--forecast">
-                    <header className="report-panel__header">
-                        <div>
-                            <h2>Dự báo tháng tới</h2>
-                            <span>Dựa trên xu hướng chi tiêu hiện tại</span>
-                        </div>
-                    </header>
-                    <div className="report-forecast-list">
-                        <div className="report-forecast report-forecast--green">
-                            <i>
-                                <ArrowUpIcon size={18} />
-                            </i>
-                            <div>
-                                <span>Chi tiêu dự kiến</span>
-                                <strong>
-                                    <AmountText amount={projectedExpense} />
-                                </strong>
-                            </div>
-                            <b>
-                                {expenseTrend >= 0 ? "↑" : "↓"} {Math.abs(expenseTrend)}%
-                            </b>
-                        </div>
-                        <div className="report-forecast report-forecast--blue">
-                            <i>
-                                <BudgetIcon size={18} />
-                            </i>
-                            <div>
-                                <span>Tỷ lệ tiết kiệm dự kiến</span>
-                                <strong>{projectedSavingRate}%</strong>
-                            </div>
-                            <b>
-                                {projectedSavingRate >= savingRate ? "↑" : "↓"}{" "}
-                                {Math.abs(Math.round((projectedSavingRate - savingRate) * 10) / 10)}%
-                            </b>
-                        </div>
-                        <div className="report-forecast report-forecast--orange">
-                            <i>
-                                <WalletIcon size={18} />
-                            </i>
-                            <div>
-                                <span>Cần tiết kiệm thêm</span>
-                                <strong>
-                                    <AmountText amount={additionalSavingNeeded} />
-                                </strong>
-                            </div>
-                            <b>để đạt mục tiêu {reportSavingsTargetPercentage}%</b>
-                        </div>
-                    </div>
-                    <button className="report-panel__link" type="button">
-                        Xem chi tiết dự báo <span>›</span>
-                    </button>
-                </article>
+                <article className="report-panel report-panel--forecast"></article>
             </section>
 
             {topTransaction ? null : <span className="sr-only">Không có giao dịch lớn nhất</span>}

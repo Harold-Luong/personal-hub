@@ -1,8 +1,12 @@
-import { useEffect, useState } from "react";
-import { creditPaymentTransactionTypeId } from "../../constant/expensesMetaData";
-import { XIcon } from "../../icon/ExpenseIcons";
+import { useState } from "react";
+import { transactionTypes } from "../../constant/expensesMetaData";
+import { expenseUiText } from "../../constant/expensesUiMetaData";
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "../../utils/formatCurrency";
 import { getLocalDateValue, getLocalTimeValue } from "../../utils/transactionFormUtils";
+import ExpenseButton from "../shared/ExpenseButton";
+import ExpenseDialog from "../shared/ExpenseDialog";
+import ExpenseField from "../shared/ExpenseField";
+import ExpenseStateMessage from "../shared/ExpenseStateMessage";
 
 const defaultPaymentNote = "Thanh toán dư nợ thẻ";
 const defaultPaymentTitle = "Thanh toán thẻ tín dụng";
@@ -34,23 +38,6 @@ export default function CreditCardPaymentDialog({
     const numericAmount = parseCurrencyInput(amount);
     const nextSourceBalance = selectedWallet ? (selectedWallet.balance ?? 0) - numericAmount : 0;
     const nextDebt = Math.max(cardDebt - numericAmount, 0);
-
-    useEffect(() => {
-        const previousOverflow = document.body.style.overflow;
-        const handleKeyDown = (event) => {
-            if (event.key === "Escape") {
-                onCancel?.();
-            }
-        };
-
-        document.body.style.overflow = "hidden";
-        window.addEventListener("keydown", handleKeyDown);
-
-        return () => {
-            document.body.style.overflow = previousOverflow;
-            window.removeEventListener("keydown", handleKeyDown);
-        };
-    }, [onCancel]);
 
     const handleAmountChange = (nextAmount) => {
         setAmount(formatCurrencyInput(nextAmount));
@@ -84,7 +71,7 @@ export default function CreditCardPaymentDialog({
                 time: getLocalTimeValue(),
                 title: defaultPaymentTitle,
                 toWalletId: card.id,
-                type: creditPaymentTransactionTypeId,
+                type: transactionTypes.CREDIT_PAYMENT,
                 walletId: null,
             });
         } catch (error) {
@@ -95,31 +82,22 @@ export default function CreditCardPaymentDialog({
     };
 
     return (
-        <section
-            aria-labelledby="credit-payment-dialog-title"
-            aria-modal="true"
-            className="credit-payment-dialog__backdrop"
-            role="dialog"
+        <ExpenseDialog
+            backdropClassName="credit-payment-dialog__backdrop"
+            eyebrow="Thanh toán thẻ"
+            headerClassName="credit-payment-dialog__header"
+            headingId="credit-payment-dialog-title"
+            onClose={onCancel}
+            panelClassName="credit-payment-dialog"
+            title={card?.name ?? "Thẻ tín dụng"}
         >
-            <div className="credit-payment-dialog">
-                <header className="credit-payment-dialog__header">
-                    <div>
-                        <p>Thanh toán thẻ</p>
-                        <h2 id="credit-payment-dialog-title">{card?.name ?? "Thẻ tín dụng"}</h2>
-                    </div>
-                    <button aria-label="Đóng" onClick={onCancel} type="button">
-                        <XIcon size={18} />
-                    </button>
-                </header>
+            <section className="credit-payment-dialog__card-summary">
+                <span>Dư nợ hiện tại</span>
+                <strong>{formatCurrency(cardDebt)}</strong>
+            </section>
 
-                <section className="credit-payment-dialog__card-summary">
-                    <span>Dư nợ hiện tại</span>
-                    <strong>{formatCurrency(cardDebt)}</strong>
-                </section>
-
-                <form className="credit-payment-dialog__form" onSubmit={handleSubmit}>
-                    <label>
-                        <span>Thanh toán từ</span>
+            <form className="credit-payment-dialog__form" onSubmit={handleSubmit}>
+                    <ExpenseField label="Thanh toán từ">
                         <select
                             disabled={isSubmitting || sourceWallets.length === 0}
                             onChange={(event) => {
@@ -134,10 +112,9 @@ export default function CreditCardPaymentDialog({
                                 </option>
                             ))}
                         </select>
-                    </label>
+                    </ExpenseField>
 
-                    <label>
-                        <span>Số tiền thanh toán</span>
+                    <ExpenseField label="Số tiền thanh toán">
                         <input
                             disabled={isSubmitting}
                             inputMode="numeric"
@@ -145,24 +122,23 @@ export default function CreditCardPaymentDialog({
                             placeholder="0"
                             value={amount}
                         />
-                    </label>
+                    </ExpenseField>
 
                     <div className="credit-payment-dialog__quick-actions">
                         <span>Gợi ý nhanh</span>
-                        <button
+                        <ExpenseButton
                             disabled={isSubmitting || !cardDebt}
+                            label="Toàn bộ dư nợ"
                             onClick={() => handleAmountChange(cardDebt)}
-                            type="button"
-                        >
-                            Toàn bộ dư nợ
-                        </button>
-                        <button disabled={isSubmitting} onClick={() => handleAmountChange("")} type="button">
-                            Số khác
-                        </button>
+                        />
+                        <ExpenseButton
+                            disabled={isSubmitting}
+                            label="Số khác"
+                            onClick={() => handleAmountChange("")}
+                        />
                     </div>
 
-                    <label>
-                        <span>Ngày thanh toán</span>
+                    <ExpenseField label="Ngày thanh toán">
                         <input
                             disabled={isSubmitting}
                             onChange={(event) => {
@@ -172,10 +148,9 @@ export default function CreditCardPaymentDialog({
                             type="date"
                             value={paymentDate}
                         />
-                    </label>
+                    </ExpenseField>
 
-                    <label>
-                        <span>Ghi chú</span>
+                    <ExpenseField label="Ghi chú">
                         <textarea
                             disabled={isSubmitting}
                             onChange={(event) => {
@@ -186,7 +161,7 @@ export default function CreditCardPaymentDialog({
                             rows="2"
                             value={note}
                         />
-                    </label>
+                    </ExpenseField>
 
                     <section className="credit-payment-dialog__preview">
                         <p>
@@ -199,18 +174,28 @@ export default function CreditCardPaymentDialog({
                         </p>
                     </section>
 
-                    {submitError ? <p className="credit-payment-dialog__error">{submitError}</p> : null}
+                    {submitError ? (
+                        <ExpenseStateMessage
+                            className="credit-payment-dialog__error"
+                            message={submitError}
+                        />
+                    ) : null}
 
                     <footer className="credit-payment-dialog__actions">
-                        <button disabled={isSubmitting} onClick={onCancel} type="button">
-                            Hủy
-                        </button>
-                        <button disabled={isSubmitting || sourceWallets.length === 0} type="submit">
-                            {isSubmitting ? "Đang thanh toán..." : "Thanh toán"}
-                        </button>
+                        <ExpenseButton
+                            disabled={isSubmitting}
+                            label={expenseUiText.actions.CANCEL}
+                            onClick={onCancel}
+                        />
+                        <ExpenseButton
+                            disabled={sourceWallets.length === 0}
+                            isLoading={isSubmitting}
+                            label="Thanh toán"
+                            loadingLabel="Đang thanh toán..."
+                            type="submit"
+                        />
                     </footer>
-                </form>
-            </div>
-        </section>
+            </form>
+        </ExpenseDialog>
     );
 }

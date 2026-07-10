@@ -12,6 +12,7 @@ import {
 import AmountText from "../components/shared/AmountText";
 import DonutChart from "../components/shared/DonutChart";
 import ExpenseEmoji from "../components/shared/ExpenseEmoji";
+import ExpenseStateMessage from "../components/shared/ExpenseStateMessage";
 import SummaryCardList from "../components/shared/SummaryCardList";
 import {
     budgetExceededThresholdPercentage,
@@ -20,7 +21,9 @@ import {
     categoryChartTopCategoryLimit,
     categoryTransactionPageSize,
     expenseRoutePaths,
+    transactionTypes,
 } from "../constant/expensesMetaData";
+import { expenseSortKeys, expenseUiText } from "../constant/expensesUiMetaData";
 import { BudgetIcon, CalendarIcon, ChevronIcon, ReportIcon, TransactionListIcon } from "../icon/ExpenseIcons";
 import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { formatCurrency } from "../utils/formatCurrency";
@@ -115,7 +118,7 @@ function getCategoryRows(categorySpending, budgets, sortKey) {
             };
         })
         .sort((firstCategory, secondCategory) => {
-            if (sortKey === "name") {
+            if (sortKey === expenseSortKeys.NAME) {
                 return firstCategory.name.localeCompare(secondCategory.name, "vi");
             }
 
@@ -280,7 +283,7 @@ function CategoryTransactionItem({ transaction }) {
                 <ExpenseEmoji icon={transaction.icon ?? transaction.category} label={transaction.title} />
                 <div className="category-spending-page__transaction-copy transactions-page__row-copy">
                     <strong>{transaction.title}</strong>
-                    <span>{transaction.note || "Không có ghi chú"}</span>
+                    <span>{transaction.note || expenseUiText.transaction.NO_NOTE}</span>
                 </div>
             </div>
             <div
@@ -363,17 +366,24 @@ function CategoryExpandedDetails({
                     <span>Số tiền</span>
                 </div>
                 {isLoading && !transactions.length ? (
-                    <p className="category-spending-page__empty transactions-page__empty">Đang tải giao dịch...</p>
+                    <ExpenseStateMessage
+                        className="category-spending-page__empty transactions-page__empty"
+                        message={expenseUiText.transaction.LOADING}
+                    />
                 ) : detailError ? (
-                    <p className="category-spending-page__empty transactions-page__empty">{detailError}</p>
+                    <ExpenseStateMessage
+                        className="category-spending-page__empty transactions-page__empty"
+                        message={detailError}
+                    />
                 ) : transactions.length ? (
                     transactions.map((transaction) => (
                         <CategoryTransactionItem key={transaction.id} transaction={transaction} />
                     ))
                 ) : (
-                    <p className="category-spending-page__empty transactions-page__empty">
-                        Không có giao dịch phù hợp.
-                    </p>
+                    <ExpenseStateMessage
+                        className="category-spending-page__empty transactions-page__empty"
+                        message={expenseUiText.transaction.NOT_FOUND}
+                    />
                 )}
             </section>
             <button
@@ -522,7 +532,10 @@ function CategoryDetailPanel({
     if (!categories.length) {
         return (
             <section className={detailClassName}>
-                <p className="category-spending-page__empty">Chưa có danh mục chi tiêu.</p>
+                <ExpenseStateMessage
+                    className="category-spending-page__empty"
+                    message="Chưa có danh mục chi tiêu."
+                />
             </section>
         );
     }
@@ -592,7 +605,7 @@ function CategorySpendingWorkspace({
     const isSelectedMonthControlled = controlledSelectedMonth !== undefined;
     const isSortKeyControlled = controlledSortKey !== undefined;
     const [internalSelectedMonth, setInternalSelectedMonth] = useState(currentMonthKey);
-    const [internalSortKey, setInternalSortKey] = useState("amount");
+    const [internalSortKey, setInternalSortKey] = useState(expenseSortKeys.AMOUNT);
     const [selectedCategoryId, setSelectedCategoryId] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [loadError, setLoadError] = useState("");
@@ -729,7 +742,7 @@ function CategorySpendingWorkspace({
                     categoryId: nextCategoryId,
                     monthKey: selectedMonth,
                     pageSize: categoryTransactionPageSize,
-                    type: "expense",
+                    type: transactionTypes.EXPENSE,
                 }),
             )
             .then((result) => {
@@ -770,7 +783,7 @@ function CategorySpendingWorkspace({
                 cursor: transactionCursor,
                 monthKey: selectedMonth,
                 pageSize: categoryTransactionPageSize,
-                type: "expense",
+                type: transactionTypes.EXPENSE,
             });
 
             setTransactions((currentTransactions) =>
@@ -839,9 +852,9 @@ function CategorySpendingWorkspace({
                         <label className="category-spending-page__select">
                             <span className="sr-only">Sắp xếp danh mục</span>
                             <select onChange={(event) => setSortKey(event.target.value)} value={sortKey}>
-                                <option value="amount">Số tiền cao nhất</option>
-                                <option value="budget">Theo ngân sách</option>
-                                <option value="name">Tên danh mục</option>
+                                <option value={expenseSortKeys.AMOUNT}>Số tiền cao nhất</option>
+                                <option value={expenseSortKeys.BUDGET}>Theo ngân sách</option>
+                                <option value={expenseSortKeys.NAME}>Tên danh mục</option>
                             </select>
                         </label>
                     </div>
@@ -863,7 +876,10 @@ function CategorySpendingWorkspace({
                             <strong>{spendingCategoryRows.length}</strong>
                         </header>
                         {isLoading ? (
-                            <p className="category-spending-page__empty">Đang tải dữ liệu...</p>
+                            <ExpenseStateMessage
+                                className="category-spending-page__empty"
+                                message={expenseUiText.status.LOADING_DATA}
+                            />
                         ) : spendingCategoryRows.length ? (
                             <CategoryChartOverview
                                 categories={spendingCategoryRows}
@@ -872,7 +888,10 @@ function CategorySpendingWorkspace({
                                 totalExpense={monthlyStats.expenseMinor ?? 0}
                             />
                         ) : (
-                            <p className="category-spending-page__empty">Tháng này chưa có chi tiêu.</p>
+                            <ExpenseStateMessage
+                                className="category-spending-page__empty"
+                                message="Tháng này chưa có chi tiêu."
+                            />
                         )}
                     </section>
                 </div>

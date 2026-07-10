@@ -1,6 +1,5 @@
 import {
     Timestamp,
-    collection,
     doc,
     getDocsFromServer,
     limit,
@@ -13,8 +12,9 @@ import {
     where,
 } from "firebase/firestore";
 import { firestore } from "../../../lib/firebase/firestore";
+import { expenseCollections } from "./expenseFirestoreSchema";
+import { getCollectionReference, getDocumentReference } from "./getReference";
 import {
-    creditPaymentTransactionTypeId,
     creditCardWalletTypeId,
     expenseDefaultCurrency,
     expenseDefaultLocale,
@@ -22,80 +22,11 @@ import {
     expenseMaxSearchTokens,
     transactionDefaultPageSize,
     transactionMaxPageSize,
-    transactionTypeIds as transactionTypes,
+    transactionTypeIds,
+    transactionTypes,
 } from "../constant/expensesMetaData";
+import { expenseFilterValues } from "../constant/expensesUiMetaData";
 import { getWalletDisplayName } from "../utils/walletDisplayUtils";
-
-function getTransactionsCollectionRef(uid) {
-    if (!uid) {
-        throw new Error("A Firebase Authentication uid is required.");
-    }
-
-    return collection(
-        firestore,
-        "users",
-        uid,
-        "modules",
-        "expenses",
-        "transactions",
-    );
-}
-
-function getTransactionRef(uid, transactionId) {
-    if (transactionId) {
-        return doc(getTransactionsCollectionRef(uid), transactionId);
-    }
-
-    return doc(getTransactionsCollectionRef(uid));
-}
-
-function getWalletRef(uid, walletId) {
-    if (!walletId) {
-        throw new Error("A wallet id is required.");
-    }
-
-    return doc(
-        firestore,
-        "users",
-        uid,
-        "modules",
-        "expenses",
-        "wallets",
-        walletId,
-    );
-}
-
-function getCategoryRef(uid, categoryId) {
-    if (!categoryId) {
-        throw new Error("A category id is required.");
-    }
-
-    return doc(
-        firestore,
-        "users",
-        uid,
-        "modules",
-        "expenses",
-        "categories",
-        categoryId,
-    );
-}
-
-function getMonthlyStatsRef(uid, monthKey) {
-    if (!monthKey) {
-        throw new Error("A month key is required.");
-    }
-
-    return doc(
-        firestore,
-        "users",
-        uid,
-        "modules",
-        "expenses",
-        "monthlyStats",
-        monthKey,
-    );
-}
 
 function normalizeText(value) {
     return String(value ?? "")
@@ -231,7 +162,7 @@ function assertWalletSupportsTransactionType(wallet, transactionType, label = "W
         return;
     }
 
-    if (transactionType === "expense") {
+    if (transactionType === transactionTypes.EXPENSE) {
         return;
     }
 
@@ -298,11 +229,11 @@ function isAdjustmentIncrease(data) {
 }
 
 function getSignedAmount(data) {
-    if (data.type === "income") {
+    if (data.type === transactionTypes.INCOME) {
         return data.amountMinor;
     }
 
-    if (data.type === "adjustment") {
+    if (data.type === transactionTypes.ADJUSTMENT) {
         return isAdjustmentIncrease(data) ? data.amountMinor : -data.amountMinor;
     }
 
@@ -321,15 +252,15 @@ function mapTransactionData(id, data) {
         "wallet";
     let categoryName = data.categorySnapshot?.name ?? data.categoryId ?? "";
 
-    if (data.type === "transfer") {
+    if (data.type === transactionTypes.TRANSFER) {
         categoryName = "Chuyển khoản";
     }
 
-    if (data.type === creditPaymentTransactionTypeId) {
+    if (data.type === transactionTypes.CREDIT_PAYMENT) {
         categoryName = "Thanh toán thẻ tín dụng";
     }
 
-    if (data.type === "adjustment") {
+    if (data.type === transactionTypes.ADJUSTMENT) {
         categoryName = "Điều chỉnh số dư";
     }
 
@@ -349,7 +280,11 @@ function mapTransactionData(id, data) {
             data.categorySnapshot?.icon ??
             data.fromWalletSnapshot?.icon ??
             data.walletSnapshot?.icon ??
-            (data.type === "adjustment" ? "wallet" : data.type === creditPaymentTransactionTypeId ? "card" : "transfer"),
+            (data.type === transactionTypes.ADJUSTMENT
+                ? "wallet"
+                : data.type === transactionTypes.CREDIT_PAYMENT
+                  ? "card"
+                  : "transfer"),
         title: data.title,
         subtitle: getTransactionSubtitle(data),
         date: data.localDate,
@@ -381,7 +316,7 @@ function getPageSize(pageSize) {
 }
 
 function isActiveFilterValue(value) {
-    return value && value !== "all";
+    return value && value !== expenseFilterValues.ALL;
 }
 
 function getMonthlyStatsData(monthKey, data = {}) {
@@ -436,7 +371,7 @@ function applyTransactionToMonthlyStats(
         updatedAt: timestamp,
     };
 
-    if (transactionData.type === "income") {
+    if (transactionData.type === transactionTypes.INCOME) {
         const delta = transactionData.amountMinor * direction;
         nextStats.incomeMinor = Math.max(0, nextStats.incomeMinor + delta);
         nextStats.categoryIncomeMinor = addMinorToMap(
@@ -446,7 +381,7 @@ function applyTransactionToMonthlyStats(
         );
     }
 
-    if (transactionData.type === "expense") {
+    if (transactionData.type === transactionTypes.EXPENSE) {
         const delta = transactionData.amountMinor * direction;
         nextStats.expenseMinor = Math.max(0, nextStats.expenseMinor + delta);
         nextStats.categoryExpenseMinor = addMinorToMap(
@@ -462,7 +397,7 @@ function applyTransactionToMonthlyStats(
 }
 
 function transactionAffectsMonthlyStats(transactionData) {
-    return transactionData.type !== "adjustment";
+    return transactionData.type !== transactionTypes.ADJUSTMENT;
 }
 
 function addWalletDelta(walletDeltas, walletId, delta) {
@@ -476,17 +411,17 @@ function addWalletDelta(walletDeltas, walletId, delta) {
 function addTransactionWalletDeltas(walletDeltas, transactionData, direction) {
     const amountDelta = transactionData.amountMinor * direction;
 
-    if (transactionData.type === "income") {
+    if (transactionData.type === transactionTypes.INCOME) {
         addWalletDelta(walletDeltas, transactionData.walletId, amountDelta);
         return;
     }
 
-    if (transactionData.type === "expense") {
+    if (transactionData.type === transactionTypes.EXPENSE) {
         addWalletDelta(walletDeltas, transactionData.walletId, -amountDelta);
         return;
     }
 
-    if (transactionData.type === "adjustment") {
+    if (transactionData.type === transactionTypes.ADJUSTMENT) {
         addWalletDelta(
             walletDeltas,
             transactionData.walletId,
@@ -495,7 +430,10 @@ function addTransactionWalletDeltas(walletDeltas, transactionData, direction) {
         return;
     }
 
-    if (transactionData.type === "transfer" || transactionData.type === creditPaymentTransactionTypeId) {
+    if (
+        transactionData.type === transactionTypes.TRANSFER ||
+        transactionData.type === transactionTypes.CREDIT_PAYMENT
+    ) {
         addWalletDelta(walletDeltas, transactionData.fromWalletId, -amountDelta);
         addWalletDelta(walletDeltas, transactionData.toWalletId, amountDelta);
     }
@@ -510,7 +448,7 @@ function createTransactionDataFromInput({
     fromWallet,
     toWallet,
 }) {
-    if (!transactionTypes.includes(input?.type)) {
+    if (!transactionTypeIds.includes(input?.type)) {
         throw new Error("Unsupported transaction type.");
     }
 
@@ -524,7 +462,7 @@ function createTransactionDataFromInput({
         throw new Error("Transaction title is required.");
     }
 
-    if (input.type === "adjustment") {
+    if (input.type === transactionTypes.ADJUSTMENT) {
         const adjustmentDirection = input.adjustmentDirection === "increase" ? "increase" : "decrease";
         assertWalletSupportsTransactionType(wallet, input.type);
 
@@ -559,7 +497,7 @@ function createTransactionDataFromInput({
         };
     }
 
-    if (input.type === "transfer") {
+    if (input.type === transactionTypes.TRANSFER) {
         if (input.fromWalletId === input.toWalletId) {
             throw new Error("Transfer wallets must be different.");
         }
@@ -596,7 +534,7 @@ function createTransactionDataFromInput({
         };
     }
 
-    if (input.type === creditPaymentTransactionTypeId) {
+    if (input.type === transactionTypes.CREDIT_PAYMENT) {
         if (input.fromWalletId === input.toWalletId) {
             throw new Error("Credit payment wallets must be different.");
         }
@@ -632,7 +570,7 @@ function createTransactionDataFromInput({
         };
     }
 
-    if ((category.type ?? "expense") !== input.type) {
+    if ((category.type ?? transactionTypes.EXPENSE) !== input.type) {
         throw new Error("Transaction category does not match its type.");
     }
     assertWalletSupportsTransactionType(wallet, input.type);
@@ -669,14 +607,14 @@ function createTransactionDataFromInput({
 
 export async function getExpenseTransactionsPage(uid, options = {}) {
     const {
-        categoryId = "all",
+        categoryId = expenseFilterValues.ALL,
         cursor = null,
         date = "",
-        monthKey = "all",
+        monthKey = expenseFilterValues.ALL,
         pageSize = transactionDefaultPageSize,
         searchTerm = "",
-        type = "all",
-        walletId = "all",
+        type = expenseFilterValues.ALL,
+        walletId = expenseFilterValues.ALL,
     } = options;
     const normalizedPageSize = getPageSize(pageSize);
     const searchToken = getSearchQueryToken(searchTerm);
@@ -685,7 +623,7 @@ export async function getExpenseTransactionsPage(uid, options = {}) {
     ];
     const hasSearchTerm = Boolean(searchToken);
 
-    if (transactionTypes.includes(type)) {
+    if (transactionTypeIds.includes(type)) {
         queryConstraints.push(where("type", "==", type));
     }
 
@@ -725,7 +663,10 @@ export async function getExpenseTransactionsPage(uid, options = {}) {
 
     queryConstraints.push(limit(normalizedPageSize + 1));
 
-    const transactionsQuery = query(getTransactionsCollectionRef(uid), ...queryConstraints);
+    const transactionsQuery = query(
+        getCollectionReference(uid, expenseCollections.TRANSACTIONS),
+        ...queryConstraints,
+    );
     const snapshot = await getDocsFromServer(transactionsQuery);
     const pageDocs = snapshot.docs.slice(0, normalizedPageSize);
 
@@ -745,11 +686,13 @@ export async function getExpenseTransactions(uid, maxTransactions = 50) {
 }
 
 export async function createExpenseTransaction(uid, input) {
-    if (!transactionTypes.includes(input?.type)) {
+    if (!transactionTypeIds.includes(input?.type)) {
         throw new Error("Unsupported transaction type.");
     }
 
-    const transactionRef = getTransactionRef(uid);
+    const transactionRef = doc(
+        getCollectionReference(uid, expenseCollections.TRANSACTIONS),
+    );
     const amountMinor = toPositiveInteger(input.amount ?? input.amountMinor);
     const title = input.title?.trim();
     const note = input.note?.trim() ?? "";
@@ -763,12 +706,20 @@ export async function createExpenseTransaction(uid, input) {
 
     return runTransaction(firestore, async (firestoreTransaction) => {
         const walletBalanceUpdates = {};
-        const monthlyStatsRef = getMonthlyStatsRef(uid, monthKey);
+        const monthlyStatsRef = getDocumentReference(
+            uid,
+            expenseCollections.MONTHLY_STATS,
+            monthKey,
+        );
         let nextMonthlyStats;
         let transactionData;
 
-        if (input.type === "adjustment") {
-            const walletRef = getWalletRef(uid, input.walletId);
+        if (input.type === transactionTypes.ADJUSTMENT) {
+            const walletRef = getDocumentReference(
+                uid,
+                expenseCollections.WALLETS,
+                input.walletId,
+            );
             const walletSnapshot = await firestoreTransaction.get(walletRef);
             const wallet = getSnapshotData(walletSnapshot, "Wallet");
             const adjustmentDirection = input.adjustmentDirection === "increase" ? "increase" : "decrease";
@@ -813,9 +764,20 @@ export async function createExpenseTransaction(uid, input) {
             });
 
             walletBalanceUpdates[input.walletId] = walletProjectionUpdate;
-        } else if (input.type === "transfer" || input.type === creditPaymentTransactionTypeId) {
-            const fromWalletRef = getWalletRef(uid, input.fromWalletId);
-            const toWalletRef = getWalletRef(uid, input.toWalletId);
+        } else if (
+            input.type === transactionTypes.TRANSFER ||
+            input.type === transactionTypes.CREDIT_PAYMENT
+        ) {
+            const fromWalletRef = getDocumentReference(
+                uid,
+                expenseCollections.WALLETS,
+                input.fromWalletId,
+            );
+            const toWalletRef = getDocumentReference(
+                uid,
+                expenseCollections.WALLETS,
+                input.toWalletId,
+            );
 
             if (input.fromWalletId === input.toWalletId) {
                 throw new Error("Transfer wallets must be different.");
@@ -839,7 +801,7 @@ export async function createExpenseTransaction(uid, input) {
                 monthKey,
                 monthlyStatsSnapshot.data(),
             );
-            if (input.type === creditPaymentTransactionTypeId) {
+            if (input.type === transactionTypes.CREDIT_PAYMENT) {
                 assertCreditPaymentWallets(fromWallet, toWallet);
             } else {
                 assertWalletSupportsTransactionType(fromWallet, input.type, "Source wallet");
@@ -895,8 +857,16 @@ export async function createExpenseTransaction(uid, input) {
             walletBalanceUpdates[input.fromWalletId] = fromWalletProjectionUpdate;
             walletBalanceUpdates[input.toWalletId] = toWalletProjectionUpdate;
         } else {
-            const walletRef = getWalletRef(uid, input.walletId);
-            const categoryRef = getCategoryRef(uid, input.categoryId);
+            const walletRef = getDocumentReference(
+                uid,
+                expenseCollections.WALLETS,
+                input.walletId,
+            );
+            const categoryRef = getDocumentReference(
+                uid,
+                expenseCollections.CATEGORIES,
+                input.categoryId,
+            );
             const [walletSnapshot, categorySnapshot, monthlyStatsSnapshot] =
                 await Promise.all([
                     firestoreTransaction.get(walletRef),
@@ -910,14 +880,14 @@ export async function createExpenseTransaction(uid, input) {
                 monthlyStatsSnapshot.data(),
             );
 
-            if ((category.type ?? "expense") !== input.type) {
+            if ((category.type ?? transactionTypes.EXPENSE) !== input.type) {
                 throw new Error(
                     "Transaction category does not match its type.",
                 );
             }
 
             const balanceDelta =
-                input.type === "income" ? amountMinor : -amountMinor;
+                input.type === transactionTypes.INCOME ? amountMinor : -amountMinor;
             assertWalletSupportsTransactionType(wallet, input.type);
             const walletProjectionUpdate = getWalletProjectionUpdate(wallet, balanceDelta);
 
@@ -979,11 +949,15 @@ export async function updateExpenseTransaction(uid, transactionId, input) {
         throw new Error("A transaction id is required.");
     }
 
-    if (!transactionTypes.includes(input?.type)) {
+    if (!transactionTypeIds.includes(input?.type)) {
         throw new Error("Unsupported transaction type.");
     }
 
-    const transactionRef = getTransactionRef(uid, transactionId);
+    const transactionRef = getDocumentReference(
+        uid,
+        expenseCollections.TRANSACTIONS,
+        transactionId,
+    );
     const timestamp = serverTimestamp();
 
     return runTransaction(firestore, async (firestoreTransaction) => {
@@ -1004,14 +978,29 @@ export async function updateExpenseTransaction(uid, transactionId, input) {
         let fromWallet;
         let toWallet;
 
-        if (input.type === "adjustment") {
-            const walletRef = getWalletRef(uid, input.walletId);
+        if (input.type === transactionTypes.ADJUSTMENT) {
+            const walletRef = getDocumentReference(
+                uid,
+                expenseCollections.WALLETS,
+                input.walletId,
+            );
             const walletSnapshot = await firestoreTransaction.get(walletRef);
 
             wallet = getSnapshotData(walletSnapshot, "Wallet");
-        } else if (input.type === "transfer" || input.type === creditPaymentTransactionTypeId) {
-            const fromWalletRef = getWalletRef(uid, input.fromWalletId);
-            const toWalletRef = getWalletRef(uid, input.toWalletId);
+        } else if (
+            input.type === transactionTypes.TRANSFER ||
+            input.type === transactionTypes.CREDIT_PAYMENT
+        ) {
+            const fromWalletRef = getDocumentReference(
+                uid,
+                expenseCollections.WALLETS,
+                input.fromWalletId,
+            );
+            const toWalletRef = getDocumentReference(
+                uid,
+                expenseCollections.WALLETS,
+                input.toWalletId,
+            );
             const [fromWalletSnapshot, toWalletSnapshot] = await Promise.all([
                 firestoreTransaction.get(fromWalletRef),
                 firestoreTransaction.get(toWalletRef),
@@ -1020,8 +1009,16 @@ export async function updateExpenseTransaction(uid, transactionId, input) {
             fromWallet = getSnapshotData(fromWalletSnapshot, "Source wallet");
             toWallet = getSnapshotData(toWalletSnapshot, "Destination wallet");
         } else {
-            const walletRef = getWalletRef(uid, input.walletId);
-            const categoryRef = getCategoryRef(uid, input.categoryId);
+            const walletRef = getDocumentReference(
+                uid,
+                expenseCollections.WALLETS,
+                input.walletId,
+            );
+            const categoryRef = getDocumentReference(
+                uid,
+                expenseCollections.CATEGORIES,
+                input.categoryId,
+            );
             const [walletSnapshot, categorySnapshot] = await Promise.all([
                 firestoreTransaction.get(walletRef),
                 firestoreTransaction.get(categoryRef),
@@ -1047,7 +1044,14 @@ export async function updateExpenseTransaction(uid, transactionId, input) {
             ].filter(Boolean)),
         ];
         const monthlyStatsRefs = new Map(
-            affectedMonthKeys.map((monthKey) => [monthKey, getMonthlyStatsRef(uid, monthKey)]),
+            affectedMonthKeys.map((monthKey) => [
+                monthKey,
+                getDocumentReference(
+                    uid,
+                    expenseCollections.MONTHLY_STATS,
+                    monthKey,
+                ),
+            ]),
         );
         const monthlyStatsSnapshots = await Promise.all(
             affectedMonthKeys.map((monthKey) => firestoreTransaction.get(monthlyStatsRefs.get(monthKey))),
@@ -1089,7 +1093,12 @@ export async function updateExpenseTransaction(uid, transactionId, input) {
         addTransactionWalletDeltas(walletDeltas, nextTransactionData, 1);
 
         const affectedWalletIds = Object.keys(walletDeltas).filter((walletId) => walletDeltas[walletId] !== 0);
-        const walletRefs = new Map(affectedWalletIds.map((walletId) => [walletId, getWalletRef(uid, walletId)]));
+        const walletRefs = new Map(
+            affectedWalletIds.map((walletId) => [
+                walletId,
+                getDocumentReference(uid, expenseCollections.WALLETS, walletId),
+            ]),
+        );
         const walletSnapshots = await Promise.all(
             affectedWalletIds.map((walletId) => firestoreTransaction.get(walletRefs.get(walletId))),
         );
@@ -1129,7 +1138,11 @@ export async function voidExpenseTransaction(uid, transactionId) {
         throw new Error("A transaction id is required.");
     }
 
-    const transactionRef = getTransactionRef(uid, transactionId);
+    const transactionRef = getDocumentReference(
+        uid,
+        expenseCollections.TRANSACTIONS,
+        transactionId,
+    );
     const timestamp = serverTimestamp();
 
     return runTransaction(firestore, async (firestoreTransaction) => {
@@ -1146,13 +1159,24 @@ export async function voidExpenseTransaction(uid, transactionId) {
         }
 
         const shouldUpdateMonthlyStats = transactionAffectsMonthlyStats(transactionData);
-        const monthlyStatsRef = shouldUpdateMonthlyStats ? getMonthlyStatsRef(uid, transactionData.monthKey) : null;
+        const monthlyStatsRef = shouldUpdateMonthlyStats
+            ? getDocumentReference(
+                uid,
+                expenseCollections.MONTHLY_STATS,
+                transactionData.monthKey,
+            )
+            : null;
         const walletDeltas = {};
 
         addTransactionWalletDeltas(walletDeltas, transactionData, -1);
 
         const affectedWalletIds = Object.keys(walletDeltas).filter((walletId) => walletDeltas[walletId] !== 0);
-        const walletRefs = new Map(affectedWalletIds.map((walletId) => [walletId, getWalletRef(uid, walletId)]));
+        const walletRefs = new Map(
+            affectedWalletIds.map((walletId) => [
+                walletId,
+                getDocumentReference(uid, expenseCollections.WALLETS, walletId),
+            ]),
+        );
         const monthlyStatsSnapshot = shouldUpdateMonthlyStats
             ? await firestoreTransaction.get(monthlyStatsRef)
             : null;

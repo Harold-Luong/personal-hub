@@ -1,3 +1,6 @@
+import { transactionTypes } from "../constant/expensesMetaData";
+import { expenseFilterValues } from "../constant/expensesUiMetaData";
+
 function normalizeSearchValue(value) {
     return value
         .normalize("NFD")
@@ -21,9 +24,12 @@ export function groupTransactions(transactions, activeFilter, searchTerm) {
     const normalizedSearchTerm = normalizeSearchValue(searchTerm.trim());
     const filteredTransactions = transactions.filter((transaction) => {
         const transactionType =
-            transaction.type ?? (transaction.amount > 0 ? "income" : "expense");
+            transaction.type ??
+            (transaction.amount > 0
+                ? transactionTypes.INCOME
+                : transactionTypes.EXPENSE);
         const matchesFilter =
-            activeFilter === "all" || transactionType === activeFilter;
+            activeFilter === expenseFilterValues.ALL || transactionType === activeFilter;
         const matchesSearch =
             !normalizedSearchTerm ||
             normalizeSearchValue(transaction.title).includes(

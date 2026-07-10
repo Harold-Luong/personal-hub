@@ -1,8 +1,27 @@
 @media (min-width: 901px) {
   .web-wallet-panel {
-    height: auto;
-    max-height: calc(100svh - 64px);
     width: min(520px, 100%);
+  }
+
+  .web-wallet-panel .wallet-form {
+    grid-template-rows: minmax(0, 1fr) auto;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .web-wallet-panel .wallet-form__content {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 6px;
+    scrollbar-gutter: stable;
+  }
+
+  .web-wallet-panel .wallet-form__actions {
+    background: var(--expense-surface-solid);
+    border-top: 1px solid var(--expense-border);
+    padding-top: 12px;
   }
 
   .wallet-page--desktop {

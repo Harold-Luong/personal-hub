@@ -3,12 +3,13 @@ import ExpenseIcon from "../shared/ExpenseEmoji";
 import ProgressBar from "../shared/ProgressBar";
 import SectionCard from "../shared/SectionCard";
 import { budgetStatusColors } from "../../constant/expensesMetaData";
+import { expenseUiText } from "../../constant/expensesUiMetaData";
 import { calculateBudgetUsagePercentage, getBudgetUsageStatus } from "../../utils/expenseCalculations";
 
 export default function BudgetOverviewCard({ budgets = [], monthLabel, onManageBudget, onSelectBudget }) {
     return (
         <SectionCard
-            actionLabel={budgets.length ? "Quản lý" : "Tạo ngân sách"}
+            actionLabel={budgets.length ? expenseUiText.actions.MANAGE : expenseUiText.actions.CREATE_BUDGET}
             className="budget-overview-card"
             monthLabel={monthLabel}
             onAction={onManageBudget}

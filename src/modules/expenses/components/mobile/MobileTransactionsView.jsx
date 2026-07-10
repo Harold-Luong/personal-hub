@@ -6,9 +6,13 @@ import {
     groupTransactions,
 } from "../../utils/mobileTransactionUtils";
 import { expenseTransactionFilters } from "../../constant/expensesMetaData";
+import { expenseFilterValues, expenseUiText } from "../../constant/expensesUiMetaData";
 import MobilePageHeader from "./MobilePageHeader";
 import AmountText from "../shared/AmountText";
+import ExpenseButton from "../shared/ExpenseButton";
 import ExpenseIcon from "../shared/ExpenseEmoji";
+import ExpenseStateMessage from "../shared/ExpenseStateMessage";
+import SectionCard from "../shared/SectionCard";
 
 function MobileTransactionItem({ transaction }) {
     return (
@@ -29,7 +33,7 @@ function MobileTransactionItem({ transaction }) {
 }
 
 export default function MobileTransactionsView({ transactions = [] }) {
-    const [activeFilter, setActiveFilter] = useState("all");
+    const [activeFilter, setActiveFilter] = useState(expenseFilterValues.ALL);
     const [searchTerm, setSearchTerm] = useState("");
 
     const transactionGroups = useMemo(
@@ -53,22 +57,23 @@ export default function MobileTransactionsView({ transactions = [] }) {
                         value={searchTerm}
                     />
                 </label>
-                <button aria-label="Lọc giao dịch" className="mobile-transactions-view__filter-button" type="button">
-                    <FilterIcon size={20} />
-                </button>
+                <ExpenseButton
+                    ariaLabel="Lọc giao dịch"
+                    className="mobile-transactions-view__filter-button"
+                    icon={FilterIcon}
+                    iconSize={20}
+                />
             </div>
 
             <div aria-label="Lọc theo loại giao dịch" className="mobile-transactions-view__filters" role="group">
                 {expenseTransactionFilters.map((filter) => (
-                    <button
+                    <ExpenseButton
                         aria-pressed={activeFilter === filter.id}
                         className={activeFilter === filter.id ? "is-active" : ""}
                         key={filter.id}
+                        label={filter.label}
                         onClick={() => setActiveFilter(filter.id)}
-                        type="button"
-                    >
-                        {filter.label}
-                    </button>
+                    />
                 ))}
             </div>
 
@@ -77,15 +82,22 @@ export default function MobileTransactionsView({ transactions = [] }) {
                     transactionGroups.map((group) => (
                         <section className="mobile-transaction-group" key={group.date}>
                             <h2>{getTransactionGroupLabel(group.date, latestDate)}</h2>
-                            <div className="mobile-transaction-group__list section-card">
+                            <SectionCard
+                                actionLabel={null}
+                                as="div"
+                                className="mobile-transaction-group__list"
+                            >
                                 {group.transactions.map((transaction) => (
                                     <MobileTransactionItem key={transaction.id} transaction={transaction} />
                                 ))}
-                            </div>
+                            </SectionCard>
                         </section>
                     ))
                 ) : (
-                    <p className="mobile-transactions-view__empty">Không tìm thấy giao dịch phù hợp.</p>
+                    <ExpenseStateMessage
+                        className="mobile-transactions-view__empty"
+                        message={expenseUiText.transaction.NOT_FOUND}
+                    />
                 )}
             </div>
         </main>

@@ -10,7 +10,6 @@ import {
 } from "../../../stores/expenseDataStore";
 import {
     colorsFallback,
-    creditPaymentTransactionTypeId,
     expenseTransactionFilters,
     transactionDefaultPageSize,
     transactionDefaultSort,
@@ -19,7 +18,14 @@ import {
     transactionSearchDebounceMs,
     transactionSummaryItems,
     transactionTypeMeta,
+    transactionTypes,
 } from "../constant/expensesMetaData";
+import {
+    expenseFilterValues,
+    expenseSortDirections,
+    expenseSortKeys,
+    expenseUiText,
+} from "../constant/expensesUiMetaData";
 import {
     ArrowDownIcon,
     ArrowUpIcon,
@@ -34,6 +40,8 @@ import {
     TrashIcon,
 } from "../icon/ExpenseIcons";
 import AmountText from "../components/shared/AmountText";
+import ExpenseButton from "../components/shared/ExpenseButton";
+import ExpenseStateMessage from "../components/shared/ExpenseStateMessage";
 import ExpenseEmoji from "../components/shared/ExpenseEmoji";
 import SummaryCardList from "../components/shared/SummaryCardList";
 import WebAddTransactionPanel from "../components/web/WebAddTransactionPanel";
@@ -42,21 +50,21 @@ import { getWalletDisplayName } from "../utils/walletDisplayUtils";
 
 const transactionSummaryIcons = {
     count: TransactionListIcon,
-    expense: ArrowDownIcon,
-    income: ArrowUpIcon,
-    transfer: SwapIcon,
+    [transactionTypes.EXPENSE]: ArrowDownIcon,
+    [transactionTypes.INCOME]: ArrowUpIcon,
+    [transactionTypes.TRANSFER]: SwapIcon,
 };
 
 function getTransactionCategoryLabel(transaction) {
-    if (transaction.type === "transfer") {
+    if (transaction.type === transactionTypes.TRANSFER) {
         return "Chuyển khoản";
     }
 
-    if (transaction.type === "creditPayment") {
+    if (transaction.type === transactionTypes.CREDIT_PAYMENT) {
         return "Credit Payment";
     }
 
-    if (transaction.type === "adjustment") {
+    if (transaction.type === transactionTypes.ADJUSTMENT) {
         return "Điều chỉnh số dư";
     }
 
@@ -64,7 +72,7 @@ function getTransactionCategoryLabel(transaction) {
 }
 
 function getMonthLabel(monthKey) {
-    if (!monthKey || monthKey === "all") {
+    if (!monthKey || monthKey === expenseFilterValues.ALL) {
         return "Tất cả tháng";
     }
     const [year, month] = monthKey.split("-");
@@ -83,7 +91,10 @@ function getCurrentYear() {
 }
 
 function getMonthDayOptions(monthKey) {
-    const resolvedMonthKey = monthKey && monthKey !== "all" ? monthKey : getCurrentMonthKey();
+    const resolvedMonthKey =
+        monthKey && monthKey !== expenseFilterValues.ALL
+            ? monthKey
+            : getCurrentMonthKey();
     const [year, month] = resolvedMonthKey.split("-").map(Number);
 
     if (!year || !month) {
@@ -96,19 +107,29 @@ function getMonthDayOptions(monthKey) {
 }
 
 function getCategoryFilterOptions(categories, activeType) {
-    if (activeType !== "all" && activeType !== "expense" && activeType !== "income") {
+    if (
+        activeType !== expenseFilterValues.ALL &&
+        activeType !== transactionTypes.EXPENSE &&
+        activeType !== transactionTypes.INCOME
+    ) {
         return [];
     }
 
     return categories
         .filter((category) => {
-            const categoryType = category.type ?? "expense";
+            const categoryType = category.type ?? transactionTypes.EXPENSE;
 
-            if (activeType === "expense" || activeType === "income") {
+            if (
+                activeType === transactionTypes.EXPENSE ||
+                activeType === transactionTypes.INCOME
+            ) {
                 return categoryType === activeType;
             }
 
-            return categoryType === "expense" || categoryType === "income";
+            return (
+                categoryType === transactionTypes.EXPENSE ||
+                categoryType === transactionTypes.INCOME
+            );
         })
         .sort((firstCategory, secondCategory) => {
             const orderDiff =
@@ -208,11 +229,11 @@ function getDotColor(color) {
 function TransactionSummary({ transactions }) {
     const summary = transactions.reduce(
         (totals, transaction) => {
-            if (transaction.type === "income") {
+            if (transaction.type === transactionTypes.INCOME) {
                 totals.income += transaction.amountMinor ?? Math.abs(transaction.amount ?? 0);
-            } else if (transaction.type === "transfer") {
+            } else if (transaction.type === transactionTypes.TRANSFER) {
                 totals.transfer += transaction.amountMinor ?? Math.abs(transaction.amount ?? 0);
-            } else if (transaction.type === "expense") {
+            } else if (transaction.type === transactionTypes.EXPENSE) {
                 totals.expense += transaction.amountMinor ?? Math.abs(transaction.amount ?? 0);
             }
 
@@ -246,7 +267,9 @@ function TransactionRow({ onDelete, onEdit, transaction }) {
     const walletLabel = getTransactionWalletLabel(transaction);
     const categoryLabel = getTransactionCategoryLabel(transaction);
     const { dateLabel, dateTime, timeLabel } = getTransactionDateParts(transaction);
-    const canEdit = transaction.type !== "adjustment" && transaction.type !== creditPaymentTransactionTypeId;
+    const canEdit =
+        transaction.type !== transactionTypes.ADJUSTMENT &&
+        transaction.type !== transactionTypes.CREDIT_PAYMENT;
 
     return (
         <article className="transactions-page__row" role="row">
@@ -254,7 +277,7 @@ function TransactionRow({ onDelete, onEdit, transaction }) {
                 <ExpenseEmoji icon={transaction.icon ?? transaction.category} label={transaction.title} />
                 <div className="transactions-page__row-copy">
                     <strong>{transaction.title}</strong>
-                    <span>{transaction.note || "Không có ghi chú"}</span>
+                    <span>{transaction.note || expenseUiText.transaction.NO_NOTE}</span>
                 </div>
             </div>
             <div className="transactions-page__cell" role="cell">
@@ -318,7 +341,7 @@ function TransactionRow({ onDelete, onEdit, transaction }) {
 
 function TransactionsWorkspace({
     categories: controlledCategories,
-    initialCategoryId = "all",
+    initialCategoryId = expenseFilterValues.ALL,
     initialMonthKey = "",
     mode,
     onAddTransaction,
@@ -337,11 +360,13 @@ function TransactionsWorkspace({
     const isDesktopMode = mode === "desktop";
     const categories = controlledCategories ?? storeCategories;
     const wallets = controlledWallets ?? storeWallets;
-    const [activeFilter, setActiveFilter] = useState("all");
+    const [activeFilter, setActiveFilter] = useState(expenseFilterValues.ALL);
     const [searchTerm, setSearchTerm] = useState("");
     const [querySearchTerm, setQuerySearchTerm] = useState("");
-    const [categoryFilter, setCategoryFilter] = useState(() => initialCategoryId || "all");
-    const [walletFilter, setWalletFilter] = useState("all");
+    const [categoryFilter, setCategoryFilter] = useState(
+        () => initialCategoryId || expenseFilterValues.ALL,
+    );
+    const [walletFilter, setWalletFilter] = useState(expenseFilterValues.ALL);
     const [monthFilter, setMonthFilter] = useState(() => initialMonthKey || getCurrentMonthKey());
     const [dayFilter, setDayFilter] = useState("");
     const [transactionSort, setTransactionSort] = useState(transactionDefaultSort);
@@ -373,11 +398,13 @@ function TransactionsWorkspace({
         () =>
             [...pageTransactions].sort((firstTransaction, secondTransaction) => {
                 const sortValue =
-                    transactionSort.key === "amount"
+                    transactionSort.key === expenseSortKeys.AMOUNT
                         ? getTransactionSortAmount(firstTransaction) - getTransactionSortAmount(secondTransaction)
                         : getTransactionSortTime(firstTransaction) - getTransactionSortTime(secondTransaction);
 
-                return transactionSort.direction === "asc" ? sortValue : -sortValue;
+                return transactionSort.direction === expenseSortDirections.ASCENDING
+                    ? sortValue
+                    : -sortValue;
             }),
         [pageTransactions, transactionSort.direction, transactionSort.key],
     );
@@ -395,13 +422,16 @@ function TransactionsWorkspace({
     const pageWindowSize = Math.min(knownPageCount, transactionPaginationWindowSize);
     const firstVisiblePage = Math.min(Math.max(1, currentPage - 1), Math.max(1, knownPageCount - pageWindowSize + 1));
     const pageNumbers = Array.from({ length: pageWindowSize }, (_, index) => firstVisiblePage + index);
-    const dayFilterMonthKey = monthFilter && monthFilter !== "all" ? monthFilter : getCurrentMonthKey();
+    const dayFilterMonthKey =
+        monthFilter && monthFilter !== expenseFilterValues.ALL
+            ? monthFilter
+            : getCurrentMonthKey();
     const dayFilterOptions = getMonthDayOptions(dayFilterMonthKey);
     const dateFilter = dayFilter ? `${dayFilterMonthKey}-${dayFilter}` : "";
     const activeFilterCount = [
-        activeFilter !== "all",
-        categoryFilter !== "all",
-        walletFilter !== "all",
+        activeFilter !== expenseFilterValues.ALL,
+        categoryFilter !== expenseFilterValues.ALL,
+        walletFilter !== expenseFilterValues.ALL,
         monthFilter !== getCurrentMonthKey(),
         Boolean(dayFilter),
     ].filter(Boolean).length;
@@ -419,19 +449,25 @@ function TransactionsWorkspace({
     const toggleTransactionSort = (key) => {
         setTransactionSort((currentSort) => {
             if (currentSort.key !== key) {
-                return { key, direction: "desc" };
+                return { key, direction: expenseSortDirections.DESCENDING };
             }
 
             return {
                 key,
-                direction: currentSort.direction === "desc" ? "asc" : "desc",
+                direction:
+                    currentSort.direction === expenseSortDirections.DESCENDING
+                        ? expenseSortDirections.ASCENDING
+                        : expenseSortDirections.DESCENDING,
             };
         });
     };
 
     const getSortButtonLabel = (key, label) => {
         const nextDirection =
-            transactionSort.key === key && transactionSort.direction === "desc" ? "tăng dần" : "giảm dần";
+            transactionSort.key === key &&
+            transactionSort.direction === expenseSortDirections.DESCENDING
+                ? "tăng dần"
+                : "giảm dần";
 
         return `Sắp xếp ${label} ${nextDirection}`;
     };
@@ -441,7 +477,7 @@ function TransactionsWorkspace({
             return "↕";
         }
 
-        return transactionSort.direction === "desc" ? "↓" : "↑";
+        return transactionSort.direction === expenseSortDirections.DESCENDING ? "↓" : "↑";
     };
 
     useEffect(() => {
@@ -690,14 +726,14 @@ function TransactionsWorkspace({
                                         (category) => category.id === currentCategoryFilter,
                                     )
                                         ? currentCategoryFilter
-                                        : "all",
+                                        : expenseFilterValues.ALL,
                                 );
                             }}
                             value={activeFilter}
                         >
                             {expenseTransactionFilters.map((filter) => (
                                 <option key={filter.id} value={filter.id}>
-                                    {filter.id === "all" ? "Tất cả loại" : filter.label}
+                                    {filter.id === expenseFilterValues.ALL ? "Tất cả loại" : filter.label}
                                 </option>
                             ))}
                         </select>
@@ -711,7 +747,7 @@ function TransactionsWorkspace({
                             }}
                             value={categoryFilter}
                         >
-                            <option value="all">T&#7845;t c&#7843; danh m&#7909;c</option>
+                            <option value={expenseFilterValues.ALL}>T&#7845;t c&#7843; danh m&#7909;c</option>
                             {categoryFilterOptions.map((category) => (
                                 <option key={category.id} value={category.id}>
                                     {category.name}
@@ -728,7 +764,7 @@ function TransactionsWorkspace({
                             }}
                             value={walletFilter}
                         >
-                            <option value="all">Tất cả ví</option>
+                            <option value={expenseFilterValues.ALL}>Tất cả ví</option>
                             {walletFilterOptions.map((wallet) => (
                                 <option key={wallet.id} value={wallet.id}>
                                     {wallet.name}
@@ -781,33 +817,36 @@ function TransactionsWorkspace({
                     <span>Danh mục</span>
                     <span>Ví</span>
                     <button
-                        aria-label={getSortButtonLabel("date", "ngày")}
-                        aria-pressed={transactionSort.key === "date"}
-                        className={`transactions-page__sort-button${transactionSort.key === "date" ? " is-active" : ""}`}
-                        onClick={() => toggleTransactionSort("date")}
+                        aria-label={getSortButtonLabel(expenseSortKeys.DATE, "ngày")}
+                        aria-pressed={transactionSort.key === expenseSortKeys.DATE}
+                        className={`transactions-page__sort-button${transactionSort.key === expenseSortKeys.DATE ? " is-active" : ""}`}
+                        onClick={() => toggleTransactionSort(expenseSortKeys.DATE)}
                         type="button"
                     >
                         <span>Ngày</span>
-                        <span aria-hidden="true">{getSortIndicator("date")}</span>
+                        <span aria-hidden="true">{getSortIndicator(expenseSortKeys.DATE)}</span>
                     </button>
                     <button
-                        aria-label={getSortButtonLabel("amount", "số tiền")}
-                        aria-pressed={transactionSort.key === "amount"}
+                        aria-label={getSortButtonLabel(expenseSortKeys.AMOUNT, "số tiền")}
+                        aria-pressed={transactionSort.key === expenseSortKeys.AMOUNT}
                         className={`transactions-page__sort-button transactions-page__sort-button--amount${
-                            transactionSort.key === "amount" ? " is-active" : ""
+                            transactionSort.key === expenseSortKeys.AMOUNT ? " is-active" : ""
                         }`}
-                        onClick={() => toggleTransactionSort("amount")}
+                        onClick={() => toggleTransactionSort(expenseSortKeys.AMOUNT)}
                         type="button"
                     >
                         <span>Số tiền</span>
-                        <span aria-hidden="true">{getSortIndicator("amount")}</span>
+                        <span aria-hidden="true">{getSortIndicator(expenseSortKeys.AMOUNT)}</span>
                     </button>
                     <span>Thao tác</span>
                 </div>
                 {isLoading ? (
-                    <p className="transactions-page__empty">Đang tải giao dịch...</p>
+                    <ExpenseStateMessage
+                        className="transactions-page__empty"
+                        message={expenseUiText.transaction.LOADING}
+                    />
                 ) : loadError ? (
-                    <p className="transactions-page__empty">{loadError}</p>
+                    <ExpenseStateMessage className="transactions-page__empty" message={loadError} />
                 ) : visibleTransactions.length ? (
                     visibleTransactions.map((transaction) => (
                         <TransactionRow
@@ -818,7 +857,10 @@ function TransactionsWorkspace({
                         />
                     ))
                 ) : (
-                    <p className="transactions-page__empty">Không tìm thấy giao dịch phù hợp.</p>
+                    <ExpenseStateMessage
+                        className="transactions-page__empty"
+                        message={expenseUiText.transaction.NOT_FOUND}
+                    />
                 )}
                 <footer className="transactions-page__pagination">
                     <span>
@@ -896,17 +938,17 @@ function TransactionsWorkspace({
                         </p>
                         {deleteError ? <span>{deleteError}</span> : null}
                         <div>
-                            <button onClick={() => setTransactionToDelete(null)} type="button">
-                                Hủy
-                            </button>
-                            <button
+                            <ExpenseButton
+                                label={expenseUiText.actions.CANCEL}
+                                onClick={() => setTransactionToDelete(null)}
+                            />
+                            <ExpenseButton
                                 className="is-danger"
-                                disabled={isDeleting}
+                                isLoading={isDeleting}
+                                label="Xóa giao dịch"
+                                loadingLabel={expenseUiText.actions.DELETING}
                                 onClick={handleConfirmDelete}
-                                type="button"
-                            >
-                                {isDeleting ? "Đang xóa..." : "Xóa giao dịch"}
-                            </button>
+                            />
                         </div>
                     </div>
                 </section>
@@ -924,7 +966,7 @@ export default function TransactionsPage({
     wallets,
 }) {
     const [searchParams] = useSearchParams();
-    const initialCategoryId = searchParams.get("categoryId") ?? "all";
+    const initialCategoryId = searchParams.get("categoryId") ?? expenseFilterValues.ALL;
     const initialMonthKey = searchParams.get("monthKey") ?? "";
 
     return (

@@ -1,3 +1,5 @@
+import { expenseUiText } from "../../constant/expensesUiMetaData";
+import ExpenseButton from "../shared/ExpenseButton";
 import MobilePageHeader from "./MobilePageHeader";
 import TransactionForm from "../transaction/TransactionForm";
 
@@ -6,9 +8,10 @@ export default function MobileAddTransactionView({ categories, onCancel, onSubmi
         <main className="mobile-add-transaction-view">
             <MobilePageHeader
                 actions={
-                    <button onClick={onCancel} type="button">
-                        Hủy
-                    </button>
+                    <ExpenseButton
+                        label={expenseUiText.actions.CANCEL}
+                        onClick={onCancel}
+                    />
                 }
                 className="mobile-add-transaction-view__header"
                 title="Thêm giao dịch"

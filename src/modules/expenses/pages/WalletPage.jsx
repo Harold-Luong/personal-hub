@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import AmountText from "../components/shared/AmountText";
+import ExpenseDialog from "../components/shared/ExpenseDialog";
+import SectionCard from "../components/shared/SectionCard";
 import MobilePageHeader from "../components/mobile/MobilePageHeader";
 import ExpenseIcon from "../components/shared/ExpenseEmoji";
 import WebWalletPanel from "../components/web/WebWalletPanel";
 import WalletForm from "../components/wallet/WalletForm";
 import { creditCardWalletTypeId, walletTypeLabels } from "../constant/expensesMetaData";
-import { XIcon } from "../icon/ExpenseIcons";
 
 function isCreditCardWallet(wallet) {
     return wallet.type === creditCardWalletTypeId;
@@ -112,7 +113,7 @@ export default function WalletPage({
                 </div>
 
                 {wallets.length ? (
-                    <div className="mobile-wallet-page__list section-card">
+                    <SectionCard actionLabel={null} as="div" className="mobile-wallet-page__list">
                         {wallets.map((wallet) => (
                             <article
                                 className="mobile-wallet-item"
@@ -150,15 +151,15 @@ export default function WalletPage({
                                 ) : null}
                             </article>
                         ))}
-                    </div>
+                    </SectionCard>
                 ) : (
-                    <div className="mobile-wallet-page__empty section-card">
+                    <SectionCard actionLabel={null} as="div" className="mobile-wallet-page__empty">
                         <strong>Chưa có ví</strong>
                         <p>Tạo ví đầu tiên để ghi nhận thu, chi và chuyển khoản.</p>
                         <button onClick={openCreateForm} type="button">
                             Tạo ví
                         </button>
-                    </div>
+                    </SectionCard>
                 )}
             </section>
 
@@ -173,28 +174,22 @@ export default function WalletPage({
             ) : null}
 
             {isFormOpen && !isDesktopMode ? (
-                <section
-                    aria-labelledby="mobile-wallet-form-title"
-                    aria-modal="true"
-                    className="mobile-wallet-page__sheet-backdrop"
-                    role="dialog"
+                <ExpenseDialog
+                    backdropClassName="mobile-wallet-page__sheet-backdrop"
+                    headerClassName="mobile-wallet-page__sheet-header"
+                    headingId="mobile-wallet-form-title"
+                    onClose={closeForm}
+                    panelClassName="mobile-wallet-page__sheet"
+                    title={selectedWalletId ? "Sửa ví" : "Tạo ví"}
                 >
-                    <div className="mobile-wallet-page__sheet">
-                        <header className="mobile-wallet-page__sheet-header">
-                            <h2 id="mobile-wallet-form-title">{selectedWalletId ? "Sửa ví" : "Tạo ví"}</h2>
-                            <button aria-label="Đóng" onClick={closeForm} type="button">
-                                <XIcon size={18} />
-                            </button>
-                        </header>
-                        <WalletForm
-                            initialWalletId={selectedWalletId}
-                            onCancel={closeForm}
-                            onDelete={handleDeleteWallet}
-                            onSubmit={handleSaveWallet}
-                            wallets={wallets}
-                        />
-                    </div>
-                </section>
+                    <WalletForm
+                        initialWalletId={selectedWalletId}
+                        onCancel={closeForm}
+                        onDelete={handleDeleteWallet}
+                        onSubmit={handleSaveWallet}
+                        wallets={wallets}
+                    />
+                </ExpenseDialog>
             ) : null}
         </main>
     );

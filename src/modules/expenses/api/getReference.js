@@ -2,10 +2,11 @@ import { collection, doc } from "firebase/firestore";
 import { firestore } from "../../../lib/firebase/firestore";
 
 /**
- * Lấy tham chiếu đến bộ sưu tập ngân sách của người dùng trong Firestore.
+ * Lấy tham chiếu đến một collection thuộc module expenses của người dùng.
  * @param {*} uid - Firebase Authentication uid của người dùng.
- * @param {*} collectionName - Tên của collection hoặc document trong Firestore.
- * @returns {returns reference: user/uid/modules/expenses/collectionName} Tham chiếu đến collection firestore của người dùng.
+ * @param {string} collectionName - Tên collection trong Firestore.
+ * @returns {import("firebase/firestore").CollectionReference} Tham chiếu đến
+ * `users/{uid}/modules/expenses/{collectionName}`.
  */
 export const getCollectionReference = (uid, collectionName) => {
     if (!uid) {
@@ -18,11 +19,12 @@ export const getCollectionReference = (uid, collectionName) => {
 };
 
 /**
- * Lấy tham chiếu đến tài liệu trong collection của người dùng trong Firestore.
+ * Lấy tham chiếu đến document thuộc module expenses của người dùng.
  * @param {*} uid - Firebase Authentication uid của người dùng.
- * @param {*} collectionName - Tên của collection trong Firestore.
- * @param {*} documentId - ID của tài liệu trong Firestore.
- * @returns {returns reference: user/uid/modules/expenses/collection/documentId} Tham chiếu đến tài liệu firestore của người dùng.
+ * @param {string} collectionName - Tên collection trong Firestore.
+ * @param {string} documentId - ID của document trong Firestore.
+ * @returns {import("firebase/firestore").DocumentReference} Tham chiếu đến
+ * `users/{uid}/modules/expenses/{collectionName}/{documentId}`.
  */
 export const getDocumentReference = (uid, collectionName, documentId) => {
     if (!documentId) {

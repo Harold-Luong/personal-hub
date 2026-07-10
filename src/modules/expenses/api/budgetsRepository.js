@@ -1,9 +1,8 @@
 import { deleteDoc, getDocsFromServer, query, runTransaction, serverTimestamp, where } from "firebase/firestore";
 import { firestore } from "../../../lib/firebase/firestore";
+import { expenseCollections } from "./expenseFirestoreSchema";
 import { getCollectionReference, getDocumentReference } from "./getReference";
 import { toPositiveInteger } from "../utils/formatNumber";
-
-const BUDGETS_COLLECTION = "budgets";
 
 function getBudgetDocumentId(monthKey, categoryId) {
     if (!monthKey) {
@@ -63,7 +62,7 @@ export async function getExpenseBudgetsByMonth(uid, monthKey) {
     }
 
     const budgetsQuery = query(
-        getCollectionReference(uid, BUDGETS_COLLECTION),
+        getCollectionReference(uid, expenseCollections.BUDGETS),
         where("monthKey", "==", monthKey),
     );
     const snapshot = await getDocsFromServer(budgetsQuery);
@@ -83,7 +82,11 @@ export async function upsertExpenseBudget(uid, input) {
     const limitMinorPositive = toPositiveInteger(limitMinor, "Budget limit");
     const alertThreshold = normalizeAlertThreshold(input?.alertThreshold);
     const documentId = getBudgetDocumentId(monthKey, categoryId);
-    const budgetDocRef = getDocumentReference(uid, BUDGETS_COLLECTION, documentId);
+    const budgetDocRef = getDocumentReference(
+        uid,
+        expenseCollections.BUDGETS,
+        documentId,
+    );
     console.log(documentId, budgetDocRef)
     await runTransaction(firestore, async (transaction) => {
         const snapshot = await transaction.get(budgetDocRef);
@@ -121,7 +124,11 @@ export async function upsertExpenseBudget(uid, input) {
 export async function deleteExpenseBudget(uid, input) {
     const monthKey = input?.monthKey;
     const categoryId = input?.categoryId;
-    const budgetDocRef = getDocumentReference(uid, BUDGETS_COLLECTION, getBudgetDocumentId(monthKey, categoryId));
+    const budgetDocRef = getDocumentReference(
+        uid,
+        expenseCollections.BUDGETS,
+        getBudgetDocumentId(monthKey, categoryId),
+    );
 
     await deleteDoc(budgetDocRef);
 

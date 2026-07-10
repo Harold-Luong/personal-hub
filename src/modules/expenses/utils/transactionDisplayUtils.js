@@ -1,5 +1,10 @@
+import { transactionTypes } from "../constant/expensesMetaData";
+
 export function getTransactionWalletLabel(transaction) {
-    if (transaction.type === "transfer" || transaction.type === "creditPayment") {
+    if (
+        transaction.type === transactionTypes.TRANSFER ||
+        transaction.type === transactionTypes.CREDIT_PAYMENT
+    ) {
         return [
             transaction.fromWalletName || transaction.fromWalletId,
             transaction.toWalletName || transaction.toWalletId,
@@ -12,15 +17,15 @@ export function getTransactionWalletLabel(transaction) {
 }
 
 export function getTransactionCategoryLabel(transaction) {
-    if (transaction.type === "transfer") {
+    if (transaction.type === transactionTypes.TRANSFER) {
         return "Chuyển khoản";
     }
 
-    if (transaction.type === "creditPayment") {
+    if (transaction.type === transactionTypes.CREDIT_PAYMENT) {
         return "Thanh toán thẻ tín dụng";
     }
 
-    if (transaction.type === "adjustment") {
+    if (transaction.type === transactionTypes.ADJUSTMENT) {
         return "Điều chỉnh số dư";
     }
 

@@ -6,6 +6,8 @@ import {
     updateDoc,
 } from "firebase/firestore";
 import { firestore } from "../../../lib/firebase/firestore";
+import { expenseCollections } from "./expenseFirestoreSchema";
+import { getDocumentReference } from "./getReference";
 import {
     expenseCurrencyLabels,
     expenseDefaultCurrency,
@@ -303,70 +305,6 @@ function validateExpenseSettings(settings, { allowEmpty = false } = {}) {
     return Object.fromEntries(entries);
 }
 
-function getExpenseSettingsRef(uid) {
-    if (!uid) {
-        throw new Error("A Firebase Authentication uid is required.");
-    }
-
-    return doc(
-        firestore,
-        "users",
-        uid,
-        "modules",
-        "expenses",
-        "settings",
-        "main",
-    );
-}
-
-function getUserProfileRef(uid) {
-    if (!uid) {
-        throw new Error("A Firebase Authentication uid is required.");
-    }
-
-    return doc(firestore, "users", uid);
-}
-
-function getExpenseModuleRef(uid) {
-    if (!uid) {
-        throw new Error("A Firebase Authentication uid is required.");
-    }
-
-    return doc(firestore, "users", uid, "modules", "expenses");
-}
-
-function getDefaultWalletRef(uid) {
-    if (!uid) {
-        throw new Error("A Firebase Authentication uid is required.");
-    }
-
-    return doc(
-        firestore,
-        "users",
-        uid,
-        "modules",
-        "expenses",
-        "wallets",
-        defaultWalletId,
-    );
-}
-
-function getDefaultCategoryRef(uid, categoryId) {
-    if (!uid) {
-        throw new Error("A Firebase Authentication uid is required.");
-    }
-
-    return doc(
-        firestore,
-        "users",
-        uid,
-        "modules",
-        "expenses",
-        "categories",
-        categoryId,
-    );
-}
-
 function getUserProfile(user) {
     return {
         displayName: user?.displayName ?? null,
@@ -376,7 +314,9 @@ function getUserProfile(user) {
 }
 
 export async function getExpenseSettings(uid) {
-    const snapshot = await getDocFromServer(getExpenseSettingsRef(uid));
+    const snapshot = await getDocFromServer(
+        getDocumentReference(uid, expenseCollections.SETTINGS, "main"),
+    );
 
     if (!snapshot.exists()) {
         return null;
@@ -395,13 +335,25 @@ async function initializeUserData(user, settings = {}) {
         throw new Error("A Firebase Authentication uid is required.");
     }
 
-    const userRef = getUserProfileRef(uid);
-    const expenseModuleRef = getExpenseModuleRef(uid);
-    const settingsRef = getExpenseSettingsRef(uid);
-    const walletRef = getDefaultWalletRef(uid);
+    const userRef = doc(firestore, "users", uid);
+    const expenseModuleRef = doc(firestore, "users", uid, "modules", "expenses");
+    const settingsRef = getDocumentReference(
+        uid,
+        expenseCollections.SETTINGS,
+        "main",
+    );
+    const walletRef = getDocumentReference(
+        uid,
+        expenseCollections.WALLETS,
+        defaultWalletId,
+    );
     const categoryRefs = defaultCategories.map((category) => ({
         category,
-        ref: getDefaultCategoryRef(uid, category.id),
+        ref: getDocumentReference(
+            uid,
+            expenseCollections.CATEGORIES,
+            category.id,
+        ),
     }));
     const profile = getUserProfile(user);
     const validatedSettings = validateExpenseSettings(settings, {
@@ -522,7 +474,11 @@ export async function ensureUserDataInitialized(user, settings = {}) {
 }
 
 export async function createExpenseSettings(uid, settings = {}) {
-    const settingsRef = getExpenseSettingsRef(uid);
+    const settingsRef = getDocumentReference(
+        uid,
+        expenseCollections.SETTINGS,
+        "main",
+    );
     const validatedSettings = validateExpenseSettings(settings, {
         allowEmpty: true,
     });
@@ -545,7 +501,11 @@ export async function createExpenseSettings(uid, settings = {}) {
 }
 
 export async function ensureExpenseSettings(uid, settings = {}) {
-    const settingsRef = getExpenseSettingsRef(uid);
+    const settingsRef = getDocumentReference(
+        uid,
+        expenseCollections.SETTINGS,
+        "main",
+    );
     const validatedSettings = validateExpenseSettings(settings, {
         allowEmpty: true,
     });
@@ -570,7 +530,7 @@ export async function ensureExpenseSettings(uid, settings = {}) {
 export async function updateExpenseSettings(uid, settings) {
     const validatedSettings = validateExpenseSettings(settings);
 
-    await updateDoc(getExpenseSettingsRef(uid), {
+    await updateDoc(getDocumentReference(uid, expenseCollections.SETTINGS, "main"), {
         ...validatedSettings,
         updatedAt: serverTimestamp(),
     });
