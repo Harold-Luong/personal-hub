@@ -7,6 +7,7 @@ const defaultExpenseDataState = {
     monthOptionsByYear: {},
     monthlyStatsByMonth: {},
     recentTransactions: [],
+    transactionsRevision: 0,
     wallets: [],
 };
 
@@ -106,6 +107,7 @@ function mergeMonthlyStatsUpdates(monthlyStatsByMonth, monthlyStatsUpdates = {})
  * @property {Object} monthOptionsByYear - Dữ liệu các tùy chọn tháng theo năm.
  * @property {Object} monthlyStatsByMonth - Dữ liệu thống kê chi tiêu theo tháng.
  * @property {Array} recentTransactions - Danh sách giao dịch gần đây.
+ * @property {number} transactionsRevision - Phiên bản thay đổi để đồng bộ các danh sách giao dịch cục bộ.
  * @property {Array} wallets - Danh sách ví chi tiêu.
  * @property {Function} resetExpenseData - Hàm để đặt lại dữ liệu chi tiêu về trạng thái mặc định.
  * @property {Function} loadExpenseCategories - Hàm để tải danh sách danh mục chi tiêu từ API.
@@ -337,6 +339,7 @@ export const useExpenseDataStore = create((set, get) => ({
                     0,
                     recentLimit,
                 ),
+                transactionsRevision: state.transactionsRevision + 1,
                 wallets: applyWalletBalanceUpdates(state.wallets, result.walletBalanceUpdates),
             };
         });
@@ -365,6 +368,7 @@ export const useExpenseDataStore = create((set, get) => ({
                     currentTransaction.id === result.transaction.id ? result.transaction : currentTransaction,
                 ),
             ),
+            transactionsRevision: state.transactionsRevision + 1,
             wallets: applyWalletBalanceUpdates(state.wallets, result.walletBalanceUpdates),
         }));
 
@@ -381,6 +385,7 @@ export const useExpenseDataStore = create((set, get) => ({
             recentTransactions: state.recentTransactions.filter(
                 (currentTransaction) => currentTransaction.id !== transactionId,
             ),
+            transactionsRevision: state.transactionsRevision + 1,
             wallets: applyWalletBalanceUpdates(state.wallets, result.walletBalanceUpdates),
         }));
 
@@ -480,6 +485,7 @@ export const useExpenseDataStore = create((set, get) => ({
 export const selectExpenseCategories = (state) => state.categories;
 export const selectExpenseWallets = (state) => state.wallets;
 export const selectExpenseRecentTransactions = (state) => state.recentTransactions;
+export const selectExpenseTransactionsRevision = (state) => state.transactionsRevision;
 export const selectExpenseBudgetLimitsByMonth = (state) => state.budgetLimitsByMonth;
 export const selectExpenseMonthlyStatsByMonth = (state) => state.monthlyStatsByMonth;
 export const selectExpenseMonthOptionsByYear = (state) => state.monthOptionsByYear;

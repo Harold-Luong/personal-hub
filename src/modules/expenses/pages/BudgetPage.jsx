@@ -6,7 +6,7 @@ import AmountText from "../components/shared/AmountText";
 import ExpenseIcon from "../components/shared/ExpenseEmoji";
 import ProgressBar from "../components/shared/ProgressBar";
 import { budgetStatusColors, budgetStatusLabels } from "../constant/expensesMetaData";
-import { ChevronIcon } from "../icon/ExpenseIcons";
+import { CalendarIcon, ChevronIcon, FilterIcon, PlusIcon } from "../icon/ExpenseIcons";
 import {
     calculateBudgetUsagePercentage,
     calculateMonthlyBudgetTotals,
@@ -54,6 +54,25 @@ function getSummaryMeta(totals) {
         status,
         statusColor: budgetStatusColors[status] ?? DEFAULT_BUDGET_COLOR,
     };
+}
+
+function getMonthTiming(monthKey) {
+    const [year, month] = String(monthKey ?? "")
+        .split("-")
+        .map(Number);
+    const now = new Date();
+    const isValidMonth = Number.isInteger(year) && Number.isInteger(month) && month >= 1 && month <= 12;
+    const daysInMonth = isValidMonth ? new Date(year, month, 0).getDate() : 30;
+    const isCurrentMonth = isValidMonth && year === now.getFullYear() && month === now.getMonth() + 1;
+    const monthDate = isValidMonth ? new Date(year, month - 1, 1) : now;
+    const currentMonthDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    const remainingDays = isCurrentMonth
+        ? Math.max(daysInMonth - now.getDate(), 0)
+        : monthDate > currentMonthDate
+          ? daysInMonth
+          : 0;
+
+    return { remainingDays };
 }
 
 function BudgetMobileHeader({ monthKey, monthLabel, onBack }) {
@@ -120,7 +139,76 @@ function BudgetSummary({ budgetCount, totals }) {
     );
 }
 
-function BudgetSectionHeading({ budgetCount, hasCategoryWithoutBudget, onCreate }) {
+function DesktopBudgetSummary({ monthKey, totals }) {
+    const { progress, remaining, status } = getSummaryMeta(totals);
+    const { remainingDays } = getMonthTiming(monthKey);
+    const dailyBudget = remaining > 0 && remainingDays > 0 ? Math.floor(remaining / remainingDays) : 0;
+
+    return (
+        <section
+            className={`budget-page__summary budget-page__summary--desktop budget-page__summary--${status}`}
+            style={{ "--summary-progress": progress }}
+        >
+            <h2>Tổng quan ngân sách tháng</h2>
+            <div className="budget-page__summary-metrics">
+                <span>
+                    <small>Đã chi</small>
+                    <strong><AmountText amount={totals.spent} /></strong>
+                </span>
+                <span>
+                    <small>Hạn mức</small>
+                    <strong><AmountText amount={totals.limit} /></strong>
+                </span>
+            </div>
+            <div className="budget-page__summary-ring" aria-label={`${totals.percentage}% đã sử dụng`}>
+                <strong>{totals.percentage}%</strong>
+                <span>đã sử dụng</span>
+            </div>
+            <div className="budget-page__summary-remaining">
+                <span>{remaining >= 0 ? "Còn lại" : "Đã vượt"}</span>
+                <strong><AmountText amount={Math.abs(remaining)} /></strong>
+                <p>{remaining >= 0 ? "Bạn còn có thể chi trong tháng này" : "Ngân sách tháng đã vượt hạn mức"}</p>
+                <div className="budget-page__daily-budget">
+                    <CalendarIcon size={20} />
+                    <span>
+                        <strong>Còn {remainingDays} ngày nữa trong tháng</strong>
+                        <small>Chi tiêu bình quân mỗi ngày</small>
+                    </span>
+                    <b><AmountText amount={dailyBudget} /></b>
+                </div>
+            </div>
+        </section>
+    );
+}
+
+function BudgetStatusOverview({ budgets }) {
+    const counts = budgets.reduce(
+        (result, budget) => {
+            const status = getBudgetUsageStatus(budget);
+            return { ...result, [status]: result[status] + 1 };
+        },
+        { normal: 0, warning: 0, exceeded: 0 },
+    );
+
+    return (
+        <section className="budget-page__status-overview" aria-label="Trạng thái ngân sách">
+            <div className="budget-page__status budget-page__status--normal">
+                <span aria-hidden="true">✓</span>
+                <p><strong>Trong kế hoạch</strong><small>{counts.normal} danh mục</small></p>
+            </div>
+            <div className="budget-page__status budget-page__status--warning">
+                <span aria-hidden="true">!</span>
+                <p><strong>Gần vượt mức</strong><small>{counts.warning} danh mục</small></p>
+            </div>
+            <div className="budget-page__status budget-page__status--exceeded">
+                <span aria-hidden="true">!</span>
+                <p><strong>Vượt mức</strong><small>{counts.exceeded} danh mục</small></p>
+            </div>
+        </section>
+    );
+}
+
+function BudgetSectionHeading({ budgetCount, hasCategoryWithoutBudget, isDesktopMode, onCreate }) {
     return (
         <div className="budget-page__section-heading">
             <div>
@@ -128,8 +216,14 @@ function BudgetSectionHeading({ budgetCount, hasCategoryWithoutBudget, onCreate 
                 <p>{budgetCount} hạn mức trong tháng này</p>
             </div>
             <button onClick={onCreate} type="button">
+                {isDesktopMode ? <PlusIcon size={18} /> : null}
                 {hasCategoryWithoutBudget ? "Tạo ngân sách" : "Sửa ngân sách"}
             </button>
+            {isDesktopMode ? (
+                <button className="budget-page__filter" type="button" aria-label="Lọc danh mục ngân sách">
+                    <FilterIcon size={18} />
+                </button>
+            ) : null}
         </div>
     );
 }
@@ -139,13 +233,15 @@ function BudgetRowIcon({ budget }) {
 }
 
 function DesktopBudgetRow({ budget, isSelected, onSelect, status, statusColor, usagePercentage }) {
+    const remaining = budget.limit - budget.amount;
+
     return (
         <button
             aria-label={`Sửa ngân sách ${budget.category}`}
             aria-pressed={isSelected}
             className={`budget-item-row budget-item-row--${status}${isSelected ? " is-selected" : ""}`}
             onClick={() => onSelect(budget.categoryId)}
-            style={{ "--budget-color": budget.color }}
+            style={{ "--budget-color": budget.color, "--budget-status-color": statusColor }}
             type="button"
         >
             <BudgetRowIcon budget={budget} />
@@ -157,18 +253,19 @@ function DesktopBudgetRow({ budget, isSelected, onSelect, status, statusColor, u
                             {budgetStatusLabels[status]}
                         </span>
                     </div>
-                    <span>{usagePercentage}% ngân sách</span>
+                </div>
+                <div className="budget-item-row__amounts">
+                    <strong><AmountText amount={budget.amount} /></strong>
+                    <span>/</span>
+                    <AmountText amount={budget.limit} />
                 </div>
                 <ProgressBar color={statusColor} max={budget.limit} value={budget.amount} />
-                <div className="budget-item-row__footer">
-                    <span className="budget-item-row__amounts">
-                        Đã chi <AmountText amount={budget.amount} />
-                    </span>
-                    <strong className="budget-item-row__limit">
-                        <AmountText amount={budget.limit} />
-                    </strong>
-                </div>
+                <small className="budget-item-row__percentage">{usagePercentage}% đã sử dụng</small>
             </div>
+            <span className="budget-item-row__remaining">
+                <small>{remaining >= 0 ? "Còn lại" : "Đã vượt"}</small>
+                <strong><AmountText amount={Math.abs(remaining)} /></strong>
+            </span>
             <span className="budget-item-row__chevron" aria-hidden="true">
                 <ChevronIcon size={20} />
             </span>
@@ -243,6 +340,15 @@ function BudgetList({ budgets, isDesktopMode, onCreate, onSelect, selectedCatego
                 />
             ))}
         </div>
+    );
+}
+
+function BudgetTip() {
+    return (
+        <aside className="budget-page__tip">
+            <span aria-hidden="true">💡</span>
+            <p><strong>Mẹo:</strong> Thiết lập ngân sách cho các danh mục chưa có ở trên để kiểm soát chi tiêu tốt hơn.</p>
+        </aside>
     );
 }
 
@@ -339,13 +445,21 @@ export default function BudgetPage({
         <PageElement className={pageClassName}>
             {!isDesktopMode ? <BudgetMobileHeader monthKey={monthKey} monthLabel={monthLabel} onBack={onBack} /> : null}
 
-            <BudgetSummary budgetCount={budgets.length} totals={totals} />
+            {isDesktopMode ? (
+                <>
+                    <DesktopBudgetSummary monthKey={monthKey} totals={totals} />
+                    <BudgetStatusOverview budgets={budgets} />
+                </>
+            ) : (
+                <BudgetSummary budgetCount={budgets.length} totals={totals} />
+            )}
 
             <div className={workspaceClassName}>
                 <section className="budget-page__section">
                     <BudgetSectionHeading
                         budgetCount={budgets.length}
                         hasCategoryWithoutBudget={hasCategoryWithoutBudget}
+                        isDesktopMode={isDesktopMode}
                         onCreate={openCreateForm}
                     />
                     <BudgetList
@@ -369,6 +483,8 @@ export default function BudgetPage({
                     />
                 ) : null}
             </div>
+
+            {isDesktopMode ? <BudgetTip /> : null}
 
             {isFormOpen && !isDesktopMode ? (
                 <MobileBudgetFormSheet

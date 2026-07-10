@@ -290,7 +290,7 @@ export const categoryChartTopCategoryLimit = 5;
 export const categoryChartPinnedCategoryLimit = 3;
 
 export const reportTrendMonthCount = 6;
-export const reportComparisonMonthCount = 5;
+export const reportComparisonMonthCount = 6;
 export const reportCategoryComparisonLimit = 3;
 export const reportTopTransactionLimit = 5;
 export const reportSavingsTargetPercentage = 30;
