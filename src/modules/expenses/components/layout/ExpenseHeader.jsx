@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { selectAuthUser, useAuthSessionStore } from "../../../../stores/authSessionStore";
 import { expenseDefaultTheme } from "../../constant/expensesMetaData";
+import { expenseUiText } from "../../constant/expensesUiMetaData";
 import { LogoutIcon, PlusIcon, ThemeIcon } from "../../icon/ExpenseIcons";
+import ExpenseButton from "../shared/ExpenseButton";
 
 export default function ExpenseHeader({
     className = "",
@@ -45,24 +47,23 @@ export default function ExpenseHeader({
             ) : null}
             {pageActions ? <div className="expense-header__page-actions">{pageActions}</div> : null}
             <div className="expense-header__actions">
-                <button
-                    aria-label="Thêm giao dịch"
+                <ExpenseButton
+                    ariaLabel={expenseUiText.actions.ADD_TRANSACTION}
                     className="expense-header__add"
+                    icon={PlusIcon}
+                    iconSize={17}
+                    label={expenseUiText.actions.ADD_TRANSACTION}
+                    labelTag="span"
                     onClick={onAddTransactionClick}
-                    type="button"
-                >
-                    <PlusIcon size={17} />
-                    <span>Thêm giao dịch</span>
-                </button>
-                <button
-                    aria-label="Doi giao dien"
+                />
+                <ExpenseButton
+                    ariaLabel={expenseUiText.actions.TOGGLE_THEME}
                     className="expense-theme-toggle"
+                    icon={ThemeIcon}
+                    label={theme}
+                    labelTag="span"
                     onClick={onToggleTheme}
-                    type="button"
-                >
-                    <ThemeIcon size={18} />
-                    <span>{theme}</span>
-                </button>
+                />
                 <span className="expense-header__avatar" title={user?.email || accountName}>
                     {shouldShowAccountPhoto ? (
                         <img alt="" onError={() => setFailedAvatarUrl(accountPhotoUrl)} src={accountPhotoUrl} />
@@ -70,16 +71,15 @@ export default function ExpenseHeader({
                         avatarLabel
                     )}
                 </span>
-                <button
-                    aria-label="Đăng xuất"
+                <ExpenseButton
+                    ariaLabel={expenseUiText.actions.LOGOUT}
                     className="expense-header__logout"
                     disabled={isSigningOut}
+                    icon={LogoutIcon}
+                    iconSize={17}
                     onClick={handleLogout}
-                    title="Đăng xuất"
-                    type="button"
-                >
-                    <LogoutIcon size={17} />
-                </button>
+                    title={expenseUiText.actions.LOGOUT}
+                />
             </div>
         </header>
     );

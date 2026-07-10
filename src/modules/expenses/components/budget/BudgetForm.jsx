@@ -1,8 +1,16 @@
 import { useState } from "react";
+import { transactionTypes } from "../../constant/expensesMetaData";
+import { expenseUiText } from "../../constant/expensesUiMetaData";
 import { formatCurrencyInput, parseCurrencyInput } from "../../utils/formatCurrency";
+import ExpenseButton from "../shared/ExpenseButton";
+import ExpenseField from "../shared/ExpenseField";
+import ExpenseStateMessage from "../shared/ExpenseStateMessage";
 
 function getExpenseCategories(categories) {
-    return categories.filter((category) => (category.type ?? "expense") === "expense");
+    return categories.filter(
+        (category) =>
+            (category.type ?? transactionTypes.EXPENSE) === transactionTypes.EXPENSE,
+    );
 }
 
 function getInitialCategoryId(categories, budgets, preferredCategoryId) {
@@ -119,8 +127,7 @@ export default function BudgetForm({
     return (
         <form className="budget-form" onSubmit={handleSubmit}>
             <div className="budget-form__content">
-                <label className="budget-form__field">
-                    <span>Danh mục</span>
+                <ExpenseField className="budget-form__field" label="Danh mục">
                     {isEditing ? (
                         <input
                             name="categoryName"
@@ -143,10 +150,12 @@ export default function BudgetForm({
                             ))}
                         </select>
                     )}
-                </label>
+                </ExpenseField>
 
-                <label className="budget-form__field budget-form__field--amount">
-                    <span>Hạn mức tháng</span>
+                <ExpenseField
+                    className="budget-form__field budget-form__field--amount"
+                    label="Hạn mức tháng"
+                >
                     <span className="budget-form__amount-control">
                         <input
                             autoFocus
@@ -161,10 +170,12 @@ export default function BudgetForm({
                         />
                         <span aria-hidden="true">₫</span>
                     </span>
-                </label>
+                </ExpenseField>
 
-                <label className="budget-form__field">
-                    <span>Ngưỡng cảnh báo (%)</span>
+                <ExpenseField
+                    className="budget-form__field"
+                    label="Ngưỡng cảnh báo (%)"
+                >
                     <input
                         disabled={isWorking}
                         max="100"
@@ -175,7 +186,7 @@ export default function BudgetForm({
                         type="number"
                         value={alertThreshold}
                     />
-                </label>
+                </ExpenseField>
 
                 <p className="budget-form__hint">
                     {isEditing
@@ -183,21 +194,39 @@ export default function BudgetForm({
                         : "Ngân sách là hạn mức đặt trước cho một danh mục trong tháng hiện tại."}
                 </p>
 
-                {submitError ? <p className="budget-form__error">{submitError}</p> : null}
+                {submitError ? (
+                    <ExpenseStateMessage
+                        className="budget-form__error"
+                        message={submitError}
+                    />
+                ) : null}
             </div>
 
             <div className="budget-form__actions">
                 {isEditing ? (
-                    <button className="budget-form__delete" disabled={isWorking} onClick={handleDelete} type="button">
-                        {isDeleting ? "Đang xóa..." : "Xóa ngân sách"}
-                    </button>
+                    <ExpenseButton
+                        className="budget-form__delete"
+                        disabled={isWorking}
+                        isLoading={isDeleting}
+                        label="Xóa ngân sách"
+                        loadingLabel={expenseUiText.actions.DELETING}
+                        onClick={handleDelete}
+                    />
                 ) : null}
-                <button className="budget-form__cancel" disabled={isWorking} onClick={onCancel} type="button">
-                    Hủy
-                </button>
-                <button className="budget-form__submit" disabled={isWorking || !hasCategories} type="submit">
-                    {isSubmitting ? "Đang lưu..." : "Lưu ngân sách"}
-                </button>
+                <ExpenseButton
+                    className="budget-form__cancel"
+                    disabled={isWorking}
+                    label={expenseUiText.actions.CANCEL}
+                    onClick={onCancel}
+                />
+                <ExpenseButton
+                    className="budget-form__submit"
+                    disabled={isWorking || !hasCategories}
+                    isLoading={isSubmitting}
+                    label="Lưu ngân sách"
+                    loadingLabel={expenseUiText.actions.SAVING}
+                    type="submit"
+                />
             </div>
         </form>
     );

@@ -6,7 +6,11 @@ import {
     expenseDefaultCurrency,
     walletTypeOptions,
 } from "../../constant/expensesMetaData";
+import { expenseUiText } from "../../constant/expensesUiMetaData";
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "../../utils/formatCurrency";
+import ExpenseButton from "../shared/ExpenseButton";
+import ExpenseField from "../shared/ExpenseField";
+import ExpenseStateMessage from "../shared/ExpenseStateMessage";
 
 function getWalletType(type) {
     return walletTypeOptions.find((walletType) => walletType.id === type) ?? walletTypeOptions[0];
@@ -195,8 +199,7 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
     return (
         <form className="wallet-form" onSubmit={handleSubmit}>
             <div className="wallet-form__content">
-                <label className="wallet-form__field">
-                    <span>Ví</span>
+                <ExpenseField className="wallet-form__field" label="Ví">
                     <select
                         disabled={isWorking}
                         name="walletId"
@@ -210,10 +213,9 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                             </option>
                         ))}
                     </select>
-                </label>
+                </ExpenseField>
 
-                <label className="wallet-form__field">
-                    <span>Tên ví</span>
+                <ExpenseField className="wallet-form__field" label="Tên ví">
                     <input
                         autoFocus
                         disabled={isWorking}
@@ -224,11 +226,10 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                         type="text"
                         value={formState.name}
                     />
-                </label>
+                </ExpenseField>
 
                 <div className="wallet-form__field-row">
-                    <label className="wallet-form__field">
-                        <span>Loại ví</span>
+                    <ExpenseField className="wallet-form__field" label="Loại ví">
                         <select disabled={isWorking} name="type" onChange={handleTypeChange} value={formState.type}>
                             {walletTypeOptions.map((walletType) => (
                                 <option key={walletType.id} value={walletType.id}>
@@ -236,10 +237,9 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                                 </option>
                             ))}
                         </select>
-                    </label>
+                    </ExpenseField>
 
-                    <label className="wallet-form__field">
-                        <span>Tiền tệ</span>
+                    <ExpenseField className="wallet-form__field" label="Tiền tệ">
                         <select
                             disabled={isWorking}
                             name="currency"
@@ -252,11 +252,13 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                                 </option>
                             ))}
                         </select>
-                    </label>
+                    </ExpenseField>
                 </div>
 
-                <label className="wallet-form__field wallet-form__field--amount">
-                    <span>{isCreditCard ? "Hạn mức thẻ" : isEditing ? "Số dư hiện tại" : "Số dư ban đầu"}</span>
+                <ExpenseField
+                    className="wallet-form__field wallet-form__field--amount"
+                    label={isCreditCard ? "Hạn mức thẻ" : isEditing ? "Số dư hiện tại" : "Số dư ban đầu"}
+                >
                     <span className="wallet-form__amount-control">
                         <input
                             disabled={isWorking}
@@ -274,7 +276,7 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                         />
                         <span aria-hidden="true">{currencySymbol}</span>
                     </span>
-                </label>
+                </ExpenseField>
 
                 {isCreditCard && selectedWallet ? (
                     <p className="wallet-form__hint">
@@ -290,8 +292,7 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                     </p>
                 ) : null}
 
-                <label className="wallet-form__field">
-                    <span>Màu ví</span>
+                <ExpenseField className="wallet-form__field" label="Màu ví">
                     <input
                         disabled={isWorking}
                         name="color"
@@ -299,7 +300,7 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                         type="color"
                         value={formState.color}
                     />
-                </label>
+                </ExpenseField>
 
                 <label className="wallet-form__checkbox">
                     <input
@@ -325,26 +326,39 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                     </p>
                 ) : null}
 
-                {submitError ? <p className="wallet-form__error">{submitError}</p> : null}
+                {submitError ? (
+                    <ExpenseStateMessage
+                        className="wallet-form__error"
+                        message={submitError}
+                    />
+                ) : null}
             </div>
 
             <div className="wallet-form__actions">
                 {isEditing ? (
-                    <button
+                    <ExpenseButton
                         className="wallet-form__delete"
                         disabled={isWorking || !canDelete}
+                        isLoading={isDeleting}
+                        label="Xóa ví"
+                        loadingLabel={expenseUiText.actions.DELETING}
                         onClick={handleDelete}
-                        type="button"
-                    >
-                        {isDeleting ? "Đang xóa..." : "Xóa ví"}
-                    </button>
+                    />
                 ) : null}
-                <button className="wallet-form__cancel" disabled={isWorking} onClick={onCancel} type="button">
-                    Hủy
-                </button>
-                <button className="wallet-form__submit" disabled={isWorking} type="submit">
-                    {isSubmitting ? "Đang lưu..." : "Lưu ví"}
-                </button>
+                <ExpenseButton
+                    className="wallet-form__cancel"
+                    disabled={isWorking}
+                    label={expenseUiText.actions.CANCEL}
+                    onClick={onCancel}
+                />
+                <ExpenseButton
+                    className="wallet-form__submit"
+                    disabled={isWorking}
+                    isLoading={isSubmitting}
+                    label="Lưu ví"
+                    loadingLabel={expenseUiText.actions.SAVING}
+                    type="submit"
+                />
             </div>
         </form>
     );

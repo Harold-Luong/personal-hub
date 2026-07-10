@@ -1,6 +1,6 @@
 import { getDocsFromServer } from "firebase/firestore";
+import { expenseCollections } from "./expenseFirestoreSchema";
 import { getCollectionReference } from "./getReference";
-const CATEGORIES_COLLECTION = "categories";
 
 function sortCategories(firstCategory, secondCategory) {
     const typeComparison = (firstCategory.type ?? "").localeCompare(
@@ -18,7 +18,9 @@ function sortCategories(firstCategory, secondCategory) {
 }
 
 export async function getExpenseCategories(uid) {
-    const snapshot = await getDocsFromServer(getCollectionReference(uid, CATEGORIES_COLLECTION));
+    const snapshot = await getDocsFromServer(
+        getCollectionReference(uid, expenseCollections.CATEGORIES),
+    );
 
     return snapshot.docs
         .map((documentSnapshot) => ({

@@ -1,3 +1,9 @@
+import {
+    expenseFilterValues,
+    expenseSortDirections,
+    expenseSortKeys,
+} from "./expensesUiMetaData";
+
 export const expensePageMeta = {
     dashboard: {
         label: "Tổng quan",
@@ -155,28 +161,39 @@ export const budgetStatusLabels = Object.fromEntries(
 export const budgetExceededThresholdPercentage = 100;
 export const budgetWarningThresholdPercentage = 80;
 
-export const creditPaymentTransactionTypeId = "creditPayment";
-export const editableTransactionTypeIds = ["expense", "income", "transfer"];
-export const transactionTypeIds = [...editableTransactionTypeIds, creditPaymentTransactionTypeId, "adjustment"];
+export const transactionTypes = Object.freeze({
+    EXPENSE: "expense",
+    INCOME: "income",
+    TRANSFER: "transfer",
+    CREDIT_PAYMENT: "creditPayment",
+    ADJUSTMENT: "adjustment",
+});
+
+export const editableTransactionTypeIds = [
+    transactionTypes.EXPENSE,
+    transactionTypes.INCOME,
+    transactionTypes.TRANSFER,
+];
+export const transactionTypeIds = Object.values(transactionTypes);
 
 export const transactionTypeMeta = {
-    expense: {
+    [transactionTypes.EXPENSE]: {
         label: "Chi tiêu",
         tone: "expense",
     },
-    income: {
+    [transactionTypes.INCOME]: {
         label: "Thu nhập",
         tone: "income",
     },
-    transfer: {
+    [transactionTypes.TRANSFER]: {
         label: "Chuyển khoản",
         tone: "transfer",
     },
-    [creditPaymentTransactionTypeId]: {
+    [transactionTypes.CREDIT_PAYMENT]: {
         label: "Thanh toán thẻ tín dụng",
         tone: "transfer",
     },
-    adjustment: {
+    [transactionTypes.ADJUSTMENT]: {
         label: "Điều chỉnh",
         tone: "neutral",
     },
@@ -219,7 +236,7 @@ export const expenseSummaryItems = [
 ];
 
 export const expenseTransactionFilters = [
-    { id: "all", label: "Tất cả" },
+    { id: expenseFilterValues.ALL, label: "Tất cả" },
     ...transactionTypeIds.map((id) => ({
         id,
         label: transactionTypeMeta[id].label,
@@ -227,10 +244,20 @@ export const expenseTransactionFilters = [
 ];
 
 export const transactionFallbackCategoryOptions = {
-    transfer: [{ id: "transfer", name: transactionTypeMeta.transfer.label, icon: "transfer" }],
+    [transactionTypes.TRANSFER]: [
+        {
+            id: transactionTypes.TRANSFER,
+            name: transactionTypeMeta[transactionTypes.TRANSFER].label,
+            icon: "transfer",
+        },
+    ],
 };
 
-export const transactionSummaryTypeIds = ["income", "expense", "transfer"];
+export const transactionSummaryTypeIds = [
+    transactionTypes.INCOME,
+    transactionTypes.EXPENSE,
+    transactionTypes.TRANSFER,
+];
 
 export const transactionSummaryItems = [
     {
@@ -252,7 +279,10 @@ export const transactionDefaultPageSize = transactionPageSizeOptions[0] ?? 10;
 export const transactionMaxPageSize = 50;
 export const transactionPaginationWindowSize = 4;
 export const transactionSearchDebounceMs = 350;
-export const transactionDefaultSort = { key: "date", direction: "desc" };
+export const transactionDefaultSort = {
+    key: expenseSortKeys.DATE,
+    direction: expenseSortDirections.DESCENDING,
+};
 export const expenseMaxSearchTokens = 500;
 
 export const categoryTransactionPageSize = 15;
@@ -265,10 +295,10 @@ export const reportCategoryComparisonLimit = 3;
 export const reportTopTransactionLimit = 5;
 export const reportSavingsTargetPercentage = 30;
 export const reportChartSeries = {
-    amount: transactionTypeMeta.expense.label,
-    average: `Trung bình ${transactionTypeMeta.expense.label.toLowerCase()}`,
-    expense: transactionTypeMeta.expense.label,
-    income: transactionTypeMeta.income.label,
+    amount: transactionTypeMeta[transactionTypes.EXPENSE].label,
+    average: `Trung bình ${transactionTypeMeta[transactionTypes.EXPENSE].label.toLowerCase()}`,
+    expense: transactionTypeMeta[transactionTypes.EXPENSE].label,
+    income: transactionTypeMeta[transactionTypes.INCOME].label,
 };
 
 export const expenseWeekdayLabels = ["Chủ nhật", "Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7"];

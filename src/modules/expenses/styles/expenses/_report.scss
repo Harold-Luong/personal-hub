@@ -144,7 +144,7 @@
 .report-page__secondary-grid {
     display: grid;
     gap: 22px;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .report-page__bottom-grid {
@@ -277,6 +277,48 @@
     fill: var(--expense-heading);
     font-size: 10px;
     font-weight: 850;
+}
+
+.report-week-chart__bar {
+    cursor: pointer;
+    outline: none;
+}
+
+.report-week-chart__bar:focus-visible {
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--expense-active-color) 48%, transparent));
+    stroke: var(--expense-active-color);
+    stroke-width: 2px;
+}
+
+.report-trend-toggle {
+    align-items: center;
+    background: color-mix(in srgb, var(--expense-border) 46%, transparent);
+    border-radius: 8px;
+    display: inline-flex;
+    gap: 2px;
+    padding: 3px;
+}
+
+.report-trend-toggle button {
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    color: var(--expense-muted);
+    font-size: 12px;
+    font-weight: 850;
+    min-height: 32px;
+    padding: 0 11px;
+}
+
+.report-trend-toggle button.is-active {
+    background: var(--expense-surface-solid);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--expense-shadow) 56%, transparent);
+    color: var(--expense-active-strong);
+}
+
+.report-trend-toggle button:disabled {
+    cursor: not-allowed;
+    opacity: 0.48;
 }
 
 .report-chart-tooltip span {
@@ -429,156 +471,6 @@
     font-weight: 850;
     justify-self: start;
     padding: 0;
-}
-
-.report-heatmap {
-    display: grid;
-    gap: 14px;
-    overflow: visible;
-}
-
-.report-heatmap__weekdays,
-.report-heatmap__grid {
-    display: grid;
-    gap: 9px;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-}
-
-.report-heatmap__weekdays span {
-    color: var(--expense-muted);
-    font-size: 11px;
-    font-weight: 850;
-    text-align: center;
-}
-
-.report-heatmap__day {
-    align-items: center;
-    aspect-ratio: 1;
-    background: #fff7f7;
-    border: 0;
-    border-radius: 8px;
-    color: color-mix(in srgb, #dc1717 54%, var(--expense-muted));
-    cursor: default;
-    display: inline-flex;
-    font: inherit;
-    font-size: 12px;
-    font-weight: 850;
-    justify-content: center;
-    min-width: 0;
-    padding: 0;
-    position: relative;
-}
-
-.report-heatmap__day--empty {
-    background: transparent;
-    pointer-events: none;
-}
-
-.report-heatmap__day--0 {
-    background: color-mix(in srgb, var(--expense-surface-solid) 92%, transparent);
-    color: color-mix(in srgb, var(--expense-muted) 46%, transparent);
-}
-
-.report-heatmap__day--1 {
-    background: #fff0f0;
-}
-
-.report-heatmap__day--2 {
-    background: #ffdede;
-}
-
-.report-heatmap__day--3 {
-    background: #ffc3c3;
-}
-
-.report-heatmap__day--4 {
-    background: #f75b63;
-    color: white;
-}
-
-.report-heatmap__day:focus-visible {
-    outline: 3px solid color-mix(in srgb, var(--expense-active-color) 24%, transparent);
-    outline-offset: 3px;
-}
-
-.report-heatmap__tooltip {
-    background: color-mix(in srgb, var(--expense-surface-solid) 98%, transparent);
-    border: 1px solid color-mix(in srgb, var(--expense-border) 86%, transparent);
-    border-radius: 8px;
-    bottom: calc(100% + 10px);
-    box-shadow: 0 16px 34px color-mix(in srgb, var(--expense-shadow) 82%, transparent);
-    color: var(--expense-text);
-    display: grid;
-    gap: 5px;
-    left: 50%;
-    line-height: 1.25;
-    min-width: 210px;
-    opacity: 0;
-    padding: 11px 12px;
-    pointer-events: none;
-    position: absolute;
-    text-align: left;
-    transform: translate(-50%, 6px);
-    transition:
-        opacity 150ms ease,
-        transform 150ms ease;
-    visibility: hidden;
-    z-index: 8;
-}
-
-.report-heatmap__tooltip::after {
-    background: inherit;
-    border-bottom: 1px solid color-mix(in srgb, var(--expense-border) 86%, transparent);
-    border-right: 1px solid color-mix(in srgb, var(--expense-border) 86%, transparent);
-    bottom: -5px;
-    content: "";
-    height: 9px;
-    left: 50%;
-    position: absolute;
-    transform: translateX(-50%) rotate(45deg);
-    width: 9px;
-}
-
-.report-heatmap__tooltip strong {
-    color: var(--expense-heading);
-    font-size: 13px;
-}
-
-.report-heatmap__tooltip span {
-    color: var(--expense-muted);
-    font-size: 11px;
-    font-weight: 750;
-}
-
-.report-heatmap__tooltip b {
-    color: var(--expense-heading);
-}
-
-.report-heatmap__day:hover .report-heatmap__tooltip,
-.report-heatmap__day:focus-visible .report-heatmap__tooltip {
-    opacity: 1;
-    transform: translate(-50%, 0);
-    visibility: visible;
-}
-
-.report-heatmap__scale {
-    align-items: center;
-    display: grid;
-    gap: 10px;
-    grid-template-columns: auto minmax(0, 1fr) auto;
-}
-
-.report-heatmap__scale span {
-    color: var(--expense-muted);
-    font-size: 11px;
-    font-weight: 850;
-}
-
-.report-heatmap__scale i {
-    background: linear-gradient(90deg, #fff3f3, #f12d3a);
-    border-radius: 999px;
-    display: block;
-    height: 8px;
 }
 
 .report-transaction-list,
@@ -1067,6 +959,19 @@
 
     .report-panel {
         padding: 18px;
+    }
+
+    .report-panel--weekly-trend .report-panel__header {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .report-trend-toggle {
+        width: 100%;
+    }
+
+    .report-trend-toggle button {
+        flex: 1;
     }
 
     .report-line-chart,

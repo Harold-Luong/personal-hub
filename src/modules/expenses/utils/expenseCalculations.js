@@ -1,6 +1,7 @@
 import {
     budgetExceededThresholdPercentage,
     budgetWarningThresholdPercentage,
+    transactionTypes,
 } from "../constant/expensesMetaData";
 
 // Chuyen moi gia tri ve so an toan de tranh NaN lam hong cong thuc.
@@ -69,7 +70,7 @@ export function calculateMonthlyBudgetTotals(budgets = []) {
 export function getSignedTransactionAmount(amount, type) {
     const safeAmount = Math.abs(toSafeNumber(amount));
 
-    if (type === "income") {
+    if (type === transactionTypes.INCOME) {
         return safeAmount;
     }
 

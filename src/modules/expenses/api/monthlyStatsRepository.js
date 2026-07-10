@@ -1,44 +1,12 @@
-import { collection, doc, getDocFromServer, getDocsFromServer, orderBy, query, where } from "firebase/firestore";
-import { firestore } from "../../../lib/firebase/firestore";
+import { getDocFromServer, getDocsFromServer, orderBy, query, where } from "firebase/firestore";
+import { expenseCollections } from "./expenseFirestoreSchema";
+import { getCollectionReference, getDocumentReference } from "./getReference";
 import { getEmptyMonthlyStats } from "../utils/monthlyStatsUtils";
 
-function getMonthlyStatsCollectionRef(uid) {
-    if (!uid) {
-        throw new Error("A Firebase Authentication uid is required.");
-    }
-
-    return collection(
-        firestore,
-        "users",
-        uid,
-        "modules",
-        "expenses",
-        "monthlyStats",
-    );
-}
-
-function getMonthlyStatsRef(uid, monthKey) {
-    if (!uid) {
-        throw new Error("A Firebase Authentication uid is required.");
-    }
-
-    if (!monthKey) {
-        throw new Error("A month key is required.");
-    }
-
-    return doc(
-        firestore,
-        "users",
-        uid,
-        "modules",
-        "expenses",
-        "monthlyStats",
-        monthKey,
-    );
-}
-
 export async function getExpenseMonthlyStats(uid, monthKey) {
-    const snapshot = await getDocFromServer(getMonthlyStatsRef(uid, monthKey));
+    const snapshot = await getDocFromServer(
+        getDocumentReference(uid, expenseCollections.MONTHLY_STATS, monthKey),
+    );
 
     if (!snapshot.exists()) {
         return getEmptyMonthlyStats(monthKey);
@@ -65,7 +33,7 @@ export async function getExpenseMonthlyStatsMonths(uid, year = new Date().getFul
     const startMonthKey = `${yearValue}-01`;
     const endMonthKey = `${yearValue}-12`;
     const monthlyStatsQuery = query(
-        getMonthlyStatsCollectionRef(uid),
+        getCollectionReference(uid, expenseCollections.MONTHLY_STATS),
         where("monthKey", ">=", startMonthKey),
         where("monthKey", "<=", endMonthKey),
         orderBy("monthKey", "desc"),

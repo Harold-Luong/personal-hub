@@ -1,3 +1,5 @@
+import { expenseFilterValues } from "../constant/expensesUiMetaData";
+
 export function getCurrentMonthKey(date = new Date()) {
     const month = String(date.getMonth() + 1).padStart(2, "0");
 
@@ -15,7 +17,7 @@ export function getCompactMonthLabel(monthKey) {
 }
 
 export function getMonthLabel(monthKey, allLabel = "Tất cả tháng") {
-    if (!monthKey || monthKey === "all") {
+    if (!monthKey || monthKey === expenseFilterValues.ALL) {
         return allLabel;
     }
 
@@ -25,7 +27,8 @@ export function getMonthLabel(monthKey, allLabel = "Tất cả tháng") {
 }
 
 export function getMonthDayOptions(monthKey, fallbackMonthKey = getCurrentMonthKey()) {
-    const resolvedMonthKey = monthKey && monthKey !== "all" ? monthKey : fallbackMonthKey;
+    const resolvedMonthKey =
+        monthKey && monthKey !== expenseFilterValues.ALL ? monthKey : fallbackMonthKey;
     const [year, month] = resolvedMonthKey.split("-").map(Number);
 
     if (!year || !month) {

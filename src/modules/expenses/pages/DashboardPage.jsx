@@ -11,10 +11,7 @@ import {
     selectExpenseWallets,
     useExpenseDataStore,
 } from "../../../stores/expenseDataStore";
-import {
-    selectExpensePreferences,
-    useExpensePreferencesStore,
-} from "../../../stores/expensePreferencesStore";
+import { selectExpensePreferences, useExpensePreferencesStore } from "../../../stores/expensePreferencesStore";
 import ExpenseBottomNav from "../components/layout/ExpenseBottomNav";
 import ExpenseHeader from "../components/layout/ExpenseHeader";
 import ExpenseSidebar from "../components/layout/ExpenseSidebar";
@@ -37,6 +34,7 @@ import {
     expenseSummaryItems,
     expenseThemeIds,
 } from "../constant/expensesMetaData";
+import { expenseSortKeys } from "../constant/expensesUiMetaData";
 import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { calculateTrend, getEmptyMonthlyStats, getPreviousMonthKey } from "../utils/monthlyStatsUtils";
 import {
@@ -114,7 +112,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     const currentYear = getCurrentYear();
     const monthOptionsCacheKey = getExpenseMonthOptionsCacheKey(uid, currentYear);
     const [categoryMonth, setCategoryMonth] = useState(currentMonthKey);
-    const [categorySortKey, setCategorySortKey] = useState("amount");
+    const [categorySortKey, setCategorySortKey] = useState(expenseSortKeys.AMOUNT);
     const [reportMonth, setReportMonth] = useState(currentMonthKey);
     const [isDesktopAddTransactionOpen, setIsDesktopAddTransactionOpen] = useState(false);
     const [creditPaymentCard, setCreditPaymentCard] = useState(null);
@@ -395,29 +393,15 @@ export default function DashboardPage({ initialSettings, onLogout }) {
         }
 
         if (activeMobilePage === "transactions") {
-            return (
-                <TransactionsPage
-                    mode="mobile"
-                />
-            );
+            return <TransactionsPage mode="mobile" />;
         }
 
         if (activeMobilePage === "categories") {
-            return (
-                <CategorySpendingPage
-                    mode="mobile"
-                    onManageBudget={navigateBudgetPage}
-                />
-            );
+            return <CategorySpendingPage mode="mobile" onManageBudget={navigateBudgetPage} />;
         }
 
         if (activeMobilePage === "report") {
-            return (
-                <ReportPage
-                    mode="mobile"
-                    onNavigate={handleMobileNavigate}
-                />
-            );
+            return <ReportPage mode="mobile" onNavigate={handleMobileNavigate} />;
         }
 
         if (activeMobilePage === "budgets") {
@@ -479,11 +463,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
 
     const renderDesktopPage = () => {
         if (activeDesktopPage === "transactions") {
-            return (
-                <TransactionsPage
-                    mode="desktop"
-                />
-            );
+            return <TransactionsPage mode="desktop" />;
         }
 
         if (activeDesktopPage === "categories") {
@@ -615,9 +595,9 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                     <label className="category-spending-page__select">
                         <span className="sr-only">Sắp xếp danh mục</span>
                         <select onChange={(event) => setCategorySortKey(event.target.value)} value={categorySortKey}>
-                            <option value="amount">Số tiền cao nhất</option>
-                            <option value="budget">Theo ngân sách</option>
-                            <option value="name">Tên danh mục</option>
+                            <option value={expenseSortKeys.AMOUNT}>Số tiền cao nhất</option>
+                            <option value={expenseSortKeys.BUDGET}>Theo ngân sách</option>
+                            <option value={expenseSortKeys.NAME}>Tên danh mục</option>
                         </select>
                     </label>
                 </div>
@@ -638,7 +618,11 @@ export default function DashboardPage({ initialSettings, onLogout }) {
 
         return (
             <div className={desktopViewClassName}>
-                <ExpenseSidebar activeId={activeDesktopPage} items={expenseNavItems} onNavigate={handleDesktopNavigate} />
+                <ExpenseSidebar
+                    activeId={activeDesktopPage}
+                    items={expenseNavItems}
+                    onNavigate={handleDesktopNavigate}
+                />
                 <main className={desktopMainClassName}>
                     <ExpenseHeader
                         eyebrow={desktopHeaderContent.eyebrow}
@@ -672,7 +656,11 @@ export default function DashboardPage({ initialSettings, onLogout }) {
             {isMobileViewport ? (
                 <>
                     {renderMobilePage()}
-                    <ExpenseBottomNav activeId={activeMobilePage} items={expenseNavItems} onNavigate={handleMobileNavigate} />
+                    <ExpenseBottomNav
+                        activeId={activeMobilePage}
+                        items={expenseNavItems}
+                        onNavigate={handleMobileNavigate}
+                    />
                 </>
             ) : (
                 renderDesktopShell()

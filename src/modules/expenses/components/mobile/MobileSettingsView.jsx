@@ -3,6 +3,7 @@ import { selectAuthUser, useAuthSessionStore } from "../../../../stores/authSess
 import { BellIcon, LogoutIcon, SettingsIcon, ThemeIcon, WalletIcon } from "../../icon/ExpenseIcons";
 import { expenseCurrencyLabels, expenseThemeOptions } from "../../constant/expensesMetaData";
 import MobilePageHeader from "./MobilePageHeader";
+import SectionCard from "../shared/SectionCard";
 
 function SettingsSwitch({ checked, description, label, onChange }) {
     return (
@@ -70,7 +71,7 @@ export default function MobileSettingsView({
         <main className="mobile-settings-view">
             <MobilePageHeader className="mobile-settings-view__header" title="Cài đặt" titleTag="h1" />
 
-            <section className="mobile-settings-view__profile section-card">
+            <SectionCard actionLabel={null} className="mobile-settings-view__profile">
                 <span className="mobile-settings-view__avatar" aria-hidden="true">
                     {shouldShowProfilePhoto ? (
                         <img alt="" onError={() => setFailedProfilePhotoUrl(profilePhotoUrl)} src={profilePhotoUrl} />
@@ -83,7 +84,7 @@ export default function MobileSettingsView({
                     <small>{user?.email || "Quản lý tài chính cá nhân"}</small>
                 </span>
                 <span className="mobile-settings-view__status">Cá nhân</span>
-            </section>
+            </SectionCard>
 
             {settingsError ? (
                 <p className="mobile-settings-view__settings-error" role="alert">
@@ -102,7 +103,7 @@ export default function MobileSettingsView({
                     </span>
                 </div>
 
-                <div className="mobile-settings-view__themes section-card">
+                <SectionCard actionLabel={null} as="div" className="mobile-settings-view__themes">
                     {expenseThemeOptions.map((themeOption) => (
                         <button
                             aria-pressed={theme === themeOption.id}
@@ -119,7 +120,7 @@ export default function MobileSettingsView({
                             <span>{themeOption.label}</span>
                         </button>
                     ))}
-                </div>
+                </SectionCard>
             </section>
 
             <section className="mobile-settings-view__section">
@@ -133,7 +134,7 @@ export default function MobileSettingsView({
                     </span>
                 </div>
 
-                <div className="mobile-settings-view__preferences section-card">
+                <SectionCard actionLabel={null} as="div" className="mobile-settings-view__preferences">
                     <SettingsSwitch
                         checked={notificationsEnabled}
                         description="Nhắc nhở ngân sách và giao dịch"
@@ -163,7 +164,7 @@ export default function MobileSettingsView({
                             ))}
                         </select>
                     </label>
-                </div>
+                </SectionCard>
             </section>
 
             <section className="mobile-settings-view__section">
@@ -177,7 +178,7 @@ export default function MobileSettingsView({
                     </span>
                 </div>
 
-                <div className="mobile-settings-view__management section-card">
+                <SectionCard actionLabel={null} as="div" className="mobile-settings-view__management">
                     <button onClick={onManageBudget} type="button">
                         <span>
                             <strong>Ngân sách tháng</strong>
@@ -206,7 +207,7 @@ export default function MobileSettingsView({
                         </span>
                         <span aria-hidden="true">&gt;</span>
                     </div>
-                </div>
+                </SectionCard>
             </section>
 
             <section className="mobile-settings-view__section">
@@ -219,10 +220,10 @@ export default function MobileSettingsView({
                         <p>Personal Hub Expenses</p>
                     </span>
                 </div>
-                <div className="mobile-settings-view__about section-card">
+                <SectionCard actionLabel={null} as="div" className="mobile-settings-view__about">
                     <span>Phiên bản</span>
                     <strong>1.0.0</strong>
-                </div>
+                </SectionCard>
             </section>
 
             <button

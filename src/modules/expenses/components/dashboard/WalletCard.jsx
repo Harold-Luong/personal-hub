@@ -2,6 +2,7 @@ import AmountText from "../shared/AmountText";
 import ExpenseIcon from "../shared/ExpenseEmoji";
 import SectionCard from "../shared/SectionCard";
 import { creditCardWalletTypeId } from "../../constant/expensesMetaData";
+import { expenseUiText } from "../../constant/expensesUiMetaData";
 
 function isCreditCardWallet(wallet) {
     return wallet.type === creditCardWalletTypeId;
@@ -26,7 +27,7 @@ function getWalletMeta(wallet) {
 export default function WalletCard({ onManageWallet, onPayCreditCard, wallets = [] }) {
     return (
         <SectionCard
-            actionLabel={wallets.length ? "Quản lý" : "Tạo ví"}
+            actionLabel={wallets.length ? expenseUiText.actions.MANAGE : expenseUiText.actions.CREATE_WALLET}
             className="wallet-card"
             onAction={onManageWallet}
             title="Ví của tôi"

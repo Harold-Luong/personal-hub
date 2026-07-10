@@ -1,25 +1,25 @@
-export default function SectionCard({ actionLabel = "Xem tất cả", children, className = "", monthLabel, onAction, title }) {
-    return (
-        <section className={`section-card ${className}`.trim()}>
-            {title || actionLabel ? (
-                <header className="section-card__header">
-                    {title ? (
-                        <div className="section-card__title">
-                            <h2>{title}</h2>
-                            {monthLabel ? <span>({monthLabel})</span> : null}
-                        </div>
-                    ) : (
-                        <span />
-                    )}
+import { expenseUiText } from "../../constant/expensesUiMetaData";
+import SectionCardHeader from "./SectionCardHeader";
 
-                    {actionLabel ? (
-                        <button onClick={onAction} type="button">
-                            {actionLabel}
-                        </button>
-                    ) : null}
-                </header>
-            ) : null}
+export default function SectionCard({
+    actionLabel = expenseUiText.actions.VIEW_ALL,
+    as: Component = "section",
+    children,
+    className = "",
+    monthLabel,
+    onAction,
+    title,
+    ...sectionProps
+}) {
+    return (
+        <Component {...sectionProps} className={`section-card ${className}`.trim()}>
+            <SectionCardHeader
+                actionLabel={actionLabel}
+                monthLabel={monthLabel}
+                onAction={onAction}
+                title={title}
+            />
             {children}
-        </section>
+        </Component>
     );
 }

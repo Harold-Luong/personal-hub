@@ -4,18 +4,26 @@ import {
     expenseWeekdayLabels,
     transactionFallbackCategoryOptions,
     transactionTypeOptions,
+    transactionTypes,
 } from "../../constant/expensesMetaData";
+import { expenseUiText } from "../../constant/expensesUiMetaData";
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "../../utils/formatCurrency";
 import { getSignedTransactionAmount } from "../../utils/expenseCalculations";
 import { getLocalDateValue, getLocalTimeValue } from "../../utils/transactionFormUtils";
 import { getWalletDisplayName } from "../../utils/walletDisplayUtils";
+import ExpenseButton from "../shared/ExpenseButton";
+import ExpenseField from "../shared/ExpenseField";
+import ExpenseStateMessage from "../shared/ExpenseStateMessage";
+import SectionCard from "../shared/SectionCard";
 
 function getCategoryOptions(type, categories) {
-    if (type === "transfer") {
-        return transactionFallbackCategoryOptions.transfer;
+    if (type === transactionTypes.TRANSFER) {
+        return transactionFallbackCategoryOptions[transactionTypes.TRANSFER];
     }
 
-    const typedCategories = categories.filter((category) => (category.type ?? "expense") === type);
+    const typedCategories = categories.filter(
+        (category) => (category.type ?? transactionTypes.EXPENSE) === type,
+    );
 
     return typedCategories.length > 0 ? typedCategories : [];
 }
@@ -25,7 +33,7 @@ function isCreditCardWallet(wallet) {
 }
 
 function getWalletOptions(type, wallets) {
-    if (type === "expense") {
+    if (type === transactionTypes.EXPENSE) {
         return wallets;
     }
 
@@ -54,7 +62,7 @@ export default function TransactionForm({
     submitLabel = "Lưu giao dịch",
     wallets = [],
 }) {
-    const initialType = initialTransaction?.type ?? "expense";
+    const initialType = initialTransaction?.type ?? transactionTypes.EXPENSE;
     const [type, setType] = useState(initialType);
     const [amount, setAmount] = useState(() =>
         initialTransaction ? formatCurrencyInput(initialTransaction.amountMinor ?? Math.abs(initialTransaction.amount)) : "",
@@ -73,7 +81,7 @@ export default function TransactionForm({
 
     const categoryOptions = getCategoryOptions(type, categories);
     const walletOptions = getWalletOptions(type, wallets);
-    const isTransfer = type === "transfer";
+    const isTransfer = type === transactionTypes.TRANSFER;
     const selectedCategoryId = categoryOptions.some((category) => category.id === categoryId)
         ? categoryId
         : (categoryOptions[0]?.id ?? "");
@@ -85,7 +93,8 @@ export default function TransactionForm({
         : (walletOptions.find((wallet) => wallet.id !== selectedWalletId)?.id ?? "");
     const selectedTransactionType = transactionTypeOptions.find((transactionType) => transactionType.id === type);
     const selectedWallet = walletOptions.find((wallet) => wallet.id === selectedWalletId);
-    const isSelectedCreditCard = type === "expense" && isCreditCardWallet(selectedWallet);
+    const isSelectedCreditCard =
+        type === transactionTypes.EXPENSE && isCreditCardWallet(selectedWallet);
     const isSelectedBalanceTemporary = Boolean(
         selectedWallet && !isSelectedCreditCard && !selectedWallet.isBalanceInitialized,
     );
@@ -155,22 +164,22 @@ export default function TransactionForm({
             <div className="transaction-form__content">
                 <div aria-label="Loại giao dịch" className="transaction-form__type" role="group">
                     {transactionTypeOptions.map((transactionType) => (
-                        <button
+                        <ExpenseButton
                             aria-pressed={type === transactionType.id}
                             className={type === transactionType.id ? "is-active" : ""}
                             key={transactionType.id}
+                            label={transactionType.label}
                             onClick={() => handleTypeChange(transactionType.id)}
-                            type="button"
-                        >
-                            {transactionType.label}
-                        </button>
+                        />
                     ))}
                 </div>
 
-                <div className="transaction-form__amount section-card">
-                    <label className="transaction-form__amount-label" htmlFor="transaction-amount">
-                        Số tiền
-                    </label>
+                <SectionCard actionLabel={null} as="div" className="transaction-form__amount">
+                    <ExpenseField
+                        className="transaction-form__amount-label"
+                        htmlFor="transaction-amount"
+                        label="Số tiền"
+                    />
                     <span className="transaction-form__amount-control">
                         <input
                             autoFocus
@@ -219,11 +228,10 @@ export default function TransactionForm({
                             </div>
                         ) : null}
                     </dl>
-                </div>
+                </SectionCard>
 
-                <div className="transaction-form__fields section-card">
-                    <label className="transaction-form__field">
-                        <span>Tên giao dịch</span>
+                <SectionCard actionLabel={null} as="div" className="transaction-form__fields">
+                    <ExpenseField className="transaction-form__field" label="Tên giao dịch">
                         <input
                             name="title"
                             onChange={(event) => setTitle(event.target.value)}
@@ -232,11 +240,10 @@ export default function TransactionForm({
                             type="text"
                             value={title}
                         />
-                    </label>
+                    </ExpenseField>
 
-                    {type !== "transfer" ? (
-                        <label className="transaction-form__field">
-                            <span>Danh mục</span>
+                    {type !== transactionTypes.TRANSFER ? (
+                        <ExpenseField className="transaction-form__field" label="Danh mục">
                             <select
                                 name="categoryId"
                                 onChange={(event) => setCategoryId(event.target.value)}
@@ -249,11 +256,13 @@ export default function TransactionForm({
                                     </option>
                                 ))}
                             </select>
-                        </label>
+                        </ExpenseField>
                     ) : null}
 
-                    <label className="transaction-form__field">
-                        <span>{type === "transfer" ? "Ví chuyển" : "Ví"}</span>
+                    <ExpenseField
+                        className="transaction-form__field"
+                        label={type === transactionTypes.TRANSFER ? "Ví chuyển" : "Ví"}
+                    >
                         <select
                             name="wallet"
                             onChange={(event) => setWalletId(event.target.value)}
@@ -266,11 +275,10 @@ export default function TransactionForm({
                                 </option>
                             ))}
                         </select>
-                    </label>
+                    </ExpenseField>
 
-                    {type === "transfer" ? (
-                        <label className="transaction-form__field">
-                            <span>Ví nhận</span>
+                    {type === transactionTypes.TRANSFER ? (
+                        <ExpenseField className="transaction-form__field" label="Ví nhận">
                             <select
                                 name="toWallet"
                                 onChange={(event) => setToWalletId(event.target.value)}
@@ -285,12 +293,11 @@ export default function TransactionForm({
                                         </option>
                                     ))}
                             </select>
-                        </label>
+                        </ExpenseField>
                     ) : null}
 
                     <div className="transaction-form__field-row">
-                        <label className="transaction-form__field">
-                            <span>Ngày</span>
+                        <ExpenseField className="transaction-form__field" label="Ngày">
                             <input
                                 name="date"
                                 onChange={(event) => setDate(event.target.value)}
@@ -298,9 +305,8 @@ export default function TransactionForm({
                                 type="date"
                                 value={date}
                             />
-                        </label>
-                        <label className="transaction-form__field">
-                            <span>Giờ</span>
+                        </ExpenseField>
+                        <ExpenseField className="transaction-form__field" label="Giờ">
                             <input
                                 name="time"
                                 onChange={(event) => setTime(event.target.value)}
@@ -308,11 +314,10 @@ export default function TransactionForm({
                                 type="time"
                                 value={time}
                             />
-                        </label>
+                        </ExpenseField>
                     </div>
 
-                    <label className="transaction-form__field">
-                        <span>Ghi chú</span>
+                    <ExpenseField className="transaction-form__field" label="Ghi chú">
                         <textarea
                             name="note"
                             onChange={(event) => setNote(event.target.value)}
@@ -320,22 +325,33 @@ export default function TransactionForm({
                             rows="2"
                             value={note}
                         />
-                    </label>
-                </div>
+                    </ExpenseField>
+                </SectionCard>
 
-                {submitError ? <p className="transaction-form__error">{submitError}</p> : null}
+                {submitError ? (
+                    <ExpenseStateMessage
+                        className="transaction-form__error"
+                        message={submitError}
+                    />
+                ) : null}
             </div>
 
             <div className="transaction-form__actions">
                 <div className="transaction-form__action-buttons">
                     {onCancel ? (
-                        <button className="transaction-form__cancel" onClick={onCancel} type="button">
-                            Hủy
-                        </button>
+                        <ExpenseButton
+                            className="transaction-form__cancel"
+                            label={expenseUiText.actions.CANCEL}
+                            onClick={onCancel}
+                        />
                     ) : null}
-                    <button className="transaction-form__submit" disabled={isSubmitting} type="submit">
-                        {isSubmitting ? "Đang lưu..." : submitLabel}
-                    </button>
+                    <ExpenseButton
+                        className="transaction-form__submit"
+                        isLoading={isSubmitting}
+                        label={submitLabel}
+                        loadingLabel={expenseUiText.actions.SAVING}
+                        type="submit"
+                    />
                 </div>
             </div>
         </form>

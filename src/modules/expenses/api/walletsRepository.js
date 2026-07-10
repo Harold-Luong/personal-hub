@@ -1,6 +1,5 @@
 import {
     Timestamp,
-    collection,
     doc,
     getDocsFromServer,
     limit,
@@ -12,8 +11,9 @@ import {
     writeBatch,
 } from "firebase/firestore";
 import { firestore } from "../../../lib/firebase/firestore";
+import { expenseCollections } from "./expenseFirestoreSchema";
+import { getCollectionReference, getDocumentReference } from "./getReference";
 import {
-    creditPaymentTransactionTypeId,
     creditCardWalletTypeId,
     expenseCurrencyLabels,
     expenseDefaultCurrency,
@@ -21,52 +21,14 @@ import {
     expenseDefaultWalletTypeId,
     expenseDefaultWalletTypeMeta,
     expenseMaxSearchTokens,
+    transactionTypes,
     walletTypeIds,
     walletTypeMeta,
 } from "../constant/expensesMetaData";
 
-
-function getWalletsCollectionRef(uid) {
-    if (!uid) {
-        throw new Error("A Firebase Authentication uid is required.");
-    }
-
-    return collection(
-        firestore,
-        "users",
-        uid,
-        "modules",
-        "expenses",
-        "wallets",
-    );
-}
-
-function getWalletRef(uid, walletId) {
-    if (!walletId) {
-        throw new Error('A wallet id is required.')
-    }
-
-    return doc(getWalletsCollectionRef(uid), walletId)
-}
-
-function getTransactionsCollectionRef(uid) {
-    if (!uid) {
-        throw new Error("A Firebase Authentication uid is required.");
-    }
-
-    return collection(
-        firestore,
-        "users",
-        uid,
-        "modules",
-        "expenses",
-        "transactions",
-    )
-}
-
 async function hasActiveWalletTransactions(uid, walletId) {
     const transactionsQuery = query(
-        getTransactionsCollectionRef(uid),
+        getCollectionReference(uid, expenseCollections.TRANSACTIONS),
         where("walletIds", "array-contains", walletId),
         where("status", "==", "active"),
         orderBy("occurredAt", "desc"),
@@ -266,19 +228,22 @@ function getTransactionWalletDelta(transaction, walletId) {
         return 0
     }
 
-    if (transaction.type === "income" && transaction.walletId === walletId) {
+    if (transaction.type === transactionTypes.INCOME && transaction.walletId === walletId) {
         return amountMinor
     }
 
-    if (transaction.type === "expense" && transaction.walletId === walletId) {
+    if (transaction.type === transactionTypes.EXPENSE && transaction.walletId === walletId) {
         return -amountMinor
     }
 
-    if (transaction.type === "adjustment" && transaction.walletId === walletId) {
+    if (transaction.type === transactionTypes.ADJUSTMENT && transaction.walletId === walletId) {
         return transaction.adjustmentDirection === "increase" ? amountMinor : -amountMinor
     }
 
-    if (transaction.type === "transfer" || transaction.type === creditPaymentTransactionTypeId) {
+    if (
+        transaction.type === transactionTypes.TRANSFER ||
+        transaction.type === transactionTypes.CREDIT_PAYMENT
+    ) {
         if (transaction.fromWalletId === walletId) {
             return -amountMinor
         }
@@ -293,7 +258,7 @@ function getTransactionWalletDelta(transaction, walletId) {
 
 async function getActiveWalletNetMovement(uid, walletId) {
     const transactionsQuery = query(
-        getTransactionsCollectionRef(uid),
+        getCollectionReference(uid, expenseCollections.TRANSACTIONS),
         where("walletIds", "array-contains", walletId),
         where("status", "==", "active"),
         orderBy("occurredAt", "desc"),
@@ -395,7 +360,7 @@ function createBalanceAdjustmentTransactionData({ balanceDelta, currentBalance, 
         titleNormalized: normalizeSearchText(title),
         toWalletId: null,
         toWalletSnapshot: null,
-        type: "adjustment",
+        type: transactionTypes.ADJUSTMENT,
         updatedAt: timestamp,
         voidedAt: null,
         walletId,
@@ -491,7 +456,9 @@ async function shouldPromoteCreatedWalletToDefault(uid, activeWallets) {
 }
 
 export async function getExpenseWallets(uid, { includeArchived = false } = {}) {
-    const snapshot = await getDocsFromServer(getWalletsCollectionRef(uid));
+    const snapshot = await getDocsFromServer(
+        getCollectionReference(uid, expenseCollections.WALLETS),
+    );
 
     return snapshot.docs
         .map(mapWallet)
@@ -501,7 +468,7 @@ export async function getExpenseWallets(uid, { includeArchived = false } = {}) {
 
 export async function createExpenseWallet(uid, input) {
     const activeWallets = await getExpenseWallets(uid)
-    const walletRef = doc(getWalletsCollectionRef(uid))
+    const walletRef = doc(getCollectionReference(uid, expenseCollections.WALLETS))
     const wallet = normalizeWalletInput(input, {
         order: getNextWalletOrder(activeWallets),
     })
@@ -516,7 +483,7 @@ export async function createExpenseWallet(uid, input) {
 
     if (shouldBeDefault) {
         activeWallets.forEach((activeWallet) => {
-            batch.update(getWalletRef(uid, activeWallet.id), {
+            batch.update(getDocumentReference(uid, expenseCollections.WALLETS, activeWallet.id), {
                 isDefault: false,
                 updatedAt: timestamp,
             })
@@ -570,7 +537,7 @@ export async function updateExpenseWallet(uid, input) {
         ? await hasActiveWalletTransactions(uid, walletId)
         : false
     const timestamp = serverTimestamp()
-    const walletRef = getWalletRef(uid, walletId)
+    const walletRef = getDocumentReference(uid, expenseCollections.WALLETS, walletId)
 
     return runTransaction(firestore, async (firestoreTransaction) => {
         const walletSnapshot = await firestoreTransaction.get(walletRef)
@@ -598,7 +565,9 @@ export async function updateExpenseWallet(uid, input) {
             walletUpdate.initialBalance = targetBalance - netMovement
             walletUpdate.isBalanceInitialized = true
         } else if (balanceDelta !== 0 && shouldCreateAdjustment) {
-            const transactionRef = doc(getTransactionsCollectionRef(uid))
+            const transactionRef = doc(
+                getCollectionReference(uid, expenseCollections.TRANSACTIONS),
+            )
             const transactionData = createBalanceAdjustmentTransactionData({
                 balanceDelta,
                 currentBalance,
@@ -623,10 +592,17 @@ export async function updateExpenseWallet(uid, input) {
         if (wallet.isDefault) {
             activeWallets.forEach((activeWallet) => {
                 if (activeWallet.id !== walletId && activeWallet.isDefault) {
-                    firestoreTransaction.update(getWalletRef(uid, activeWallet.id), {
-                        isDefault: false,
-                        updatedAt: timestamp,
-                    })
+                    firestoreTransaction.update(
+                        getDocumentReference(
+                            uid,
+                            expenseCollections.WALLETS,
+                            activeWallet.id,
+                        ),
+                        {
+                            isDefault: false,
+                            updatedAt: timestamp,
+                        },
+                    )
                 }
             })
         }
@@ -697,7 +673,7 @@ export async function deleteExpenseWallet(uid, input) {
     const timestamp = serverTimestamp()
     const batch = writeBatch(firestore)
 
-    batch.update(getWalletRef(uid, walletId), {
+    batch.update(getDocumentReference(uid, expenseCollections.WALLETS, walletId), {
         isArchived: true,
         isDefault: false,
         updatedAt: timestamp,
@@ -721,7 +697,7 @@ export async function setDefaultExpenseWallet(uid, walletId) {
     const batch = writeBatch(firestore)
 
     activeWallets.forEach((wallet) => {
-        batch.update(getWalletRef(uid, wallet.id), {
+        batch.update(getDocumentReference(uid, expenseCollections.WALLETS, wallet.id), {
             isDefault: wallet.id === walletId,
             updatedAt: timestamp,
         })
