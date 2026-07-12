@@ -1,8 +1,8 @@
-import MobileAddTransactionView from "../components/mobile/MobileAddTransactionView";
+import MobileAddTransactionSurface from "../components/mobile/MobileAddTransactionSurface";
 
 export default function AddTransactionPage({ categories, onCancel, onSubmit, wallets }) {
     return (
-        <MobileAddTransactionView
+        <MobileAddTransactionSurface
             categories={categories}
             onCancel={onCancel}
             onSubmit={onSubmit}

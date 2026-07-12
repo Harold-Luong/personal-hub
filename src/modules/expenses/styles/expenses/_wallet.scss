@@ -1,16 +1,16 @@
 @media (min-width: 901px) {
-  .web-wallet-panel {
+  .desktop-wallet-dialog {
     width: min(520px, 100%);
   }
 
-  .web-wallet-panel .wallet-form {
+  .desktop-wallet-dialog .wallet-form {
     grid-template-rows: minmax(0, 1fr) auto;
     height: 100%;
     min-height: 0;
     overflow: hidden;
   }
 
-  .web-wallet-panel .wallet-form__content {
+  .desktop-wallet-dialog .wallet-form__content {
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -18,7 +18,7 @@
     scrollbar-gutter: stable;
   }
 
-  .web-wallet-panel .wallet-form__actions {
+  .desktop-wallet-dialog .wallet-form__actions {
     background: var(--expense-surface-solid);
     border-top: 1px solid var(--expense-border);
     padding-top: 12px;
@@ -316,7 +316,7 @@
 }
 
 .wallet-form__error {
-  color: color-mix(in srgb, #c71919 78%, var(--expense-muted));
+  color: color-mix(in srgb, var(--expense-danger-strong) 78%, var(--expense-muted));
 }
 
 .wallet-form__actions {
@@ -338,9 +338,9 @@
 }
 
 .wallet-form__delete {
-  background: color-mix(in srgb, #dc1717 8%, var(--expense-surface-solid));
-  border: 1px solid color-mix(in srgb, #dc1717 34%, var(--expense-border-strong));
-  color: #dc1717;
+  background: color-mix(in srgb, var(--expense-danger) 8%, var(--expense-surface-solid));
+  border: 1px solid color-mix(in srgb, var(--expense-danger) 34%, var(--expense-border-strong));
+  color: var(--expense-danger);
   margin-right: auto;
 }
 
@@ -561,7 +561,7 @@
 }
 
 .credit-payment-dialog__error {
-  color: color-mix(in srgb, #c71919 78%, var(--expense-muted));
+  color: color-mix(in srgb, var(--expense-danger-strong) 78%, var(--expense-muted));
 }
 
 .credit-payment-dialog__actions {

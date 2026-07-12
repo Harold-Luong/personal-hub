@@ -1,5 +1,5 @@
 import { HomeIcon, PlusIcon, ReportIcon, SettingsIcon, TransactionIcon } from "../../icon/ExpenseIcons";
-import { expenseBottomNavOrder } from "../../constant/expensesMetaData";
+import { expenseBottomNavOrder } from "../../constants/expenseMetadata";
 
 const bottomNavIconMap = {
     dashboard: HomeIcon,

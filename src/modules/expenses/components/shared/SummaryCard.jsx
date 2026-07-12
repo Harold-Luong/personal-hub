@@ -1,5 +1,5 @@
 import AmountText from "./AmountText";
-import ExpenseEmoji from "./ExpenseEmoji";
+import ExpenseIcon from "./ExpenseIcon";
 
 function renderIcon(icon, label, size) {
     if (!icon) {
@@ -12,7 +12,7 @@ function renderIcon(icon, label, size) {
         return <Icon size={size} />;
     }
 
-    return <ExpenseEmoji appearance="emoji" icon={icon} label={label} />;
+    return <ExpenseIcon appearance="emoji" icon={icon} label={label} />;
 }
 
 function getTrendTone(tone, trend) {

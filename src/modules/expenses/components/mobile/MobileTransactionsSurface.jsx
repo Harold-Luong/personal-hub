@@ -1,16 +1,16 @@
 import { useMemo, useState } from "react";
-import { FilterIcon, SearchIcon } from "../../icon/ExpenseIcons";
+import { SearchIcon } from "../../icon/ExpenseIcons";
 import {
     getLatestTransactionDate,
     getTransactionGroupLabel,
     groupTransactions,
 } from "../../utils/mobileTransactionUtils";
-import { expenseTransactionFilters } from "../../constant/expensesMetaData";
-import { expenseFilterValues, expenseUiText } from "../../constant/expensesUiMetaData";
+import { expenseTransactionFilters } from "../../constants/expenseMetadata";
+import { expenseFilterValues, expenseUiText } from "../../constants/expenseUiMetadata";
 import MobilePageHeader from "./MobilePageHeader";
 import AmountText from "../shared/AmountText";
 import ExpenseButton from "../shared/ExpenseButton";
-import ExpenseIcon from "../shared/ExpenseEmoji";
+import ExpenseIcon from "../shared/ExpenseIcon";
 import ExpenseStateMessage from "../shared/ExpenseStateMessage";
 import SectionCard from "../shared/SectionCard";
 
@@ -32,7 +32,7 @@ function MobileTransactionItem({ transaction }) {
     );
 }
 
-export default function MobileTransactionsView({ transactions = [] }) {
+export default function MobileTransactionsSurface({ transactions = [] }) {
     const [activeFilter, setActiveFilter] = useState(expenseFilterValues.ALL);
     const [searchTerm, setSearchTerm] = useState("");
 
@@ -43,11 +43,11 @@ export default function MobileTransactionsView({ transactions = [] }) {
     const latestDate = getLatestTransactionDate(transactions);
 
     return (
-        <main className="mobile-transactions-view">
-            <MobilePageHeader className="mobile-transactions-view__header" title="Giao dịch" titleTag="h1" />
+        <main className="mobile-transactions-surface">
+            <MobilePageHeader className="mobile-transactions-surface__header" title="Giao dịch" titleTag="h1" />
 
-            <div className="mobile-transactions-view__search-row">
-                <label className="mobile-transactions-view__search">
+            <div className="mobile-transactions-surface__search-row">
+                <label className="mobile-transactions-surface__search">
                     <SearchIcon size={20} />
                     <span className="sr-only">Tìm kiếm giao dịch</span>
                     <input
@@ -57,15 +57,9 @@ export default function MobileTransactionsView({ transactions = [] }) {
                         value={searchTerm}
                     />
                 </label>
-                <ExpenseButton
-                    ariaLabel="Lọc giao dịch"
-                    className="mobile-transactions-view__filter-button"
-                    icon={FilterIcon}
-                    iconSize={20}
-                />
             </div>
 
-            <div aria-label="Lọc theo loại giao dịch" className="mobile-transactions-view__filters" role="group">
+            <div aria-label="Lọc theo loại giao dịch" className="mobile-transactions-surface__filters" role="group">
                 {expenseTransactionFilters.map((filter) => (
                     <ExpenseButton
                         aria-pressed={activeFilter === filter.id}
@@ -77,7 +71,7 @@ export default function MobileTransactionsView({ transactions = [] }) {
                 ))}
             </div>
 
-            <div className="mobile-transactions-view__groups">
+            <div className="mobile-transactions-surface__groups">
                 {transactionGroups.length ? (
                     transactionGroups.map((group) => (
                         <section className="mobile-transaction-group" key={group.date}>
@@ -95,7 +89,7 @@ export default function MobileTransactionsView({ transactions = [] }) {
                     ))
                 ) : (
                     <ExpenseStateMessage
-                        className="mobile-transactions-view__empty"
+                        className="mobile-transactions-surface__empty"
                         message={expenseUiText.transaction.NOT_FOUND}
                     />
                 )}

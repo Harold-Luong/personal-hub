@@ -1,7 +1,7 @@
 import ExpenseDialog from "../shared/ExpenseDialog";
 import TransactionForm from "../transaction/TransactionForm";
 
-export default function WebAddTransactionPanel({
+export default function DesktopTransactionDialog({
     categories,
     initialTransaction,
     onCancel,
@@ -12,12 +12,12 @@ export default function WebAddTransactionPanel({
 }) {
     return (
         <ExpenseDialog
-            backdropClassName="web-add-transaction-modal"
-            closeButtonClassName="web-add-transaction-panel__close"
-            headerClassName="web-add-transaction-panel__header"
-            headingId="web-add-transaction-title"
+            backdropClassName="desktop-form-dialog__backdrop"
+            closeButtonClassName="desktop-form-dialog__close"
+            headerClassName="desktop-form-dialog__header"
+            headingId="desktop-transaction-dialog-title"
             onClose={onCancel}
-            panelClassName="web-add-transaction-panel"
+            panelClassName="desktop-form-dialog"
             title={title}
         >
             <TransactionForm

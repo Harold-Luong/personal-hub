@@ -1,7 +1,7 @@
 import ProgressBar from "../shared/ProgressBar";
 import SectionCardHeader from "../shared/SectionCardHeader";
-import { budgetStatusColors } from "../../constant/expensesMetaData";
-import { expenseUiText } from "../../constant/expensesUiMetaData";
+import { budgetStatusColors } from "../../constants/expenseMetadata";
+import { expenseUiText } from "../../constants/expenseUiMetadata";
 import { formatCurrency } from "../../utils/formatCurrency";
 import { calculateMonthlyBudgetTotals, getBudgetUsageStatus } from "../../utils/expenseCalculations";
 

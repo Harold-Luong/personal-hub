@@ -2,7 +2,7 @@ import {
     expenseFilterValues,
     expenseSortDirections,
     expenseSortKeys,
-} from "./expensesUiMetaData";
+} from "./expenseUiMetadata";
 
 export const expensePageMeta = {
     dashboard: {
@@ -45,6 +45,7 @@ export const expensePageMeta = {
         label: "Cài đặt",
         icon: "settings",
         path: "/expenses/settings",
+        isRouted: true,
     },
 };
 
@@ -68,7 +69,7 @@ export const expenseRoutePaths = Object.fromEntries(
         .map(([id, item]) => [id, item.path]),
 );
 
-export const expenseMobileOnlyPageIds = ["add", "settings"];
+export const expenseMobileOnlyPageIds = ["add"];
 
 export const expenseCurrencies = [
     {
@@ -96,6 +97,21 @@ export const expenseCurrencyFractionDigitsByLabel = Object.fromEntries(
 export const expenseDefaultCurrency = expenseCurrencies[0].label;
 export const expenseDefaultLocale = "vi-VN";
 export const expenseDefaultTimezone = "Asia/Ho_Chi_Minh";
+
+export const expenseAmountFormatOptions = [
+    { id: "standard", label: "Đầy đủ", example: "1.250.000 đ" },
+    { id: "compact", label: "Rút gọn", example: "1,3 Tr đ" },
+];
+export const expenseAmountFormatIds = expenseAmountFormatOptions.map((option) => option.id);
+export const expenseDefaultAmountFormat = expenseAmountFormatOptions[0].id;
+
+export const expenseDateFormatOptions = [
+    { id: "dd/MM/yyyy", label: "Ngày / tháng / năm", example: "15/07/2026" },
+    { id: "MM/dd/yyyy", label: "Tháng / ngày / năm", example: "07/15/2026" },
+    { id: "yyyy-MM-dd", label: "Năm - tháng - ngày", example: "2026-07-15" },
+];
+export const expenseDateFormatIds = expenseDateFormatOptions.map((option) => option.id);
+export const expenseDefaultDateFormat = expenseDateFormatOptions[0].id;
 
 export const expenseThemeOptions = [
     { id: "sage", label: "Sage", color: "#6b8f71", accent: "#2f7246" },

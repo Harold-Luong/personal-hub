@@ -1,4 +1,4 @@
-import { transactionTypes } from "../constant/expensesMetaData";
+import { transactionTypes } from "../constants/expenseMetadata";
 
 export function getTransactionWalletLabel(transaction) {
     if (

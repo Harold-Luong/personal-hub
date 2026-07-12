@@ -1,9 +1,9 @@
 import AmountText from "../shared/AmountText";
-import ExpenseIcon from "../shared/ExpenseEmoji";
+import ExpenseIcon from "../shared/ExpenseIcon";
 import ProgressBar from "../shared/ProgressBar";
 import SectionCard from "../shared/SectionCard";
-import { budgetStatusColors } from "../../constant/expensesMetaData";
-import { expenseUiText } from "../../constant/expensesUiMetaData";
+import { budgetStatusColors } from "../../constants/expenseMetadata";
+import { expenseUiText } from "../../constants/expenseUiMetadata";
 import { calculateBudgetUsagePercentage, getBudgetUsageStatus } from "../../utils/expenseCalculations";
 
 export default function BudgetOverviewCard({ budgets = [], monthLabel, onManageBudget, onSelectBudget }) {

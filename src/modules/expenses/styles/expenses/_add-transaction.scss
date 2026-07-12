@@ -1,21 +1,21 @@
-.mobile-add-transaction-view {
+.mobile-add-transaction-surface {
     display: none;
 }
 
 @media (min-width: 901px) {
-    .web-add-transaction-panel {
+    .desktop-form-dialog {
         --transaction-form-scrollbar-gutter: 16px;
         --transaction-form-content-end-space: 20px;
     }
 
-    .web-add-transaction-panel .transaction-form {
+    .desktop-form-dialog .transaction-form {
         display: grid;
         grid-template-rows: auto auto;
         height: 100%;
         min-height: 0;
     }
 
-    .web-add-transaction-panel .transaction-form__content {
+    .desktop-form-dialog .transaction-form__content {
         align-content: start;
         align-items: start;
         display: grid;
@@ -27,7 +27,7 @@
         scrollbar-gutter: auto var(--transaction-form-scrollbar-gutter);
     }
 
-    .web-add-transaction-panel .transaction-form__type {
+    .desktop-form-dialog .transaction-form__type {
         background: color-mix(in srgb,
                 var(--expense-surface-solid) 74%,
                 var(--expense-border-strong));
@@ -40,7 +40,7 @@
         padding: 3px;
     }
 
-    .web-add-transaction-panel .transaction-form__type button {
+    .desktop-form-dialog .transaction-form__type button {
         align-items: center;
         background: transparent;
         border: 0;
@@ -56,19 +56,19 @@
         padding: 0 8px;
     }
 
-    .web-add-transaction-panel .transaction-form__type button.is-active {
+    .desktop-form-dialog .transaction-form__type button.is-active {
         background: var(--expense-active-strong);
         box-shadow: 0 8px 18px color-mix(in srgb, var(--expense-active-strong) 20%, transparent);
         color: white;
     }
 
-    .web-add-transaction-panel .transaction-form__amount,
-    .web-add-transaction-panel .transaction-form__fields {
+    .desktop-form-dialog .transaction-form__amount,
+    .desktop-form-dialog .transaction-form__fields {
         background: color-mix(in srgb, var(--expense-surface-solid) 96%, transparent);
         box-shadow: none;
     }
 
-    .web-add-transaction-panel .transaction-form__amount {
+    .desktop-form-dialog .transaction-form__amount {
         align-content: stretch;
         display: grid;
         gap: 10px;
@@ -76,21 +76,21 @@
         min-height: 100%;
     }
 
-    .web-add-transaction-panel .transaction-form__amount-label,
-    .web-add-transaction-panel .transaction-form__field>span {
+    .desktop-form-dialog .transaction-form__amount-label,
+    .desktop-form-dialog .transaction-form__field>span {
         color: var(--expense-muted);
         font-size: 12px;
         font-weight: 700;
     }
 
-    .web-add-transaction-panel .transaction-form__amount-control {
+    .desktop-form-dialog .transaction-form__amount-control {
         align-items: flex-start;
         align-self: start;
         display: flex;
         gap: 5px;
     }
 
-    .web-add-transaction-panel .transaction-form__amount-control input {
+    .desktop-form-dialog .transaction-form__amount-control input {
         align-self: flex-start;
         background: transparent;
         border: 0;
@@ -106,7 +106,7 @@
         width: 100%;
     }
 
-    .web-add-transaction-panel .transaction-form__amount-control>span {
+    .desktop-form-dialog .transaction-form__amount-control>span {
         color: var(--expense-muted);
         font-size: 18px;
         font-weight: 800;
@@ -114,7 +114,7 @@
         padding-top: 4px;
     }
 
-    .web-add-transaction-panel .transaction-form__balance-preview {
+    .desktop-form-dialog .transaction-form__balance-preview {
         align-self: end;
         border-top: 1px solid var(--expense-border);
         display: grid;
@@ -123,27 +123,27 @@
         padding: 10px 0 0;
     }
 
-    .web-add-transaction-panel .transaction-form__balance-preview div {
+    .desktop-form-dialog .transaction-form__balance-preview div {
         align-items: start;
         display: grid;
         gap: 8px;
         grid-template-columns: minmax(0, 1fr) minmax(120px, auto);
     }
 
-    .web-add-transaction-panel .transaction-form__balance-preview dt,
-    .web-add-transaction-panel .transaction-form__balance-preview dd {
+    .desktop-form-dialog .transaction-form__balance-preview dt,
+    .desktop-form-dialog .transaction-form__balance-preview dd {
         margin: 0;
         min-width: 0;
     }
 
-    .web-add-transaction-panel .transaction-form__balance-preview dt {
+    .desktop-form-dialog .transaction-form__balance-preview dt {
         color: var(--expense-muted);
         font-size: 12px;
         font-weight: 700;
         line-height: 1.35;
     }
 
-    .web-add-transaction-panel .transaction-form__balance-preview dd {
+    .desktop-form-dialog .transaction-form__balance-preview dd {
         color: var(--expense-heading);
         font-size: 13px;
         font-weight: 800;
@@ -152,35 +152,35 @@
         text-align: right;
     }
 
-    .web-add-transaction-panel .transaction-form__balance-preview dd.is-negative {
-        color: #c71919;
+    .desktop-form-dialog .transaction-form__balance-preview dd.is-negative {
+        color: var(--expense-danger-strong);
     }
 
-    .web-add-transaction-panel .transaction-form__balance-preview dd.is-positive {
+    .desktop-form-dialog .transaction-form__balance-preview dd.is-positive {
         color: var(--expense-active-strong);
     }
 
-    .web-add-transaction-panel .transaction-form__fields {
+    .desktop-form-dialog .transaction-form__fields {
         display: grid;
         gap: 10px;
     }
 
-    .web-add-transaction-panel .transaction-form__field {
+    .desktop-form-dialog .transaction-form__field {
         display: grid;
         gap: 5px;
         min-width: 0;
     }
 
-    .web-add-transaction-panel .transaction-form__field-row {
+    .desktop-form-dialog .transaction-form__field-row {
         display: grid;
         gap: 8px;
         grid-template-columns: repeat(2, minmax(0, 1fr));
         min-width: 0;
     }
 
-    .web-add-transaction-panel .transaction-form__field input,
-    .web-add-transaction-panel .transaction-form__field select,
-    .web-add-transaction-panel .transaction-form__field textarea {
+    .desktop-form-dialog .transaction-form__field input,
+    .desktop-form-dialog .transaction-form__field select,
+    .desktop-form-dialog .transaction-form__field textarea {
         background: color-mix(in srgb,
                 var(--expense-surface-solid) 70%,
                 var(--expense-border-strong));
@@ -193,33 +193,33 @@
         width: 100%;
     }
 
-    .web-add-transaction-panel .transaction-form__field input,
-    .web-add-transaction-panel .transaction-form__field select {
+    .desktop-form-dialog .transaction-form__field input,
+    .desktop-form-dialog .transaction-form__field select {
         height: 42px;
         padding: 0 9px;
     }
 
-    .web-add-transaction-panel .transaction-form__field textarea {
+    .desktop-form-dialog .transaction-form__field textarea {
         min-height: 70px;
         padding: 9px;
         resize: vertical;
     }
 
-    .web-add-transaction-panel .transaction-form__field input:focus,
-    .web-add-transaction-panel .transaction-form__field select:focus,
-    .web-add-transaction-panel .transaction-form__field textarea:focus {
+    .desktop-form-dialog .transaction-form__field input:focus,
+    .desktop-form-dialog .transaction-form__field select:focus,
+    .desktop-form-dialog .transaction-form__field textarea:focus {
         border-color: var(--expense-active-color);
         box-shadow: 0 0 0 3px color-mix(in srgb, var(--expense-active-color) 14%, transparent);
     }
 
-    .web-add-transaction-panel .transaction-form__field input::placeholder,
-    .web-add-transaction-panel .transaction-form__field textarea::placeholder {
+    .desktop-form-dialog .transaction-form__field input::placeholder,
+    .desktop-form-dialog .transaction-form__field textarea::placeholder {
         color: var(--expense-muted);
         opacity: 0.8;
     }
 
-    .web-add-transaction-panel .transaction-form__error {
-        color: color-mix(in srgb, #c71919 78%, var(--expense-muted));
+    .desktop-form-dialog .transaction-form__error {
+        color: color-mix(in srgb, var(--expense-danger-strong) 78%, var(--expense-muted));
         font-size: 12px;
         font-weight: 700;
         grid-column: 1 / -1;
@@ -228,7 +228,7 @@
         text-align: right;
     }
 
-    .web-add-transaction-panel .transaction-form__actions {
+    .desktop-form-dialog .transaction-form__actions {
         align-items: center;
         border-top: 1px solid var(--expense-border);
         box-sizing: border-box;
@@ -240,7 +240,7 @@
         width: 100%;
     }
 
-    .web-add-transaction-panel .transaction-form__action-buttons {
+    .desktop-form-dialog .transaction-form__action-buttons {
         display: flex;
         gap: 8px;
         grid-column: 2;
@@ -248,7 +248,7 @@
         min-width: 0;
     }
 
-    .web-add-transaction-panel .transaction-form__cancel {
+    .desktop-form-dialog .transaction-form__cancel {
         background: color-mix(in srgb, var(--expense-surface-solid) 82%, transparent);
         border: 1px solid var(--expense-border-strong);
         border-radius: 8px;
@@ -262,14 +262,14 @@
         padding: 0 16px;
     }
 
-    .web-add-transaction-panel .transaction-form__cancel:hover,
-    .web-add-transaction-panel .transaction-form__cancel:focus-visible {
+    .desktop-form-dialog .transaction-form__cancel:hover,
+    .desktop-form-dialog .transaction-form__cancel:focus-visible {
         border-color: var(--expense-active-color);
         color: var(--expense-active-strong);
         outline: 0;
     }
 
-    .web-add-transaction-panel .transaction-form__submit {
+    .desktop-form-dialog .transaction-form__submit {
         background: linear-gradient(145deg,
                 var(--expense-action-start),
                 var(--expense-action-end));
@@ -286,66 +286,66 @@
         padding: 0 16px;
     }
 
-    .web-add-transaction-panel .transaction-form__submit:disabled {
+    .desktop-form-dialog .transaction-form__submit:disabled {
         cursor: wait;
         opacity: 0.68;
     }
 }
 
 @media (max-width: 1180px) and (min-width: 901px) {
-    .web-add-transaction-panel .transaction-form__content {
+    .desktop-form-dialog .transaction-form__content {
         align-items: stretch;
         display: flex;
         flex-direction: column;
     }
 
-    .web-add-transaction-panel .transaction-form__amount {
+    .desktop-form-dialog .transaction-form__amount {
         align-content: start;
         grid-template-rows: auto auto auto;
         min-height: auto;
     }
 
-    .web-add-transaction-panel .transaction-form__balance-preview {
+    .desktop-form-dialog .transaction-form__balance-preview {
         align-self: start;
         width: 100%;
     }
 
-    .web-add-transaction-panel .transaction-form__fields {
+    .desktop-form-dialog .transaction-form__fields {
         width: 100%;
     }
 
-    .web-add-transaction-panel .transaction-form__actions {
+    .desktop-form-dialog .transaction-form__actions {
         grid-template-columns: 1fr;
     }
 
-    .web-add-transaction-panel .transaction-form__action-buttons {
+    .desktop-form-dialog .transaction-form__action-buttons {
         grid-column: 1;
     }
 
-    .web-add-transaction-panel .transaction-form__submit {
+    .desktop-form-dialog .transaction-form__submit {
         flex: 1;
         min-width: 0;
     }
 }
 
 @media (max-width: 900px) {
-    .mobile-add-transaction-view {
+    .mobile-add-transaction-surface {
         display: block;
         min-height: 100svh;
     }
 
-    .mobile-add-transaction-view__header {
+    .mobile-add-transaction-surface__header {
         margin-bottom: 16px;
     }
 
-    .mobile-add-transaction-view__header h1 {
+    .mobile-add-transaction-surface__header h1 {
         color: var(--expense-heading);
         font-size: 22px;
         line-height: 1.2;
         margin: 0;
     }
 
-    .mobile-add-transaction-view__header button {
+    .mobile-add-transaction-surface__header button {
         background: transparent;
         border: 0;
         color: var(--expense-active-strong);
@@ -481,7 +481,7 @@
     }
 
     .transaction-form__balance-preview dd.is-negative {
-        color: #c71919;
+        color: var(--expense-danger-strong);
     }
 
     .transaction-form__balance-preview dd.is-positive {
@@ -578,7 +578,7 @@
     }
 
     .transaction-form__error {
-        color: color-mix(in srgb, #c71919 78%, var(--expense-muted));
+        color: color-mix(in srgb, var(--expense-danger-strong) 78%, var(--expense-muted));
         font-size: 12px;
         font-weight: 700;
         line-height: 1.45;

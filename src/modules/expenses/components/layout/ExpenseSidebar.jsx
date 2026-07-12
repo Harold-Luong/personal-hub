@@ -1,9 +1,37 @@
+import { useState } from "react";
 import { selectAuthUser, useAuthSessionStore } from "../../../../stores/authSessionStore";
-import ExpenseIcon from "../shared/ExpenseEmoji";
+import { expenseDefaultTheme } from "../../constants/expenseMetadata";
+import { expenseUiText } from "../../constants/expenseUiMetadata";
+import { LogoutIcon, ThemeIcon } from "../../icon/ExpenseIcons";
+import ExpenseIcon from "../shared/ExpenseIcon";
+import ExpenseButton from "../shared/ExpenseButton";
 
-export default function ExpenseSidebar({ items = [], activeId = "dashboard", onNavigate }) {
+export default function ExpenseSidebar({
+    activeId = "dashboard",
+    items = [],
+    onLogout,
+    onNavigate,
+    onToggleTheme,
+    theme = expenseDefaultTheme,
+}) {
     const user = useAuthSessionStore(selectAuthUser);
+    const [failedAvatarUrl, setFailedAvatarUrl] = useState("");
+    const [isSigningOut, setIsSigningOut] = useState(false);
     const accountName = user?.displayName || user?.email || "Tài khoản";
+    const accountEmail = user?.email || "Tài khoản cá nhân";
+    const accountPhotoUrl = user?.photoURL || "";
+    const shouldShowAccountPhoto = accountPhotoUrl && failedAvatarUrl !== accountPhotoUrl;
+    const avatarLabel = accountName.trim().charAt(0).toUpperCase() || "T";
+
+    const handleLogout = async () => {
+        setIsSigningOut(true);
+
+        try {
+            await onLogout?.();
+        } finally {
+            setIsSigningOut(false);
+        }
+    };
 
     return (
         <aside className="expense-sidebar">
@@ -11,10 +39,7 @@ export default function ExpenseSidebar({ items = [], activeId = "dashboard", onN
                 <span className="expense-sidebar__logo">MC</span>
                 <strong>MoneyCare</strong>
             </div>
-            <section className="expense-sidebar__profile">
-                <span>Xin chào,</span>
-                <strong>{accountName}</strong>
-            </section>
+
             <nav>
                 {items.map((item) => (
                     <button
@@ -28,6 +53,43 @@ export default function ExpenseSidebar({ items = [], activeId = "dashboard", onN
                     </button>
                 ))}
             </nav>
+
+            <section className="expense-sidebar__account">
+                <div className="expense-sidebar__profile">
+                    <span className="expense-sidebar__avatar" title={accountEmail}>
+                        {shouldShowAccountPhoto ? (
+                            <img alt="" onError={() => setFailedAvatarUrl(accountPhotoUrl)} src={accountPhotoUrl} />
+                        ) : (
+                            avatarLabel
+                        )}
+                    </span>
+                    <span className="expense-sidebar__profile-copy">
+                        <strong>{accountName}</strong>
+                        <small>{accountEmail}</small>
+                    </span>
+                </div>
+                <div className="expense-sidebar__account-actions">
+                    <ExpenseButton
+                        ariaLabel={expenseUiText.actions.TOGGLE_THEME}
+                        className="expense-sidebar__theme"
+                        icon={ThemeIcon}
+                        iconSize={17}
+                        label={theme}
+                        labelTag="span"
+                        onClick={onToggleTheme}
+                        title={expenseUiText.actions.TOGGLE_THEME}
+                    />
+                    <ExpenseButton
+                        ariaLabel={expenseUiText.actions.LOGOUT}
+                        className="expense-sidebar__logout"
+                        disabled={isSigningOut}
+                        icon={LogoutIcon}
+                        iconSize={17}
+                        onClick={handleLogout}
+                        title={expenseUiText.actions.LOGOUT}
+                    />
+                </div>
+            </section>
         </aside>
     );
 }

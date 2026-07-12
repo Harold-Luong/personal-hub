@@ -232,8 +232,42 @@ export const ChevronIcon = ({ direction = "right", size = 16 }) => (
         height={size}
         viewBox="0 0 24 24"
         width={size}
-        style={{ transform: direction === "left" ? "rotate(180deg)" : undefined }}
+        style={{
+            transform: direction === "left"
+                ? "rotate(180deg)"
+                : direction === "up"
+                    ? "rotate(-90deg)"
+                    : direction === "down"
+                        ? "rotate(90deg)"
+                        : undefined,
+        }}
     >
         <path d="m9 6 6 6-6 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+    </svg>
+);
+
+export const EyeIcon = ({ off = false, size = 20 }) => (
+    <svg aria-hidden="true" fill="none" height={size} viewBox="0 0 24 24" width={size}>
+        <path d="M3 12s3.2-5 9-5 9 5 9 5-3.2 5-9 5-9-5-9-5Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+        <circle cx="12" cy="12" r="2.4" stroke="currentColor" strokeWidth="1.8" />
+        {off ? <path d="m4 4 16 16" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" /> : null}
+    </svg>
+);
+
+export const StarIcon = ({ filled = false, size = 20 }) => (
+    <svg aria-hidden="true" fill={filled ? "currentColor" : "none"} height={size} viewBox="0 0 24 24" width={size}>
+        <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.7" />
+    </svg>
+);
+
+export const DownloadIcon = ({ size = 20 }) => (
+    <svg aria-hidden="true" fill="none" height={size} viewBox="0 0 24 24" width={size}>
+        <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 20h14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+    </svg>
+);
+
+export const UploadIcon = ({ size = 20 }) => (
+    <svg aria-hidden="true" fill="none" height={size} viewBox="0 0 24 24" width={size}>
+        <path d="M12 16V4m0 0 4 4m-4-4L8 8M5 20h14" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
     </svg>
 );

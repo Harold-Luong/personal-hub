@@ -1,16 +1,16 @@
 import { useState } from "react";
+import { selectExpensePreferences, useExpensePreferencesStore } from "../../../../stores/expensePreferencesStore";
 import {
-    creditCardWalletTypeId,
     expenseWeekdayLabels,
     transactionFallbackCategoryOptions,
     transactionTypeOptions,
     transactionTypes,
-} from "../../constant/expensesMetaData";
-import { expenseUiText } from "../../constant/expensesUiMetaData";
+} from "../../constants/expenseMetadata";
+import { expenseUiText } from "../../constants/expenseUiMetadata";
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "../../utils/formatCurrency";
 import { getSignedTransactionAmount } from "../../utils/expenseCalculations";
 import { getLocalDateValue, getLocalTimeValue } from "../../utils/transactionFormUtils";
-import { getWalletDisplayName } from "../../utils/walletDisplayUtils";
+import { getWalletDisplayName, isCreditCardWallet } from "../../utils/walletUtils";
 import ExpenseButton from "../shared/ExpenseButton";
 import ExpenseField from "../shared/ExpenseField";
 import ExpenseStateMessage from "../shared/ExpenseStateMessage";
@@ -26,10 +26,6 @@ function getCategoryOptions(type, categories) {
     );
 
     return typedCategories.length > 0 ? typedCategories : [];
-}
-
-function isCreditCardWallet(wallet) {
-    return wallet?.type === creditCardWalletTypeId;
 }
 
 function getWalletOptions(type, wallets) {
@@ -62,16 +58,22 @@ export default function TransactionForm({
     submitLabel = "Lưu giao dịch",
     wallets = [],
 }) {
+    const preferences = useExpensePreferencesStore(selectExpensePreferences);
     const initialType = initialTransaction?.type ?? transactionTypes.EXPENSE;
+    const defaultCategory = getCategoryOptions(initialType, categories).find(
+        (category) => category.id === preferences.defaultCategoryId,
+    );
+    const defaultWallet = wallets.find((wallet) => wallet.id === preferences.defaultWalletId)
+        ?? wallets.find((wallet) => wallet.isDefault);
     const [type, setType] = useState(initialType);
     const [amount, setAmount] = useState(() =>
         initialTransaction ? formatCurrencyInput(initialTransaction.amountMinor ?? Math.abs(initialTransaction.amount)) : "",
     );
     const [title, setTitle] = useState(initialTransaction?.title ?? "");
     const [categoryId, setCategoryId] = useState(
-        () => initialTransaction?.categoryId ?? initialTransaction?.category ?? getCategoryOptions(initialType, categories)[0]?.id ?? "",
+        () => initialTransaction?.categoryId ?? initialTransaction?.category ?? defaultCategory?.id ?? getCategoryOptions(initialType, categories)[0]?.id ?? "",
     );
-    const [walletId, setWalletId] = useState(initialTransaction?.walletId ?? initialTransaction?.fromWalletId ?? wallets[0]?.id ?? "");
+    const [walletId, setWalletId] = useState(initialTransaction?.walletId ?? initialTransaction?.fromWalletId ?? defaultWallet?.id ?? wallets[0]?.id ?? "");
     const [toWalletId, setToWalletId] = useState(initialTransaction?.toWalletId ?? wallets[1]?.id ?? "");
     const [date, setDate] = useState(initialTransaction?.date ?? getLocalDateValue);
     const [time, setTime] = useState(initialTransaction?.time ?? getLocalTimeValue);
@@ -84,7 +86,7 @@ export default function TransactionForm({
     const isTransfer = type === transactionTypes.TRANSFER;
     const selectedCategoryId = categoryOptions.some((category) => category.id === categoryId)
         ? categoryId
-        : (categoryOptions[0]?.id ?? "");
+        : (categoryOptions.find((category) => category.id === preferences.defaultCategoryId)?.id ?? categoryOptions[0]?.id ?? "");
     const selectedWalletId = walletOptions.some((wallet) => wallet.id === walletId)
         ? walletId
         : (walletOptions[0]?.id ?? "");
@@ -113,7 +115,11 @@ export default function TransactionForm({
         const nextCategoryOptions = getCategoryOptions(nextType, categories);
 
         setType(nextType);
-        setCategoryId(nextCategoryOptions[0]?.id ?? "");
+        setCategoryId(
+            nextCategoryOptions.find((category) => category.id === preferences.defaultCategoryId)?.id
+                ?? nextCategoryOptions[0]?.id
+                ?? "",
+        );
         setSubmitError("");
     };
 

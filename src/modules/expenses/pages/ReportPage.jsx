@@ -39,8 +39,8 @@ import {
     reportTopTransactionLimit,
     reportTrendMonthCount,
     transactionTypes,
-} from "../constant/expensesMetaData";
-import { expenseReportTrendViews, expenseUiText } from "../constant/expensesUiMetaData";
+} from "../constants/expenseMetadata";
+import { expenseReportTrendViews, expenseUiText } from "../constants/expenseUiMetadata";
 import {
     ArrowDownIcon,
     ArrowUpIcon,
@@ -897,7 +897,7 @@ function ReportCategoryComparison({ rows }) {
     );
 }
 
-function ReportWorkspace({
+export default function ReportPage({
     categories: controlledCategories,
     mode = "mobile",
     monthOptions: controlledMonthOptions,
@@ -1512,8 +1512,4 @@ function ReportWorkspace({
     }
 
     return reportContent;
-}
-
-export default function ReportPage(props) {
-    return <ReportWorkspace {...props} />;
 }

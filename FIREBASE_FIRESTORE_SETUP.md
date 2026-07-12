@@ -28,7 +28,10 @@ Chức năng chính:
 
 * Chỉ user đang đăng nhập mới đọc được dữ liệu của mình trong `users/{uid}`.
 * User A không đọc/ghi được dữ liệu của User B.
-* Client chỉ được tạo/cập nhật `users/{uid}/modules/expenses/settings/main`.
+* Owner được cập nhật `users/{uid}.displayName` cùng `updatedAt`; email,
+  photoURL và timestamp khởi tạo phải giữ nguyên.
+* Client được cập nhật `users/{uid}/modules/expenses/settings/main` theo
+  whitelist.
 * `modules/expenses/settings/main` chỉ nhận các field hợp lệ:
 
   * `theme`
@@ -37,9 +40,15 @@ Chức năng chính:
   * `hideBalance`
   * `notificationsEnabled`
   * `defaultWalletId`
+  * `defaultCategoryId`
+  * `amountFormat`
+  * `dateFormat`
+  * `hiddenCategoryIds`
+  * `hiddenWalletIds`
   * `updatedAt`
-* Client không được ghi trực tiếp các dữ liệu tài chính quan trọng như
-  transactions, wallet balances, monthly stats.
+* Wallet, category, transaction, budget và monthly stats phải đúng schema,
+  ownership và invariant được khai báo trong rules. Các mutation tài chính của
+  client đi qua repository và Firestore transaction/batch.
 
 Rules này được Firebase server tự động áp dụng mỗi khi app React gọi Firestore.
 React code không import file này.
@@ -169,6 +178,10 @@ thì request được chấp nhận.
 
 Nếu không, Firestore trả lỗi permission denied.
 
+Flow đổi tên hiển thị cũng cần rules đã deploy vì app ghi đồng thời Firebase
+Authentication và `users/{uid}.displayName`. Nếu Firestore từ chối request, app
+rollback Auth profile về tên trước đó.
+
 ## Lỗi thường gặp
 
 ### `bash: firebase: command not found`
@@ -202,6 +215,7 @@ Kiểm tra:
 * `uid` trên path có đúng với `request.auth.uid` không.
 * Payload có đúng whitelist field trong `firestore.rules` không.
 * `updatedAt` có dùng `serverTimestamp()` không.
+* Khi đổi displayName, rules mới cho user profile đã được deploy chưa.
 
 ## Thứ tự khuyến nghị
 
@@ -209,5 +223,7 @@ Kiểm tra:
 2. Chọn Firebase project bằng `use --add`.
 3. Deploy `firestore.rules`.
 4. Deploy `firestore.indexes.json`.
-5. Test đăng nhập app và tạo/cập nhật `modules/expenses/settings/main`.
-6. Sau đó mới tiếp tục seed wallets/categories và thay mock data.
+5. Test đăng nhập, đổi displayName và kiểm tra cả Firebase Auth lẫn
+   `users/{uid}`.
+6. Test tạo/cập nhật `modules/expenses/settings/main` với các preference mới.
+7. Test transaction, wallet, category và budget trên đúng tài khoản.

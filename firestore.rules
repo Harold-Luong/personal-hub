@@ -57,6 +57,21 @@ service cloud.firestore {
         && data.updatedAt == request.time;
     }
 
+    function isValidUserProfileUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'displayName',
+            'updatedAt',
+          ])
+        && request.resource.data.keys().hasOnly(allowedUserProfileKeys())
+        && isValidString(request.resource.data.displayName)
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.photoURL == resource.data.photoURL
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.initializedAt == resource.data.initializedAt
+        && request.resource.data.updatedAt == request.time;
+    }
+
     // =========================
     // Expense module root
     // users/{uid}/modules/expenses
@@ -106,6 +121,11 @@ service cloud.firestore {
         'hideBalance',
         'notificationsEnabled',
         'defaultWalletId',
+        'defaultCategoryId',
+        'amountFormat',
+        'dateFormat',
+        'hiddenCategoryIds',
+        'hiddenWalletIds',
         'updatedAt',
       ];
     }
@@ -130,6 +150,11 @@ service cloud.firestore {
           'hideBalance',
           'notificationsEnabled',
           'defaultWalletId',
+          'defaultCategoryId',
+          'amountFormat',
+          'dateFormat',
+          'hiddenCategoryIds',
+          'hiddenWalletIds',
           'updatedAt',
         ])
         && isValidExpenseTheme(data.theme)
@@ -138,6 +163,11 @@ service cloud.firestore {
         && data.hideBalance is bool
         && data.notificationsEnabled is bool
         && (data.defaultWalletId == null || data.defaultWalletId is string)
+        && (data.defaultCategoryId == null || data.defaultCategoryId is string)
+        && data.amountFormat in ['standard', 'compact']
+        && data.dateFormat in ['dd/MM/yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd']
+        && data.hiddenCategoryIds is list
+        && data.hiddenWalletIds is list
         && data.updatedAt == request.time;
     }
 
@@ -705,7 +735,9 @@ service cloud.firestore {
       allow read: if isOwner(uid);
       allow create: if isOwner(uid)
         && isValidUserProfileCreate(request.resource.data);
-      allow update, delete: if false;
+      allow update: if isOwner(uid)
+        && isValidUserProfileUpdate();
+      allow delete: if false;
 
       match /modules/expenses {
         allow read: if isOwner(uid);

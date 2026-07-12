@@ -22,6 +22,8 @@ Mục tiêu của thiết kế:
 - Các thay đổi liên quan đến số dư và thống kê được cập nhật nguyên tử.
 - Dữ liệu vẫn nhất quán khi tạo, sửa hoặc hủy giao dịch.
 - Theme và tùy chọn giao diện được đồng bộ giữa các thiết bị.
+- Settings desktop/mobile dùng chung xử lý cho định dạng, danh mục, ví và CSV.
+- Tên hiển thị được đồng bộ giữa Firebase Authentication và user profile.
 - Có thể mở rộng thêm báo cáo, ngân sách, tìm kiếm và nhiều loại tiền tệ.
 
 ## 2. Hiện trạng
@@ -173,7 +175,7 @@ nguyên.
 
 ```text
 users/{uid}
-├── profile
+├── displayName, email, photoURL, timestamps
 └── modules/
     └── expenses
         ├── settings/
@@ -217,12 +219,19 @@ Shape đề xuất:
   email: "user@example.com",
   photoURL: null,
   createdAt: Timestamp,
+  initializedAt: Timestamp,
   updatedAt: Timestamp
 }
 ```
 
 Profile chứa thông tin chung của user. Các thiết lập riêng của expenses không
 đặt trực tiếp trong document này.
+
+Khi đổi tên trong Settings, client cập nhật Firebase Authentication trước, sau
+đó cập nhật `users/{uid}.displayName` và `updatedAt`. Nếu Firestore write lỗi,
+Auth profile được rollback về tên trước đó để tránh hai nguồn dữ liệu lệch nhau.
+Security Rules chỉ cho owner thay đổi `displayName` và `updatedAt`; email,
+photoURL và các timestamp khởi tạo phải được giữ nguyên.
 
 ### 5.2 Expense settings
 
@@ -242,6 +251,11 @@ Shape đề xuất:
   hideBalance: false,
   notificationsEnabled: true,
   defaultWalletId: "wallet-cash",
+  defaultCategoryId: "food",
+  amountFormat: "standard",
+  dateFormat: "dd/MM/yyyy",
+  hiddenCategoryIds: [],
+  hiddenWalletIds: [],
   updatedAt: Timestamp
 }
 ```
@@ -266,6 +280,12 @@ Quy tắc:
 - Khi đã đăng nhập, Firestore là nguồn sự thật và `localStorage` là cache.
 - Client có thể cập nhật settings trực tiếp nếu Security Rules whitelist field
   và giá trị hợp lệ.
+- `defaultCategoryId` chọn sẵn category expense khi mở form giao dịch mới.
+- `defaultWalletId` kết hợp với `wallet.isDefault` để chọn sẵn ví trong form.
+- `hiddenCategoryIds` và `hiddenWalletIds` chỉ điều khiển hiển thị; chúng không
+  archive document và không làm mất lịch sử giao dịch.
+- `amountFormat` nhận `standard` hoặc `compact`.
+- `dateFormat` nhận `dd/MM/yyyy`, `MM/dd/yyyy` hoặc `yyyy-MM-dd`.
 
 ### 5.3 Wallet
 
@@ -876,6 +896,26 @@ Quy tắc merge đề xuất:
 - Nếu Firestore chưa có settings, tạo settings từ local preference.
 - Không ghi đè settings đã tồn tại bằng giá trị local cũ.
 
+### Cập nhật preference
+
+1. `expensePreferencesStore` chuẩn hóa giá trị và optimistic update UI.
+2. Các write được đưa vào hàng đợi để tránh request cũ ghi đè request mới.
+3. Repository đọc settings hiện tại, merge default schema mới và field thay đổi.
+4. Firestore ghi `updatedAt` bằng `serverTimestamp()`.
+5. Khi write lỗi, store rollback field về giá trị confirmed gần nhất.
+
+### Quản lý danh mục và ví trong Settings
+
+- Sắp xếp category ghi lại `sortOrder` theo bước 10 bằng write batch.
+- Sắp xếp wallet ghi lại `order` theo bước 10 bằng write batch.
+- Chọn ví mặc định cập nhật `isDefault` trên toàn bộ active wallets và
+  `settings.defaultWalletId`.
+- Chọn category mặc định cập nhật `settings.defaultCategoryId`.
+- Ẩn/hiện chỉ cập nhật mảng ID trong settings; không dùng `isArchived`.
+- Dashboard truyền danh sách đã lọc xuống transaction, report, budget và
+  category views; Settings luôn nhận danh sách đầy đủ để có thể hiện lại mục đã
+  ẩn.
+
 ## 11. Flow tạo giao dịch
 
 Form `Thêm giao dịch` chỉ expose ba type user nhập trực tiếp:
@@ -1391,14 +1431,22 @@ Security Rules cần giới hạn:
 - `currency` thuộc danh sách currency hỗ trợ.
 - Boolean fields phải đúng type.
 - `defaultWalletId` là string hoặc null.
+- `defaultCategoryId` là string hoặc null.
+- `amountFormat` thuộc `standard` hoặc `compact`.
+- `dateFormat` thuộc ba format được hỗ trợ.
+- `hiddenCategoryIds` và `hiddenWalletIds` là list.
 
 Không cho client thêm field tùy ý vào settings document.
 
-## 24. Kiến trúc frontend dự kiến
+User profile có rule riêng: owner chỉ được cập nhật `displayName` và
+`updatedAt`; không được thay email, photoURL hoặc timestamp khởi tạo qua flow
+này.
+
+## 24. Kiến trúc frontend hiện tại
 
 Không gọi Firestore trực tiếp trong component UI.
 
-Cấu trúc đề xuất:
+Cấu trúc chính:
 
 ```text
 src/
@@ -1417,14 +1465,14 @@ src/
         │   ├── budgetsRepository.js
         │   └── monthlyStatsRepository.js
         ├── hooks/
-        │   ├── useExpenseSettings.js
-        │   ├── useExpenseDashboard.js
-        │   ├── useTransactions.js
-        │   └── useBudgets.js
-        ├── mappers/
-        │   ├── transactionMapper.js
-        │   └── dashboardMapper.js
+        │   └── useEnsureExpenseSettings.js
+        ├── pages/
+        ├── utils/
         └── components/
+            ├── layout/
+            ├── mobile/
+            ├── shared/
+            └── web/
 ```
 
 Vai trò:
@@ -1432,9 +1480,15 @@ Vai trò:
 - `api/repositories`: biết Firestore path và query.
 - Repository hiện tại cũng chứa mutation client-side bằng Firestore
   `runTransaction`/batch.
-- `hooks`: quản lý loading, error, subscription và lifecycle.
-- `mappers`: chuyển Firestore model thành UI props hiện tại.
+- `stores`: giữ auth snapshot, preferences, projections và mutation actions.
+- `hooks`: quản lý bootstrap settings/auth và lifecycle.
+- `utils`: tính toán, format, CSV và chuyển dữ liệu hiển thị.
 - `components`: chỉ render và phát user events.
+
+`SettingsContent` và `UserProfileCard` được dùng chung giữa desktop/mobile.
+Desktop dùng `ExpenseSidebar` cho tài khoản và điều hướng; `ExpenseHeader` chỉ
+giữ ngữ cảnh trang, filter và thao tác thêm giao dịch. Mobile Settings giữ link
+đến Budget, Wallet và Category vì ba trang này không nằm trong bottom nav.
 
 Nhờ mapper, có thể giữ phần lớn component hiện tại trong giai đoạn migration.
 
@@ -1754,6 +1808,12 @@ Có thể thêm scheduled reconciliation để phát hiện chênh lệch mà kh
 - Transaction list phân trang đúng.
 - Filter theo type hoạt động.
 - Budget warning đúng threshold.
+- Settings desktop/mobile dùng chung preference và management actions.
+- Ẩn/hiện category/wallet cập nhật ngay các form và report liên quan.
+- Category/wallet mặc định được chọn sẵn trong form giao dịch.
+- Đổi displayName cập nhật Auth, Firestore và auth store; lỗi Firestore rollback
+  Auth.
+- CSV mở trong Excel đúng cột và đúng tiếng Việt.
 
 ## 34. Acceptance criteria cho lần triển khai đầu
 
@@ -1786,7 +1846,38 @@ Có thể thêm scheduled reconciliation để phát hiện chênh lệch mà kh
 Thiết kế hiện tại vẫn để đường mở cho các chức năng này nhưng không tăng độ
 phức tạp của phiên bản đầu.
 
-## 36. Tài liệu Firestore tham khảo
+## 36. CSV import/export
+
+Settings cho phép export toàn bộ active transactions và import các transaction
+editable (`expense`, `income`, `transfer`) qua cùng repository tạo giao dịch.
+Import không ghi thẳng transaction document nên wallet balance và monthly stats
+vẫn đi qua flow nghiệp vụ hiện tại.
+
+Định dạng export:
+
+- Extension `.csv`.
+- Dấu phân cách `;` và dòng đầu `sep=;` để Excel tự nhận cột.
+- Tiêu đề tiếng Việt: Ngày, Giờ, Loại giao dịch, Số tiền, Nội dung, Danh mục,
+  Ví, Ví chuyển, Ví nhận, Ghi chú.
+- Ngày hiển thị `dd/MM/yyyy`.
+- Category và wallet dùng display name thay vì document ID.
+- Encoding UTF-16 LE với BOM để Excel trên Windows hiển thị đúng tiếng Việt.
+- Giá trị có delimiter, dấu nháy hoặc xuống dòng được CSV-escape; text bắt đầu
+  bằng ký tự công thức nguy hiểm được prefix để hạn chế CSV injection.
+
+Parser import:
+
+- Tự nhận UTF-8, UTF-16 LE và UTF-16 BE bằng BOM.
+- Đọc được dấu `,` của format cũ hoặc dấu `;` của format mới.
+- Chấp nhận header tiếng Anh cũ và header tiếng Việt mới.
+- Chấp nhận ngày `yyyy-MM-dd` hoặc `dd/MM/yyyy`.
+- Match category/wallet theo ID hoặc tên không phân biệt hoa thường.
+- Validate loại giao dịch, số tiền, ngày, category và wallet trước khi ghi.
+
+`creditPayment` và `adjustment` vẫn được export để báo cáo/audit nhưng không nằm
+trong contract import trực tiếp vì chúng phải đi qua flow nghiệp vụ riêng.
+
+## 37. Tài liệu Firestore tham khảo
 
 - [Cloud Firestore data model](https://firebase.google.com/docs/firestore/data-model)
 - [Transactions and batched writes](https://firebase.google.com/docs/firestore/manage-data/transactions)
@@ -1797,7 +1888,7 @@ phức tạp của phiên bản đầu.
 - [Securely query data](https://firebase.google.com/docs/firestore/security/rules-query)
 - [Firestore best practices](https://firebase.google.com/docs/firestore/best-practices)
 
-## 37. Trạng thái
+## 38. Trạng thái
 
 ```text
 Status: Implementation contract for current expenses module
@@ -1808,6 +1899,10 @@ Budget UI: Web budget create/update/delete modal active
 Wallet balance flow: Initial setup plus adjustment transactions active
 Credit payment flow: creditPayment transactions active
 Wallet archive rules: Default/non-zero/last-active wallet protected
+Settings UI: Desktop/mobile shared content active
+Settings preferences: Formats/defaults/hidden category and wallet IDs active
+CSV: Excel-compatible UTF-16 LE export and multi-encoding import active
+Profile: displayName synchronized across Auth, Firestore and auth store
 ```
 
 Tài liệu này là contract nghiệp vụ và dữ liệu cho implementation hiện tại. Khi

@@ -24,7 +24,8 @@ import {
     transactionTypes,
     walletTypeIds,
     walletTypeMeta,
-} from "../constant/expensesMetaData";
+} from "../constants/expenseMetadata";
+import { isCreditCardWallet, normalizeWalletName } from "../utils/walletUtils";
 
 async function hasActiveWalletTransactions(uid, walletId) {
     const transactionsQuery = query(
@@ -49,19 +50,17 @@ function getCreditCardProjection(creditLimit, outstandingDebt = 0) {
     }
 }
 
-function isCreditCardWallet(wallet) {
-    return wallet?.type === creditCardWalletTypeId
-}
-
 function sortWallets(firstWallet, secondWallet) {
-    if (firstWallet.isDefault !== secondWallet.isDefault) {
-        return firstWallet.isDefault ? -1 : 1;
-    }
-
-    return (
+    const orderComparison = (
         (firstWallet.order ?? Number.MAX_SAFE_INTEGER) -
         (secondWallet.order ?? Number.MAX_SAFE_INTEGER)
     );
+
+    if (orderComparison !== 0) {
+        return orderComparison;
+    }
+
+    return firstWallet.isDefault === secondWallet.isDefault ? 0 : firstWallet.isDefault ? -1 : 1;
 }
 
 function mapWallet(documentSnapshot) {
@@ -100,19 +99,12 @@ function normalizeText(value, label) {
     return text
 }
 
-function normalizeWalletNameForComparison(value) {
-    return String(value ?? "")
-        .trim()
-        .replace(/\s+/g, " ")
-        .toLocaleLowerCase("vi")
-}
-
 function assertUniqueWalletName(activeWallets, wallet, excludedWalletId) {
-    const normalizedName = normalizeWalletNameForComparison(wallet.name)
+    const normalizedName = normalizeWalletName(wallet.name)
     const duplicateWallet = activeWallets.find(
         (activeWallet) =>
             activeWallet.id !== excludedWalletId &&
-            normalizeWalletNameForComparison(activeWallet.name) === normalizedName,
+            normalizeWalletName(activeWallet.name) === normalizedName,
     )
 
     if (duplicateWallet) {
@@ -725,4 +717,27 @@ export async function setDefaultExpenseWallet(uid, walletId) {
     await batch.commit()
 
     return { id: walletId }
+}
+
+export async function reorderExpenseWallets(uid, walletIds = []) {
+    const activeWallets = await getExpenseWallets(uid)
+    const activeWalletIds = new Set(activeWallets.map((wallet) => wallet.id))
+    const orderedWalletIds = [...new Set(walletIds)].filter((walletId) => activeWalletIds.has(walletId))
+
+    if (orderedWalletIds.length !== activeWallets.length) {
+        throw new Error('Wallet order must include every active wallet.')
+    }
+
+    const timestamp = serverTimestamp()
+    const batch = writeBatch(firestore)
+
+    orderedWalletIds.forEach((walletId, index) => {
+        batch.update(getDocumentReference(uid, expenseCollections.WALLETS, walletId), {
+            order: (index + 1) * 10,
+            updatedAt: timestamp,
+        })
+    })
+
+    await batch.commit()
+    return orderedWalletIds
 }

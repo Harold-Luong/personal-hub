@@ -15,7 +15,6 @@ import { firestore } from "../../../lib/firebase/firestore";
 import { expenseCollections } from "./expenseFirestoreSchema";
 import { getCollectionReference, getDocumentReference } from "./getReference";
 import {
-    creditCardWalletTypeId,
     expenseDefaultCurrency,
     expenseDefaultLocale,
     expenseDefaultTimezone,
@@ -24,9 +23,9 @@ import {
     transactionMaxPageSize,
     transactionTypeIds,
     transactionTypes,
-} from "../constant/expensesMetaData";
-import { expenseFilterValues } from "../constant/expensesUiMetaData";
-import { getWalletDisplayName } from "../utils/walletDisplayUtils";
+} from "../constants/expenseMetadata";
+import { expenseFilterValues } from "../constants/expenseUiMetadata";
+import { getWalletDisplayName, isCreditCardWallet } from "../utils/walletUtils";
 
 function normalizeText(value) {
     return String(value ?? "")
@@ -121,10 +120,6 @@ function getSnapshotData(snapshot, label) {
     }
 
     return data;
-}
-
-function isCreditCardWallet(wallet) {
-    return wallet?.type === creditCardWalletTypeId;
 }
 
 function getCreditCardWalletProjection(wallet, balanceDelta) {
@@ -681,6 +676,24 @@ export async function getExpenseTransactions(uid, maxTransactions = 50) {
     const { transactions } = await getExpenseTransactionsPage(uid, {
         pageSize: getPageSize(maxTransactions),
     });
+
+    return transactions;
+}
+
+export async function getAllExpenseTransactions(uid) {
+    const transactions = [];
+    let cursor = null;
+    let hasNextPage = true;
+
+    while (hasNextPage) {
+        const page = await getExpenseTransactionsPage(uid, {
+            cursor,
+            pageSize: transactionMaxPageSize,
+        });
+        transactions.push(...page.transactions);
+        cursor = page.cursor;
+        hasNextPage = page.hasNextPage;
+    }
 
     return transactions;
 }

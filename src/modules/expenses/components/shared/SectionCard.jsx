@@ -1,4 +1,4 @@
-import { expenseUiText } from "../../constant/expensesUiMetaData";
+import { expenseUiText } from "../../constants/expenseUiMetadata";
 import SectionCardHeader from "./SectionCardHeader";
 
 export default function SectionCard({

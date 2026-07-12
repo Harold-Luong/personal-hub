@@ -18,11 +18,14 @@ const defaultExpenseDataState = {
  * @returns {number} - Giá trị âm nếu firstWallet nên đứng trước secondWallet, giá trị dương nếu ngược lại, và 0 nếu bằng nhau.
  */
 function sortWallets(firstWallet, secondWallet) {
-    if (firstWallet.isDefault !== secondWallet.isDefault) {
-        return firstWallet.isDefault ? -1 : 1;
+    const orderComparison =
+        (firstWallet.order ?? Number.MAX_SAFE_INTEGER) - (secondWallet.order ?? Number.MAX_SAFE_INTEGER);
+
+    if (orderComparison !== 0) {
+        return orderComparison;
     }
 
-    return (firstWallet.order ?? Number.MAX_SAFE_INTEGER) - (secondWallet.order ?? Number.MAX_SAFE_INTEGER);
+    return firstWallet.isDefault === secondWallet.isDefault ? 0 : firstWallet.isDefault ? -1 : 1;
 }
 
 /**
@@ -479,6 +482,53 @@ export const useExpenseDataStore = create((set, get) => ({
         }));
 
         return result;
+    },
+
+    reorderExpenseCategories: async (uid, categoryIds) => {
+        const { reorderExpenseCategories } = await import("../modules/expenses/api/categoriesRepository");
+        const orderedIds = await reorderExpenseCategories(uid, categoryIds);
+        const orderById = new Map(orderedIds.map((id, index) => [id, (index + 1) * 10]));
+
+        set((state) => ({
+            categories: [...state.categories]
+                .map((category) => ({
+                    ...category,
+                    sortOrder: orderById.get(category.id) ?? category.sortOrder,
+                }))
+                .sort((first, second) => {
+                    const typeComparison = (first.type ?? "").localeCompare(second.type ?? "");
+                    return typeComparison || (first.sortOrder ?? 0) - (second.sortOrder ?? 0);
+                }),
+        }));
+
+        return orderedIds;
+    },
+
+    reorderExpenseWallets: async (uid, walletIds) => {
+        const { reorderExpenseWallets } = await import("../modules/expenses/api/walletsRepository");
+        const orderedIds = await reorderExpenseWallets(uid, walletIds);
+        const orderById = new Map(orderedIds.map((id, index) => [id, (index + 1) * 10]));
+
+        set((state) => ({
+            wallets: state.wallets
+                .map((wallet) => ({ ...wallet, order: orderById.get(wallet.id) ?? wallet.order }))
+                .sort(sortWallets),
+        }));
+
+        return orderedIds;
+    },
+
+    setDefaultExpenseWallet: async (uid, walletId) => {
+        const { setDefaultExpenseWallet } = await import("../modules/expenses/api/walletsRepository");
+        await setDefaultExpenseWallet(uid, walletId);
+
+        set((state) => ({
+            wallets: state.wallets
+                .map((wallet) => ({ ...wallet, isDefault: wallet.id === walletId }))
+                .sort(sortWallets),
+        }));
+
+        return walletId;
     },
 }));
 

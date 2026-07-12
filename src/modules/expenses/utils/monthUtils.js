@@ -1,4 +1,4 @@
-import { expenseFilterValues } from "../constant/expensesUiMetaData";
+import { expenseFilterValues } from "../constants/expenseUiMetadata";
 
 export function getCurrentMonthKey(date = new Date()) {
     const month = String(date.getMonth() + 1).padStart(2, "0");

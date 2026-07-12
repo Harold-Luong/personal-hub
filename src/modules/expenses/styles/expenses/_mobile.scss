@@ -2,7 +2,7 @@
 
 .mobile-budget-page,
 .mobile-wallet-page,
-.mobile-dashboard-view {
+.mobile-dashboard-surface {
   display: none;
 }
 
@@ -68,7 +68,7 @@
   font-size: 11px;
 }
 
-.mobile-dashboard-view__header {
+.mobile-dashboard-surface__header {
   align-items: center;
   align-self: start;
   display: grid;
@@ -76,14 +76,14 @@
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.mobile-dashboard-view__header-copy {
+.mobile-dashboard-surface__header-copy {
   display: grid;
   gap: 6px;
   min-width: 0;
 }
 
-.mobile-dashboard-view__header-copy p,
-.mobile-dashboard-view__header-copy h1 {
+.mobile-dashboard-surface__header-copy p,
+.mobile-dashboard-surface__header-copy h1 {
   color: var(--expense-heading);
   font-size: 22px;
   font-weight: 800;
@@ -91,31 +91,19 @@
   margin: 0;
 }
 
-.mobile-dashboard-view__header-copy>span {
+.mobile-dashboard-surface__header-copy>span {
   color: $expense-inactive-color;
   font-size: 14px;
   font-weight: 600;
   line-height: 1.2;
 }
 
-.mobile-dashboard-view__header-copy p span,
-.mobile-dashboard-view__header-copy h1 span {
+.mobile-dashboard-surface__header-copy p span,
+.mobile-dashboard-surface__header-copy h1 span {
   font-size: 20px;
 }
 
-.mobile-dashboard-view__header .mobile-dashboard-view__notification {
-  align-items: center;
-  background: transparent;
-  color: var(--expense-heading);
-  display: inline-flex;
-  height: 36px;
-  justify-content: center;
-  margin-top: -2px;
-  padding: 0;
-  width: 36px;
-}
-
-.mobile-dashboard-view__header-actions {
+.mobile-dashboard-surface__header-actions {
   align-items: center;
   display: flex;
   flex: 0 0 auto;
@@ -123,7 +111,7 @@
   justify-self: end;
 }
 
-.mobile-dashboard-view__header .mobile-dashboard-view__theme-toggle {
+.mobile-dashboard-surface__header .mobile-dashboard-surface__theme-toggle {
   align-items: center;
   background: transparent;
   color: var(--expense-active-strong);
@@ -135,8 +123,7 @@
   width: 36px;
 }
 
-.mobile-dashboard-view__notification svg,
-.mobile-dashboard-view__theme-toggle svg {
+.mobile-dashboard-surface__theme-toggle svg {
   display: block;
 }
 
@@ -206,11 +193,11 @@
 }
 
 .monthly-budget-card--warning .monthly-budget-card__summary>strong {
-  color: #a86a00;
+  color: var(--expense-warning);
 }
 
 .monthly-budget-card--exceeded .monthly-budget-card__summary>strong {
-  color: #dc1717;
+  color: var(--expense-danger);
 }
 
 .monthly-budget-card__summary p>strong {

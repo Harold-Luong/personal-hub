@@ -11,7 +11,7 @@ import {
 } from "../../../stores/expenseDataStore";
 import AmountText from "../components/shared/AmountText";
 import DonutChart from "../components/shared/DonutChart";
-import ExpenseEmoji from "../components/shared/ExpenseEmoji";
+import ExpenseIcon from "../components/shared/ExpenseIcon";
 import ExpenseStateMessage from "../components/shared/ExpenseStateMessage";
 import SummaryCardList from "../components/shared/SummaryCardList";
 import {
@@ -22,8 +22,8 @@ import {
     categoryTransactionPageSize,
     expenseRoutePaths,
     transactionTypes,
-} from "../constant/expensesMetaData";
-import { expenseSortKeys, expenseUiText } from "../constant/expensesUiMetaData";
+} from "../constants/expenseMetadata";
+import { expenseSortKeys, expenseUiText } from "../constants/expenseUiMetadata";
 import { BudgetIcon, CalendarIcon, ChevronIcon, ReportIcon, TransactionListIcon } from "../icon/ExpenseIcons";
 import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { formatCurrency } from "../utils/formatCurrency";
@@ -280,7 +280,7 @@ function CategoryTransactionItem({ transaction }) {
     return (
         <article className="category-spending-page__transaction transactions-page__row" role="row">
             <div className="category-spending-page__transaction-main transactions-page__row-main" role="cell">
-                <ExpenseEmoji icon={transaction.icon ?? transaction.category} label={transaction.title} />
+                <ExpenseIcon icon={transaction.icon ?? transaction.category} label={transaction.title} />
                 <div className="category-spending-page__transaction-copy transactions-page__row-copy">
                     <strong>{transaction.title}</strong>
                     <span>{transaction.note || expenseUiText.transaction.NO_NOTE}</span>
@@ -437,7 +437,7 @@ function CategoryTableRow({
         <article className={rowClassName} style={{ "--category-color": category.color }}>
             <div className="category-spending-page__category-row" role="row">
                 <div className="category-spending-page__category-main" role="cell">
-                    <ExpenseEmoji
+                    <ExpenseIcon
                         appearance="emoji"
                         color={category.color}
                         icon={category.icon}
@@ -578,10 +578,11 @@ function CategoryDetailPanel({
     );
 }
 
-function CategorySpendingWorkspace({
+export default function CategorySpendingPage({
     categories: controlledCategories,
     mode,
     monthOptions: controlledMonthOptions,
+    onBack,
     onSelectedMonthChange,
     onSortKeyChange,
     selectedMonth: controlledSelectedMonth,
@@ -824,6 +825,12 @@ function CategorySpendingWorkspace({
     return (
         <div className={`category-spending-page category-spending-page--${mode}`}>
             {!isDesktopMode ? (
+                <button className="category-spending-page__back" onClick={onBack} type="button">
+                    <ChevronIcon direction="left" size={15} />
+                    <span>Cài đặt</span>
+                </button>
+            ) : null}
+            {!isDesktopMode ? (
                 <section className="category-spending-page__hero">
                     <div className="category-spending-page__hero-copy">
                         <span>Chi tiêu</span>
@@ -910,27 +917,5 @@ function CategorySpendingWorkspace({
                 />
             </section>
         </div>
-    );
-}
-
-export default function CategorySpendingPage({
-    categories,
-    monthOptions,
-    mode = "mobile",
-    onSelectedMonthChange,
-    onSortKeyChange,
-    selectedMonth,
-    sortKey,
-}) {
-    return (
-        <CategorySpendingWorkspace
-            categories={categories}
-            monthOptions={monthOptions}
-            mode={mode}
-            onSelectedMonthChange={onSelectedMonthChange}
-            onSortKeyChange={onSortKeyChange}
-            selectedMonth={selectedMonth}
-            sortKey={sortKey}
-        />
     );
 }

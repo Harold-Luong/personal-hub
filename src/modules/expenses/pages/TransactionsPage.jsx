@@ -19,13 +19,13 @@ import {
     transactionSummaryItems,
     transactionTypeMeta,
     transactionTypes,
-} from "../constant/expensesMetaData";
+} from "../constants/expenseMetadata";
 import {
     expenseFilterValues,
     expenseSortDirections,
     expenseSortKeys,
     expenseUiText,
-} from "../constant/expensesUiMetaData";
+} from "../constants/expenseUiMetadata";
 import {
     ArrowDownIcon,
     ArrowUpIcon,
@@ -42,11 +42,11 @@ import {
 import AmountText from "../components/shared/AmountText";
 import ExpenseButton from "../components/shared/ExpenseButton";
 import ExpenseStateMessage from "../components/shared/ExpenseStateMessage";
-import ExpenseEmoji from "../components/shared/ExpenseEmoji";
+import ExpenseIcon from "../components/shared/ExpenseIcon";
 import SummaryCardList from "../components/shared/SummaryCardList";
-import WebAddTransactionPanel from "../components/web/WebAddTransactionPanel";
+import DesktopTransactionDialog from "../components/desktop/DesktopTransactionDialog";
 import { getTransactionWalletLabel } from "../utils/transactionDisplayUtils";
-import { getWalletDisplayName } from "../utils/walletDisplayUtils";
+import { getWalletDisplayName } from "../utils/walletUtils";
 
 const transactionSummaryIcons = {
     count: TransactionListIcon,
@@ -274,7 +274,7 @@ function TransactionRow({ onDelete, onEdit, transaction }) {
     return (
         <article className="transactions-page__row" role="row">
             <div className="transactions-page__row-main" role="cell">
-                <ExpenseEmoji icon={transaction.icon ?? transaction.category} label={transaction.title} />
+                <ExpenseIcon icon={transaction.icon ?? transaction.category} label={transaction.title} />
                 <div className="transactions-page__row-copy">
                     <strong>{transaction.title}</strong>
                     <span>{transaction.note || expenseUiText.transaction.NO_NOTE}</span>
@@ -339,7 +339,7 @@ function TransactionRow({ onDelete, onEdit, transaction }) {
     );
 }
 
-function TransactionsWorkspace({
+function TransactionsSurface({
     categories: controlledCategories,
     initialCategoryId = expenseFilterValues.ALL,
     initialMonthKey = "",
@@ -917,7 +917,7 @@ function TransactionsWorkspace({
             </section>
 
             {isEditorOpen ? (
-                <WebAddTransactionPanel
+                <DesktopTransactionDialog
                     categories={categories}
                     initialTransaction={editingTransaction}
                     onCancel={closeEditor}
@@ -970,7 +970,7 @@ export default function TransactionsPage({
     const initialMonthKey = searchParams.get("monthKey") ?? "";
 
     return (
-        <TransactionsWorkspace
+        <TransactionsSurface
             categories={categories}
             initialCategoryId={initialCategoryId}
             initialMonthKey={initialMonthKey}

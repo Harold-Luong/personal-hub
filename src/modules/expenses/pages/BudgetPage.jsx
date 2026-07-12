@@ -3,9 +3,9 @@ import BudgetForm from "../components/budget/BudgetForm";
 import MobileBudgetFormSheet from "../components/budget/MobileBudgetFormSheet";
 import MobilePageHeader from "../components/mobile/MobilePageHeader";
 import AmountText from "../components/shared/AmountText";
-import ExpenseIcon from "../components/shared/ExpenseEmoji";
+import ExpenseIcon from "../components/shared/ExpenseIcon";
 import ProgressBar from "../components/shared/ProgressBar";
-import { budgetStatusColors, budgetStatusLabels } from "../constant/expensesMetaData";
+import { budgetStatusColors, budgetStatusLabels } from "../constants/expenseMetadata";
 import { CalendarIcon, ChevronIcon, FilterIcon, PlusIcon } from "../icon/ExpenseIcons";
 import {
     calculateBudgetUsagePercentage,
@@ -80,7 +80,7 @@ function BudgetMobileHeader({ monthKey, monthLabel, onBack }) {
         <MobilePageHeader
             actions={
                 <button className="mobile-budget-page__header-action" onClick={onBack} type="button">
-                    Tổng quan
+                    Cài đặt
                 </button>
             }
             className="mobile-budget-page__header"
