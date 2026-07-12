@@ -9,6 +9,7 @@ import MobileSettingsView from "../components/mobile/MobileSettingsView";
 export default function SettingsPage({
     onLogout,
     onManageBudget,
+    onManageCategories,
     onManageWallet,
     wallets,
 }) {
@@ -27,6 +28,7 @@ export default function SettingsPage({
             notificationsEnabled={settings.notificationsEnabled}
             onLogout={onLogout}
             onManageBudget={onManageBudget}
+            onManageCategories={onManageCategories}
             onManageWallet={onManageWallet}
             onSettingChange={handleSettingChange}
             onThemeChange={(theme) => handleSettingChange("theme", theme)}

@@ -32,6 +32,7 @@ export default function MobileSettingsView({
     notificationsEnabled,
     onLogout,
     onManageBudget,
+    onManageCategories,
     onManageWallet,
     onSettingChange,
     onThemeChange,
@@ -193,13 +194,13 @@ export default function MobileSettingsView({
                         </span>
                         <span aria-hidden="true">&gt;</span>
                     </button>
-                    <div>
+                    <button onClick={onManageCategories} type="button">
                         <span>
                             <strong>Danh mục</strong>
                             <small>Tùy chỉnh danh mục thu chi</small>
                         </span>
                         <span aria-hidden="true">&gt;</span>
-                    </div>
+                    </button>
                     <div>
                         <span>
                             <strong>Sao lưu dữ liệu</strong>

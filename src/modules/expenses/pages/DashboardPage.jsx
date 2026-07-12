@@ -439,6 +439,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                 <SettingsPage
                     onLogout={handleLogout}
                     onManageBudget={() => navigateExpenseRoute("budgets")}
+                    onManageCategories={() => navigateExpenseRoute("categories")}
                     onManageWallet={() => navigateExpenseRoute("wallets")}
                     wallets={wallets}
                 />
