@@ -1,0 +1,141 @@
+.expenses-page {
+  background: var(--expense-page-bg);
+  color: var(--expense-text);
+  display: flow-root;
+  min-height: 100vh;
+}
+
+.expenses-page.is-theme-ready {
+  transition:
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+.sr-only {
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.mobile-budget-page,
+.mobile-dashboard-surface,
+.mobile-report-page,
+.mobile-wallet-page,
+.mobile-transactions-surface,
+.desktop-dashboard-surface {
+  min-height: 100vh;
+}
+
+.amount-text {
+  color: var(--expense-active-strong);
+  white-space: nowrap;
+}
+
+.amount-text.is-negative {
+  color: var(--expense-danger);
+}
+
+.category-icon {
+  align-items: center;
+  background: color-mix(in srgb, var(--icon-color, var(--expense-active-strong)) 16%, white);
+  border: 1px solid color-mix(in srgb, var(--icon-color, var(--expense-active-strong)) 28%, white);
+  border-radius: 8px;
+  color: var(--icon-color, var(--expense-active-strong));
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 800;
+  height: 34px;
+  justify-content: center;
+  letter-spacing: 0;
+  line-height: 1;
+  width: 34px;
+}
+
+.category-icon--emoji {
+  font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
+  font-size: 17px;
+  font-weight: 400;
+}
+
+.category-icon--base svg {
+  display: block;
+}
+
+.category-icon--bare {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  height: auto;
+  width: auto;
+}
+
+.category-icon--bare.category-icon--emoji {
+  font-size: var(--expense-icon-size, 17px);
+}
+
+.section-card {
+  align-content: start;
+  background: var(--expense-surface);
+  border: 1px solid var(--expense-border);
+  border-radius: 8px;
+  box-shadow: 0 14px 36px var(--expense-shadow);
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.section-card__header {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  margin-bottom: 0;
+}
+
+.section-card__title {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.section-card__header h2 {
+  font-size: 16px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.section-card__title span {
+  color: var(--expense-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.section-card__header button {
+  background: transparent;
+  border: 0;
+  color: var(--expense-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  padding: 0;
+}
+
+.progress-bar {
+  background: color-mix(in srgb, var(--expense-text) 10%, transparent);
+  border-radius: 999px;
+  height: 6px;
+  overflow: hidden;
+}
+
+.progress-bar span {
+  background: var(--expense-active-strong);
+  display: block;
+  height: 100%;
+}

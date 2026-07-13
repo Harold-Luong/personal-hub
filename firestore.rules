@@ -1,0 +1,849 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // =========================
+    // Common
+    // =========================
+
+    function isValidCurrency(currency) {
+      return currency in ['VND', 'USD'];
+    }
+
+    function isValidString(value) {
+      return value is string && value.size() > 0;
+    }
+
+    function isOptionalString(value) {
+      return value == null || value is string;
+    }
+
+    // =========================
+    // User profile
+    // users/{uid}
+    // =========================
+
+    function allowedUserProfileKeys() {
+      return [
+        'displayName',
+        'email',
+        'photoURL',
+        'createdAt',
+        'initializedAt',
+        'updatedAt',
+      ];
+    }
+
+    function isValidUserProfileCreate(data) {
+      return data.keys().hasOnly(allowedUserProfileKeys())
+        && data.keys().hasAll([
+          'displayName',
+          'email',
+          'photoURL',
+          'createdAt',
+          'initializedAt',
+          'updatedAt',
+        ])
+        && isOptionalString(data.displayName)
+        && isOptionalString(data.email)
+        && isOptionalString(data.photoURL)
+        && data.createdAt == request.time
+        && data.initializedAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    function isValidUserProfileUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'displayName',
+            'updatedAt',
+          ])
+        && request.resource.data.keys().hasOnly(allowedUserProfileKeys())
+        && isValidString(request.resource.data.displayName)
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.photoURL == resource.data.photoURL
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.initializedAt == resource.data.initializedAt
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    // =========================
+    // Expense module root
+    // users/{uid}/modules/expenses
+    // =========================
+
+    function allowedExpenseModuleKeys() {
+      return [
+        'enabled',
+        'createdAt',
+        'updatedAt',
+      ];
+    }
+
+    function isValidExpenseModuleCreate(data) {
+      return data.keys().hasOnly(allowedExpenseModuleKeys())
+        && data.keys().hasAll([
+          'enabled',
+          'createdAt',
+          'updatedAt',
+        ])
+        && data.enabled is bool
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    function isValidExpenseModuleUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'enabled',
+            'updatedAt',
+          ])
+        && request.resource.data.enabled is bool
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    // =========================
+    // Expense settings
+    // users/{uid}/modules/expenses/settings/main
+    // =========================
+
+    function allowedExpenseSettingsKeys() {
+      return [
+        'theme',
+        'iconSet',
+        'currency',
+        'timezone',
+        'hideBalance',
+        'notificationsEnabled',
+        'defaultWalletId',
+        'defaultCategoryId',
+        'amountFormat',
+        'dateFormat',
+        'hiddenCategoryIds',
+        'hiddenWalletIds',
+        'updatedAt',
+      ];
+    }
+
+    function isValidExpenseTheme(theme) {
+      return theme in [
+        'sage',
+        'fjord',
+        'clay',
+        'blossom',
+        'vintage',
+        'retro',
+      ];
+    }
+
+    function isValidExpenseSettings(data) {
+      return data.keys().hasOnly(allowedExpenseSettingsKeys())
+        && data.keys().hasAll([
+          'theme',
+          'iconSet',
+          'currency',
+          'timezone',
+          'hideBalance',
+          'notificationsEnabled',
+          'defaultWalletId',
+          'defaultCategoryId',
+          'amountFormat',
+          'dateFormat',
+          'hiddenCategoryIds',
+          'hiddenWalletIds',
+          'updatedAt',
+        ])
+        && isValidExpenseTheme(data.theme)
+        && data.iconSet in ['emoji', 'base']
+        && isValidCurrency(data.currency)
+        && isValidString(data.timezone)
+        && data.hideBalance is bool
+        && data.notificationsEnabled is bool
+        && (data.defaultWalletId == null || data.defaultWalletId is string)
+        && (data.defaultCategoryId == null || data.defaultCategoryId is string)
+        && data.amountFormat in ['standard', 'compact']
+        && data.dateFormat in ['dd/MM/yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd']
+        && data.hiddenCategoryIds is list
+        && data.hiddenWalletIds is list
+        && data.updatedAt == request.time;
+    }
+
+    function isValidExpenseSettingsCreate() {
+      return isValidExpenseSettings(request.resource.data);
+    }
+
+    function isValidExpenseSettingsUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(allowedExpenseSettingsKeys())
+        && isValidExpenseSettings(request.resource.data);
+    }
+
+    // =========================
+    // Wallets
+    // users/{uid}/modules/expenses/wallets/{walletId}
+    // =========================
+
+    function allowedWalletKeys() {
+      return [
+        'name',
+        'type',
+        'icon',
+        'color',
+        'balance',
+        'initialBalance',
+        'creditLimit',
+        'outstandingDebt',
+        'availableCredit',
+        'currency',
+        'order',
+        'isDefault',
+        'isBalanceInitialized',
+        'isArchived',
+        'createdAt',
+        'updatedAt',
+      ];
+    }
+
+    function isValidWalletType(type) {
+      return type in [
+        'cash',
+        'bank',
+        'eWallet',
+        'credit-card',
+        'saving',
+        'other',
+      ];
+    }
+
+    function creditCardWalletKeys() {
+      return [
+        'creditLimit',
+        'outstandingDebt',
+        'availableCredit',
+      ];
+    }
+
+    function isValidCreditCardWalletProjection(data) {
+      return data.keys().hasAll(creditCardWalletKeys())
+        && data.balance == 0
+        && data.initialBalance == 0
+        && data.creditLimit is number
+        && data.creditLimit > 0
+        && data.outstandingDebt is number
+        && data.outstandingDebt >= 0
+        && data.outstandingDebt <= data.creditLimit
+        && data.availableCredit is number
+        && data.availableCredit == data.creditLimit - data.outstandingDebt;
+    }
+
+    function isValidStandardWalletProjection(data) {
+      return !data.keys().hasAny(creditCardWalletKeys());
+    }
+
+    function isValidWalletProjection(data) {
+      return (
+          data.type == 'credit-card'
+          && isValidCreditCardWalletProjection(data)
+        )
+        || (
+          data.type != 'credit-card'
+          && isValidStandardWalletProjection(data)
+        );
+    }
+
+    function isValidInitialWalletBalanceSetup() {
+      return !(
+          resource.data.type != 'credit-card'
+          && !resource.data.isBalanceInitialized
+          && request.resource.data.isBalanceInitialized
+        )
+        || request.resource.data.initialBalance > 0;
+    }
+
+    function isValidWalletCreate(data) {
+      return data.keys().hasOnly(allowedWalletKeys())
+        && data.keys().hasAll([
+          'name',
+          'type',
+          'icon',
+          'color',
+          'balance',
+          'initialBalance',
+          'currency',
+          'order',
+          'isDefault',
+          'isBalanceInitialized',
+          'isArchived',
+          'createdAt',
+          'updatedAt',
+        ])
+        && isValidString(data.name)
+        && isValidWalletType(data.type)
+        && isValidString(data.icon)
+        && isValidString(data.color)
+        && data.balance is number
+        && data.initialBalance is number
+        && isValidWalletProjection(data)
+        && isValidCurrency(data.currency)
+        && data.order is int
+        && data.isDefault is bool
+        && data.isBalanceInitialized is bool
+        && data.isArchived is bool
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    function isValidWalletUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'name',
+            'type',
+            'icon',
+            'color',
+            'balance',
+            'initialBalance',
+            'creditLimit',
+            'outstandingDebt',
+            'availableCredit',
+            'currency',
+            'order',
+            'isDefault',
+            'isBalanceInitialized',
+            'isArchived',
+            'updatedAt',
+          ])
+        && request.resource.data.keys().hasOnly(allowedWalletKeys())
+        && isValidString(request.resource.data.name)
+        && isValidWalletType(request.resource.data.type)
+        && isValidString(request.resource.data.icon)
+        && isValidString(request.resource.data.color)
+        && request.resource.data.balance is number
+        && request.resource.data.initialBalance is number
+        && isValidWalletProjection(request.resource.data)
+        && isValidCurrency(request.resource.data.currency)
+        && request.resource.data.order is int
+        && request.resource.data.isDefault is bool
+        && request.resource.data.isBalanceInitialized is bool
+        && request.resource.data.isArchived is bool
+        && isValidInitialWalletBalanceSetup()
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    // =========================
+    // Categories
+    // users/{uid}/modules/expenses/categories/{categoryId}
+    // =========================
+
+    function allowedCategoryKeys() {
+      return [
+        'name',
+        'type',
+        'icon',
+        'color',
+        'sortOrder',
+        'isArchived',
+        'createdAt',
+        'updatedAt',
+      ];
+    }
+
+    function isValidCategoryType(type) {
+      return type in [
+        'expense',
+        'income',
+      ];
+    }
+
+    function isValidCategoryCreate(data) {
+      return data.keys().hasOnly(allowedCategoryKeys())
+        && data.keys().hasAll([
+          'name',
+          'type',
+          'icon',
+          'color',
+          'sortOrder',
+          'isArchived',
+          'createdAt',
+          'updatedAt',
+        ])
+        && isValidString(data.name)
+        && isValidCategoryType(data.type)
+        && isValidString(data.icon)
+        && isValidString(data.color)
+        && data.sortOrder is int
+        && data.isArchived is bool
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    function isValidCategoryUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'name',
+            'icon',
+            'color',
+            'sortOrder',
+            'isArchived',
+            'updatedAt',
+          ])
+        && request.resource.data.keys().hasOnly(allowedCategoryKeys())
+        && isValidString(request.resource.data.name)
+        && isValidCategoryType(request.resource.data.type)
+        && isValidString(request.resource.data.icon)
+        && isValidString(request.resource.data.color)
+        && request.resource.data.sortOrder is int
+        && request.resource.data.isArchived is bool
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    // =========================
+    // Transactions
+    // users/{uid}/modules/expenses/transactions/{transactionId}
+    // =========================
+
+    function allowedTransactionKeys() {
+      return [
+        'type',
+        'adjustmentDirection',
+        'amountMinor',
+        'currency',
+        'title',
+        'titleNormalized',
+        'searchTokens',
+        'note',
+        'categoryId',
+        'walletId',
+        'fromWalletId',
+        'toWalletId',
+        'walletIds',
+        'occurredAt',
+        'localDate',
+        'monthKey',
+        'timezone',
+        'categorySnapshot',
+        'walletSnapshot',
+        'fromWalletSnapshot',
+        'toWalletSnapshot',
+        'status',
+        'createdAt',
+        'updatedAt',
+        'voidedAt',
+      ];
+    }
+
+    function requiredTransactionKeys() {
+      return [
+        'type',
+        'amountMinor',
+        'currency',
+        'title',
+        'titleNormalized',
+        'searchTokens',
+        'note',
+        'categoryId',
+        'walletId',
+        'fromWalletId',
+        'toWalletId',
+        'walletIds',
+        'occurredAt',
+        'localDate',
+        'monthKey',
+        'timezone',
+        'categorySnapshot',
+        'walletSnapshot',
+        'fromWalletSnapshot',
+        'toWalletSnapshot',
+        'status',
+        'createdAt',
+        'updatedAt',
+        'voidedAt',
+      ];
+    }
+
+    function isValidTransactionType(type) {
+      return type in [
+        'expense',
+        'income',
+        'transfer',
+        'creditPayment',
+        'adjustment',
+      ];
+    }
+
+    function isValidSnapshot(snapshot) {
+      return snapshot is map
+        && snapshot.keys().hasOnly([
+          'name',
+          'icon',
+          'color',
+          'type',
+        ])
+        && isValidString(snapshot.name)
+        && isValidString(snapshot.icon)
+        && isValidString(snapshot.color)
+        && (
+          !snapshot.keys().hasAny(['type'])
+          || isValidString(snapshot.type)
+        );
+    }
+
+    function isValidSearchTokens(tokens) {
+      return tokens is list
+        && tokens.size() <= 500
+        && (
+          tokens.size() == 0
+          || tokens[0] is string
+        );
+    }
+
+    function isValidExpenseOrIncomeTransaction(data) {
+      return data.type in [
+          'expense',
+          'income',
+        ]
+        && isValidString(data.categoryId)
+        && isValidString(data.walletId)
+        && data.fromWalletId == null
+        && data.toWalletId == null
+        && data.walletIds is list
+        && data.walletIds.size() == 1
+        && data.walletIds[0] == data.walletId
+        && isValidSnapshot(data.categorySnapshot)
+        && isValidSnapshot(data.walletSnapshot)
+        && data.fromWalletSnapshot == null
+        && data.toWalletSnapshot == null
+        && !data.keys().hasAny(['adjustmentDirection']);
+    }
+
+    function isValidTransferTransaction(data) {
+      return data.type == 'transfer'
+        && data.categoryId == null
+        && data.walletId == null
+        && isValidString(data.fromWalletId)
+        && isValidString(data.toWalletId)
+        && data.fromWalletId != data.toWalletId
+        && data.walletIds is list
+        && data.walletIds.size() == 2
+        && data.walletIds[0] == data.fromWalletId
+        && data.walletIds[1] == data.toWalletId
+        && data.categorySnapshot == null
+        && data.walletSnapshot == null
+        && isValidSnapshot(data.fromWalletSnapshot)
+        && isValidSnapshot(data.toWalletSnapshot)
+        && !data.keys().hasAny(['adjustmentDirection']);
+    }
+
+    function isValidCreditPaymentTransaction(data) {
+      return data.type == 'creditPayment'
+        && data.categoryId == null
+        && data.walletId == null
+        && isValidString(data.fromWalletId)
+        && isValidString(data.toWalletId)
+        && data.fromWalletId != data.toWalletId
+        && data.walletIds is list
+        && data.walletIds.size() == 2
+        && data.walletIds[0] == data.fromWalletId
+        && data.walletIds[1] == data.toWalletId
+        && data.categorySnapshot == null
+        && data.walletSnapshot == null
+        && isValidSnapshot(data.fromWalletSnapshot)
+        && isValidSnapshot(data.toWalletSnapshot)
+        && data.fromWalletSnapshot.type != 'credit-card'
+        && data.toWalletSnapshot.type == 'credit-card'
+        && !data.keys().hasAny(['adjustmentDirection']);
+    }
+
+    function isValidAdjustmentTransaction(data) {
+      return data.type == 'adjustment'
+        && data.adjustmentDirection in [
+          'increase',
+          'decrease',
+        ]
+        && data.categoryId == null
+        && isValidString(data.walletId)
+        && data.fromWalletId == null
+        && data.toWalletId == null
+        && data.walletIds is list
+        && data.walletIds.size() == 1
+        && data.walletIds[0] == data.walletId
+        && data.categorySnapshot == null
+        && isValidSnapshot(data.walletSnapshot)
+        && data.fromWalletSnapshot == null
+        && data.toWalletSnapshot == null;
+    }
+
+    function isValidTransactionCreate(data) {
+      return data.keys().hasOnly(allowedTransactionKeys())
+        && data.keys().hasAll(requiredTransactionKeys())
+        && isValidTransactionType(data.type)
+        && data.amountMinor is int
+        && data.amountMinor > 0
+        && isValidCurrency(data.currency)
+        && isValidString(data.title)
+        && isValidString(data.titleNormalized)
+        && isValidSearchTokens(data.searchTokens)
+        && data.note is string
+        && data.occurredAt is timestamp
+        && isValidString(data.localDate)
+        && isValidString(data.monthKey)
+        && isValidString(data.timezone)
+        && data.status == 'active'
+        && data.createdAt == request.time
+        && data.updatedAt == request.time
+        && data.voidedAt == null
+        && (
+          isValidExpenseOrIncomeTransaction(data)
+          || isValidTransferTransaction(data)
+          || isValidCreditPaymentTransaction(data)
+          || isValidAdjustmentTransaction(data)
+        );
+    }
+
+    function isValidTransactionUpdate() {
+      return resource.data.status == 'active'
+        && resource.data.voidedAt == null
+        && request.resource.data.keys().hasOnly(allowedTransactionKeys())
+        && request.resource.data.keys().hasAll(requiredTransactionKeys())
+        && isValidTransactionType(request.resource.data.type)
+        && request.resource.data.amountMinor is int
+        && request.resource.data.amountMinor > 0
+        && isValidCurrency(request.resource.data.currency)
+        && isValidString(request.resource.data.title)
+        && isValidString(request.resource.data.titleNormalized)
+        && isValidSearchTokens(request.resource.data.searchTokens)
+        && request.resource.data.note is string
+        && request.resource.data.occurredAt is timestamp
+        && isValidString(request.resource.data.localDate)
+        && isValidString(request.resource.data.monthKey)
+        && isValidString(request.resource.data.timezone)
+        && request.resource.data.status == 'active'
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.voidedAt == null
+        && (
+          isValidExpenseOrIncomeTransaction(request.resource.data)
+          || isValidTransferTransaction(request.resource.data)
+          || isValidCreditPaymentTransaction(request.resource.data)
+          || isValidAdjustmentTransaction(request.resource.data)
+        );
+    }
+
+    function isValidTransactionVoid() {
+      return resource.data.status == 'active'
+        && resource.data.voidedAt == null
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly([
+              'status',
+              'updatedAt',
+              'voidedAt',
+            ])
+        && request.resource.data.status == 'voided'
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.voidedAt == request.time;
+    }
+
+    // =========================
+    // Budgets
+    // users/{uid}/modules/expenses/budgets/{budgetId}
+    // =========================
+
+    function allowedBudgetKeys() {
+      return [
+        'monthKey',
+        'categoryId',
+        'limitMinor',
+        'alertThreshold',
+        'createdAt',
+        'updatedAt',
+      ];
+    }
+
+    function isActiveExpenseCategory(uid, categoryId) {
+      return exists(/databases/$(database)/documents/users/$(uid)/modules/expenses/categories/$(categoryId))
+        && get(/databases/$(database)/documents/users/$(uid)/modules/expenses/categories/$(categoryId)).data.type == 'expense'
+        && get(/databases/$(database)/documents/users/$(uid)/modules/expenses/categories/$(categoryId)).data.isArchived == false;
+    }
+
+    function isValidBudgetData(data, uid) {
+      return data.keys().hasOnly(allowedBudgetKeys())
+        && data.keys().hasAll(allowedBudgetKeys())
+        && isValidString(data.monthKey)
+        && isValidString(data.categoryId)
+        && isActiveExpenseCategory(uid, data.categoryId)
+        && data.limitMinor is int
+        && data.limitMinor > 0
+        && data.alertThreshold is int
+        && data.alertThreshold >= 1
+        && data.alertThreshold <= 100;
+    }
+
+    function isValidBudgetCreate(data, uid) {
+      return isValidBudgetData(data, uid)
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    function isValidBudgetUpdate(uid) {
+      return request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'limitMinor',
+            'alertThreshold',
+            'updatedAt',
+          ])
+        && isValidBudgetData(request.resource.data, uid)
+        && request.resource.data.monthKey == resource.data.monthKey
+        && request.resource.data.categoryId == resource.data.categoryId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time;
+    }
+
+    // =========================
+    // Monthly stats
+    // users/{uid}/modules/expenses/monthlyStats/{monthKey}
+    // =========================
+
+    function allowedMonthlyStatsKeys() {
+      return [
+        'monthKey',
+        'incomeMinor',
+        'expenseMinor',
+        'netMinor',
+        'transactionCount',
+        'categoryExpenseMinor',
+        'categoryIncomeMinor',
+        'updatedAt',
+      ];
+    }
+
+    function isValidMonthlyStats(data, monthKey) {
+      return data.keys().hasOnly(allowedMonthlyStatsKeys())
+        && data.keys().hasAll(allowedMonthlyStatsKeys())
+        && data.monthKey == monthKey
+        && data.incomeMinor is number
+        && data.incomeMinor >= 0
+        && data.expenseMinor is number
+        && data.expenseMinor >= 0
+        && data.netMinor is number
+        && data.netMinor == data.incomeMinor - data.expenseMinor
+        && data.transactionCount is int
+        && data.transactionCount >= 0
+        && data.categoryExpenseMinor is map
+        && data.categoryIncomeMinor is map
+        && data.updatedAt == request.time;
+    }
+
+    // =========================
+    // Rules
+    // =========================
+
+    match /users/{uid} {
+      allow read: if isOwner(uid);
+      allow create: if isOwner(uid)
+        && isValidUserProfileCreate(request.resource.data);
+      allow update: if isOwner(uid)
+        && isValidUserProfileUpdate();
+      allow delete: if false;
+
+      match /modules/expenses {
+        allow read: if isOwner(uid);
+
+        allow create: if isOwner(uid)
+          && isValidExpenseModuleCreate(request.resource.data);
+
+        allow update: if isOwner(uid)
+          && isValidExpenseModuleUpdate();
+
+        allow delete: if false;
+
+        match /settings/main {
+          allow read: if isOwner(uid);
+
+          allow create: if isOwner(uid)
+            && isValidExpenseSettingsCreate();
+
+          allow update: if isOwner(uid)
+            && isValidExpenseSettingsUpdate();
+
+          allow delete: if false;
+        }
+
+        match /wallets/{walletId} {
+          allow read: if isOwner(uid);
+
+          allow create: if isOwner(uid)
+            && isValidWalletCreate(request.resource.data);
+
+          allow update: if isOwner(uid)
+            && isValidWalletUpdate();
+
+          allow delete: if false;
+        }
+
+        match /categories/{categoryId} {
+          allow read: if isOwner(uid);
+
+          allow create: if isOwner(uid)
+            && isValidCategoryCreate(request.resource.data);
+
+          allow update: if isOwner(uid)
+            && isValidCategoryUpdate();
+
+          allow delete: if false;
+        }
+
+        match /transactions/{transactionId} {
+          allow read: if isOwner(uid);
+
+          allow create: if isOwner(uid)
+            && isValidTransactionCreate(request.resource.data);
+
+          allow update: if isOwner(uid)
+            && (
+              isValidTransactionUpdate()
+              || isValidTransactionVoid()
+            );
+
+          allow delete: if false;
+        }
+
+        match /budgets/{budgetId} {
+          allow read: if isOwner(uid);
+
+          allow create: if isOwner(uid)
+            && isValidBudgetCreate(request.resource.data, uid);
+
+          allow update: if isOwner(uid)
+            && isValidBudgetUpdate(uid);
+
+          allow delete: if isOwner(uid);
+        }
+
+        match /monthlyStats/{monthKey} {
+          allow read: if isOwner(uid);
+
+          allow create, update: if isOwner(uid)
+            && isValidMonthlyStats(request.resource.data, monthKey);
+
+          allow delete: if false;
+        }
+      }
+
+      match /{document=**} {
+        allow read: if isOwner(uid);
+        allow write: if false;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

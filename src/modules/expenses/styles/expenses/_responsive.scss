@@ -1,0 +1,112 @@
+@media (max-width: 900px) {
+    .expenses-page {
+        background: var(--expense-page-bg-mobile);
+    }
+
+    .desktop-dashboard-surface {
+        display: none;
+    }
+
+    .mobile-dashboard-surface,
+    .mobile-transactions-surface,
+    .mobile-add-transaction-surface,
+    .mobile-budget-page,
+    .mobile-report-page,
+    .mobile-wallet-page,
+    .mobile-settings-surface {
+        margin: 0 auto;
+        max-width: 430px;
+        padding: 42px 18px 92px;
+    }
+
+    .mobile-dashboard-surface {
+        align-content: start;
+        display: grid;
+        gap: 22px;
+    }
+
+    .section-card__header {
+        margin-bottom: 0;
+    }
+
+    .category-spending-card--mobile {
+        grid-template-columns: 1fr;
+    }
+
+    .category-spending-card--mobile .category-spending-card__chart {
+        max-width: 280px;
+        width: min(82vw, 280px);
+    }
+
+    .category-spending-card--mobile .category-spending-card__chart-label-text {
+        font-size: 11px;
+        stroke-width: 1.5px;
+    }
+
+    .category-spending-card--mobile .hidden-items {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .category-spending-card--mobile .category-row {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+    }
+
+    :is(.category-spending-card--mobile,
+        .recent-transactions-card--mobile) .section-card__header h2 {
+        color: var(--expense-heading);
+        font-size: 14px;
+    }
+
+    :is(.category-spending-card--mobile,
+        .recent-transactions-card--mobile) .section-card__header button {
+        font-size: 12px;
+    }
+
+    .category-spending-card--mobile .category-row__name {
+        font-size: 13px;
+    }
+
+    .category-spending-card--mobile .category-row__amount,
+    .category-spending-card--mobile .category-row__percentage {
+        font-size: 12px;
+    }
+
+    .recent-transactions-card--mobile .transaction-list {
+        gap: 14px;
+    }
+
+    .recent-transactions-card--mobile .transaction-item strong {
+        color: var(--expense-heading);
+        font-size: 13px;
+    }
+
+    .recent-transactions-card--mobile .transaction-item p,
+    .recent-transactions-card--mobile .transaction-item>.amount-text {
+        font-size: 12px;
+    }
+}
+
+@media (min-width: 901px) {
+    .expense-bottom-nav {
+        display: none;
+    }
+
+    .desktop-dashboard-surface {
+        background: color-mix(in srgb, var(--expense-surface-solid) 55%, transparent);
+        border: 1px solid color-mix(in srgb, var(--expense-surface-solid) 80%, transparent);
+        border-radius: 8px;
+        box-shadow: 0 24px 70px color-mix(in srgb, var(--expense-active-strong) 18%, transparent);
+    }
+}
+
+@media (max-width: 1180px) and (min-width: 901px) {
+    .summary-card-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .desktop-dashboard-surface__grid {
+        grid-template-columns: 1fr;
+    }
+}
