@@ -7,7 +7,7 @@ export default function CategorySpendingCard({ categories = [], limit, monthLabe
             limit={limit}
             monthLabel={monthLabel}
             onViewAll={onViewAll}
-            showDonut={variant === "desktop"}
+            showDonut
             title="Chi tiêu theo danh mục"
             variant={variant}
         />

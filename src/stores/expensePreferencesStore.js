@@ -1,15 +1,25 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import {
+    expenseAmountFormatIds,
     expenseCurrencyLabels,
+    expenseDateFormatIds,
+    expenseDefaultAmountFormat,
     expenseDefaultCurrency,
+    expenseDefaultDateFormat,
     expenseDefaultTheme,
     expenseThemeIds,
-} from "../modules/expenses/constant/expensesMetaData";
+} from "../modules/expenses/constants/expenseMetadata";
 
 const defaultExpensePreferences = {
+    amountFormat: expenseDefaultAmountFormat,
     currency: expenseDefaultCurrency,
+    dateFormat: expenseDefaultDateFormat,
+    defaultCategoryId: null,
+    defaultWalletId: null,
     hideBalance: false,
+    hiddenCategoryIds: [],
+    hiddenWalletIds: [],
     notificationsEnabled: true,
     theme: expenseDefaultTheme,
 };
@@ -24,11 +34,28 @@ let settingsWriteQueue = Promise.resolve();
  * @returns {{ currency: string, hideBalance: boolean, notificationsEnabled: boolean, theme: string }}
  */
 function normalizeExpensePreferences(preferences = {}) {
-    
+    const normalizeIds = (value) => Array.isArray(value)
+        ? [...new Set(value.filter((id) => typeof id === "string" && id.trim()))]
+        : [];
+
     return {
+        amountFormat: expenseAmountFormatIds.includes(preferences.amountFormat)
+            ? preferences.amountFormat
+            : defaultExpensePreferences.amountFormat,
         currency: expenseCurrencyLabels.includes(preferences.currency)
             ? preferences.currency
             : defaultExpensePreferences.currency,
+        dateFormat: expenseDateFormatIds.includes(preferences.dateFormat)
+            ? preferences.dateFormat
+            : defaultExpensePreferences.dateFormat,
+        defaultCategoryId:
+            typeof preferences.defaultCategoryId === "string" && preferences.defaultCategoryId.trim()
+                ? preferences.defaultCategoryId
+                : null,
+        defaultWalletId:
+            typeof preferences.defaultWalletId === "string" && preferences.defaultWalletId.trim()
+                ? preferences.defaultWalletId
+                : null,
         hideBalance:
             typeof preferences.hideBalance === "boolean"
                 ? preferences.hideBalance
@@ -37,6 +64,8 @@ function normalizeExpensePreferences(preferences = {}) {
             typeof preferences.notificationsEnabled === "boolean"
                 ? preferences.notificationsEnabled
                 : defaultExpensePreferences.notificationsEnabled,
+        hiddenCategoryIds: normalizeIds(preferences.hiddenCategoryIds),
+        hiddenWalletIds: normalizeIds(preferences.hiddenWalletIds),
         theme: expenseThemeIds.includes(preferences.theme)
             ? preferences.theme
             : defaultExpensePreferences.theme,

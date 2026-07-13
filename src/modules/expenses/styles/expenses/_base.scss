@@ -1,6 +1,7 @@
 .expenses-page {
   background: var(--expense-page-bg);
   color: var(--expense-text);
+  display: flow-root;
   min-height: 100vh;
 }
 
@@ -21,13 +22,12 @@
   white-space: nowrap;
 }
 
-.expense-layout,
 .mobile-budget-page,
-.mobile-dashboard-view,
+.mobile-dashboard-surface,
 .mobile-report-page,
 .mobile-wallet-page,
-.mobile-transactions-view,
-.web-dashboard-view {
+.mobile-transactions-surface,
+.desktop-dashboard-surface {
   min-height: 100vh;
 }
 
@@ -37,7 +37,7 @@
 }
 
 .amount-text.is-negative {
-  color: #dc1717;
+  color: var(--expense-danger);
 }
 
 .category-icon {

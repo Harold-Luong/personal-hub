@@ -1,15 +1,15 @@
 import BudgetForm from "../budget/BudgetForm";
 import ExpenseDialog from "../shared/ExpenseDialog";
 
-export default function WebBudgetPanel({ budgets, categories, initialCategoryId, onCancel, onDelete, onSubmit }) {
+export default function DesktopBudgetDialog({ budgets, categories, initialCategoryId, onCancel, onDelete, onSubmit }) {
     return (
         <ExpenseDialog
-            backdropClassName="web-add-transaction-modal"
-            closeButtonClassName="web-add-transaction-panel__close"
-            headerClassName="web-add-transaction-panel__header"
-            headingId="web-budget-title"
+            backdropClassName="desktop-form-dialog__backdrop"
+            closeButtonClassName="desktop-form-dialog__close"
+            headerClassName="desktop-form-dialog__header"
+            headingId="desktop-budget-dialog-title"
             onClose={onCancel}
-            panelClassName="web-add-transaction-panel web-budget-panel"
+            panelClassName="desktop-form-dialog desktop-budget-dialog"
             title="Thiết lập ngân sách"
         >
             <BudgetForm

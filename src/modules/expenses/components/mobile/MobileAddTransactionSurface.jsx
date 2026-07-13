@@ -1,11 +1,11 @@
-import { expenseUiText } from "../../constant/expensesUiMetaData";
+import { expenseUiText } from "../../constants/expenseUiMetadata";
 import ExpenseButton from "../shared/ExpenseButton";
 import MobilePageHeader from "./MobilePageHeader";
 import TransactionForm from "../transaction/TransactionForm";
 
-export default function MobileAddTransactionView({ categories, onCancel, onSubmit, wallets }) {
+export default function MobileAddTransactionSurface({ categories, onCancel, onSubmit, wallets }) {
     return (
-        <main className="mobile-add-transaction-view">
+        <main className="mobile-add-transaction-surface">
             <MobilePageHeader
                 actions={
                     <ExpenseButton
@@ -13,7 +13,7 @@ export default function MobileAddTransactionView({ categories, onCancel, onSubmi
                         onClick={onCancel}
                     />
                 }
-                className="mobile-add-transaction-view__header"
+                className="mobile-add-transaction-surface__header"
                 title="Thêm giao dịch"
                 titleTag="h1"
             />

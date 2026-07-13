@@ -1,5 +1,5 @@
 import AmountText from "../shared/AmountText";
-import ExpenseIcon from "../shared/ExpenseEmoji";
+import ExpenseIcon from "../shared/ExpenseIcon";
 
 export default function TransactionItem({ transaction }) {
     if (!transaction) {

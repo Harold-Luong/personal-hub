@@ -2,19 +2,37 @@ import {
     expenseCurrencyFractionDigitsByLabel,
     expenseDefaultCurrency,
     expenseDefaultLocale,
-} from "../constant/expensesMetaData";
+} from "../constants/expenseMetadata";
 
-export function formatCurrency(amount, currency = expenseDefaultCurrency, locale = expenseDefaultLocale) {
+function getStoredPreferences() {
+    if (typeof window === "undefined") {
+        return {};
+    }
+
+    try {
+        const state = JSON.parse(window.localStorage.getItem("personal-hub:expense-preferences") ?? "{}");
+        return state?.state?.expensePreferences ?? {};
+    } catch {
+        return {};
+    }
+}
+
+export function formatCurrency(amount, currency, locale = expenseDefaultLocale) {
+    const preferences = getStoredPreferences();
+    const selectedCurrency = currency ?? preferences.currency ?? expenseDefaultCurrency;
+    const isCompact = preferences.amountFormat === "compact";
+
     return new Intl.NumberFormat(locale, {
         style: "currency",
-        currency,
-        maximumFractionDigits: expenseCurrencyFractionDigitsByLabel[currency] ?? 2,
+        currency: selectedCurrency,
+        notation: isCompact ? "compact" : "standard",
+        maximumFractionDigits: isCompact ? 1 : (expenseCurrencyFractionDigitsByLabel[selectedCurrency] ?? 2),
     }).format(amount);
 }
 
 export function formatCompactCurrency(
     amount,
-    currency = expenseDefaultCurrency,
+    currency,
     locale = expenseDefaultLocale,
 ) {
     return formatCurrency(amount, currency, locale).replace(/\s/g, "");

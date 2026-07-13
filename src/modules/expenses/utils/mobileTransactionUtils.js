@@ -1,5 +1,5 @@
-import { transactionTypes } from "../constant/expensesMetaData";
-import { expenseFilterValues } from "../constant/expensesUiMetaData";
+import { transactionTypes } from "../constants/expenseMetadata";
+import { expenseFilterValues } from "../constants/expenseUiMetadata";
 
 function normalizeSearchValue(value) {
     return value

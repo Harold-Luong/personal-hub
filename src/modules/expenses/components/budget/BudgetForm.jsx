@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { transactionTypes } from "../../constant/expensesMetaData";
-import { expenseUiText } from "../../constant/expensesUiMetaData";
+import { transactionTypes } from "../../constants/expenseMetadata";
+import { expenseUiText } from "../../constants/expenseUiMetadata";
 import { formatCurrencyInput, parseCurrencyInput } from "../../utils/formatCurrency";
 import ExpenseButton from "../shared/ExpenseButton";
 import ExpenseField from "../shared/ExpenseField";

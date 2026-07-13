@@ -3,14 +3,11 @@ import AmountText from "../components/shared/AmountText";
 import ExpenseDialog from "../components/shared/ExpenseDialog";
 import SectionCard from "../components/shared/SectionCard";
 import MobilePageHeader from "../components/mobile/MobilePageHeader";
-import ExpenseIcon from "../components/shared/ExpenseEmoji";
-import WebWalletPanel from "../components/web/WebWalletPanel";
+import ExpenseIcon from "../components/shared/ExpenseIcon";
+import DesktopWalletDialog from "../components/desktop/DesktopWalletDialog";
 import WalletForm from "../components/wallet/WalletForm";
-import { creditCardWalletTypeId, walletTypeLabels } from "../constant/expensesMetaData";
-
-function isCreditCardWallet(wallet) {
-    return wallet.type === creditCardWalletTypeId;
-}
+import { walletTypeLabels } from "../constants/expenseMetadata";
+import { isCreditCardWallet } from "../utils/walletUtils";
 
 function WalletItemMeta({ wallet }) {
     if (isCreditCardWallet(wallet)) {
@@ -164,7 +161,7 @@ export default function WalletPage({
             </section>
 
             {isFormOpen && isDesktopMode ? (
-                <WebWalletPanel
+                <DesktopWalletDialog
                     initialWalletId={selectedWalletId}
                     onCancel={closeForm}
                     onDelete={handleDeleteWallet}

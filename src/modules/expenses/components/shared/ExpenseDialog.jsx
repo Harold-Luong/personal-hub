@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { expenseUiText } from "../../constant/expensesUiMetaData";
+import { expenseUiText } from "../../constants/expenseUiMetadata";
 import { XIcon } from "../../icon/ExpenseIcons";
 import ExpenseButton from "./ExpenseButton";
 

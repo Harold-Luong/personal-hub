@@ -1,6 +1,7 @@
-import { getDocsFromServer } from "firebase/firestore";
+import { getDocsFromServer, serverTimestamp, writeBatch } from "firebase/firestore";
+import { firestore } from "../../../lib/firebase/firestore";
 import { expenseCollections } from "./expenseFirestoreSchema";
-import { getCollectionReference } from "./getReference";
+import { getCollectionReference, getDocumentReference } from "./getReference";
 
 function sortCategories(firstCategory, secondCategory) {
     const typeComparison = (firstCategory.type ?? "").localeCompare(
@@ -29,4 +30,25 @@ export async function getExpenseCategories(uid) {
         }))
         .filter((category) => !category.isArchived)
         .sort(sortCategories);
+}
+
+export async function reorderExpenseCategories(uid, categoryIds = []) {
+    const uniqueCategoryIds = [...new Set(categoryIds.filter(Boolean))];
+
+    if (!uid || uniqueCategoryIds.length === 0) {
+        return [];
+    }
+
+    const batch = writeBatch(firestore);
+    const timestamp = serverTimestamp();
+
+    uniqueCategoryIds.forEach((categoryId, index) => {
+        batch.update(getDocumentReference(uid, expenseCollections.CATEGORIES, categoryId), {
+            sortOrder: (index + 1) * 10,
+            updatedAt: timestamp,
+        });
+    });
+
+    await batch.commit();
+    return uniqueCategoryIds;
 }

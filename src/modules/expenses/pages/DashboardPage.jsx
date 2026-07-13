@@ -15,9 +15,9 @@ import { selectExpensePreferences, useExpensePreferencesStore } from "../../../s
 import ExpenseBottomNav from "../components/layout/ExpenseBottomNav";
 import ExpenseHeader from "../components/layout/ExpenseHeader";
 import ExpenseSidebar from "../components/layout/ExpenseSidebar";
-import MobileDashboardView from "../components/mobile/MobileDashboardView";
-import WebAddTransactionPanel from "../components/web/WebAddTransactionPanel";
-import WebDashboardView from "../components/web/WebDashboardView";
+import MobileDashboardSurface from "../components/mobile/MobileDashboardSurface";
+import DesktopTransactionDialog from "../components/desktop/DesktopTransactionDialog";
+import DesktopDashboardSurface from "../components/desktop/DesktopDashboardSurface";
 import CreditCardPaymentDialog from "../components/wallet/CreditCardPaymentDialog";
 import AddTransactionPage from "./AddTransactionPage";
 import BudgetPage from "./BudgetPage";
@@ -33,8 +33,8 @@ import {
     expenseRoutePaths,
     expenseSummaryItems,
     expenseThemeIds,
-} from "../constant/expensesMetaData";
-import { expenseSortKeys } from "../constant/expensesUiMetaData";
+} from "../constants/expenseMetadata";
+import { expenseSortKeys } from "../constants/expenseUiMetadata";
 import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { calculateTrend, getEmptyMonthlyStats, getPreviousMonthKey } from "../utils/monthlyStatsUtils";
 import {
@@ -52,20 +52,22 @@ function getExpenseRoutePage(pathname) {
     return Object.entries(expenseRoutePaths).find(([, path]) => path === normalizedPathname)?.[0] ?? "dashboard";
 }
 
-const desktopViewClasses = {
-    budgets: "web-budget-view",
-    categories: "web-category-spending-view",
-    report: "web-report-view",
-    transactions: "web-transactions-view",
-    wallets: "web-wallet-view",
+const desktopSurfaceClassByPageId = {
+    budgets: "desktop-budget-surface",
+    categories: "desktop-category-spending-surface",
+    report: "desktop-report-surface",
+    settings: "desktop-settings-surface",
+    transactions: "desktop-transactions-surface",
+    wallets: "desktop-wallet-surface",
 };
 
-const desktopMainClasses = {
-    budgets: "web-budget-view__main",
-    categories: "web-category-spending-view__main",
-    report: "web-report-view__main",
-    transactions: "web-transactions-view__main",
-    wallets: "web-wallet-view__main",
+const desktopMainClassByPageId = {
+    budgets: "desktop-budget-surface__main",
+    categories: "desktop-category-spending-surface__main",
+    report: "desktop-report-surface__main",
+    settings: "desktop-settings-surface__main",
+    transactions: "desktop-transactions-surface__main",
+    wallets: "desktop-wallet-surface__main",
 };
 
 function getIsMobileViewport() {
@@ -80,8 +82,8 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     const initializeExpensePreferences = useExpensePreferencesStore((state) => state.initializeExpensePreferences);
     const saveExpensePreference = useExpensePreferencesStore((state) => state.saveExpensePreference);
     const waitForExpensePreferenceWrites = useExpensePreferencesStore((state) => state.waitForExpensePreferenceWrites);
-    const categories = useExpenseDataStore(selectExpenseCategories);
-    const wallets = useExpenseDataStore(selectExpenseWallets);
+    const allCategories = useExpenseDataStore(selectExpenseCategories);
+    const allWallets = useExpenseDataStore(selectExpenseWallets);
     const transactions = useExpenseDataStore(selectExpenseRecentTransactions);
     const budgetLimitsByMonth = useExpenseDataStore(selectExpenseBudgetLimitsByMonth);
     const monthlyStatsByMonth = useExpenseDataStore(selectExpenseMonthlyStatsByMonth);
@@ -118,6 +120,14 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     const [creditPaymentCard, setCreditPaymentCard] = useState(null);
     const [isMobileViewport, setIsMobileViewport] = useState(getIsMobileViewport);
     const mobileBudgetInitialCategoryId = isMobileViewport ? budgetInitialCategoryId : "";
+    const categories = useMemo(
+        () => allCategories.filter((category) => !settings.hiddenCategoryIds.includes(category.id)),
+        [allCategories, settings.hiddenCategoryIds],
+    );
+    const wallets = useMemo(
+        () => allWallets.filter((wallet) => !settings.hiddenWalletIds.includes(wallet.id)),
+        [allWallets, settings.hiddenWalletIds],
+    );
     const monthlyStats = monthlyStatsByMonth[currentMonthKey] ?? getEmptyMonthlyStats(currentMonthKey);
     const previousMonthlyStats = monthlyStatsByMonth[previousMonthKey] ?? getEmptyMonthlyStats(previousMonthKey);
     const budgetLimits = budgetLimitsByMonth[currentMonthKey] ?? [];
@@ -393,15 +403,22 @@ export default function DashboardPage({ initialSettings, onLogout }) {
         }
 
         if (activeMobilePage === "transactions") {
-            return <TransactionsPage mode="mobile" />;
+            return <TransactionsPage categories={categories} mode="mobile" wallets={wallets} />;
         }
 
         if (activeMobilePage === "categories") {
-            return <CategorySpendingPage mode="mobile" onManageBudget={navigateBudgetPage} />;
+            return (
+                <CategorySpendingPage
+                    categories={categories}
+                    mode="mobile"
+                    onBack={() => navigateExpenseRoute("settings")}
+                    onManageBudget={navigateBudgetPage}
+                />
+            );
         }
 
         if (activeMobilePage === "report") {
-            return <ReportPage mode="mobile" onNavigate={handleMobileNavigate} />;
+            return <ReportPage categories={categories} mode="mobile" onNavigate={handleMobileNavigate} wallets={wallets} />;
         }
 
         if (activeMobilePage === "budgets") {
@@ -414,7 +431,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                     mode="mobile"
                     monthKey={currentMonthKey}
                     monthLabel={currentMonthLabel}
-                    onBack={() => navigateExpenseRoute("dashboard")}
+                    onBack={() => navigateExpenseRoute("settings")}
                     onCloseEditor={clearBudgetEditorRouteState}
                     onDeleteBudget={handleDeleteBudget}
                     onSaveBudget={handleSaveBudget}
@@ -437,17 +454,19 @@ export default function DashboardPage({ initialSettings, onLogout }) {
         if (activeMobilePage === "settings") {
             return (
                 <SettingsPage
+                    categories={allCategories}
+                    mode="mobile"
                     onLogout={handleLogout}
                     onManageBudget={() => navigateExpenseRoute("budgets")}
                     onManageCategories={() => navigateExpenseRoute("categories")}
                     onManageWallet={() => navigateExpenseRoute("wallets")}
-                    wallets={wallets}
+                    wallets={allWallets}
                 />
             );
         }
 
         return (
-            <MobileDashboardView
+            <MobileDashboardSurface
                 budgets={budgets}
                 categorySpending={categorySpending}
                 monthLabel={currentMonthLabel}
@@ -464,12 +483,13 @@ export default function DashboardPage({ initialSettings, onLogout }) {
 
     const renderDesktopPage = () => {
         if (activeDesktopPage === "transactions") {
-            return <TransactionsPage mode="desktop" />;
+            return <TransactionsPage categories={categories} mode="desktop" wallets={wallets} />;
         }
 
         if (activeDesktopPage === "categories") {
             return (
                 <CategorySpendingPage
+                    categories={categories}
                     key={categoryMonth}
                     monthOptions={monthOptions}
                     mode="desktop"
@@ -485,11 +505,13 @@ export default function DashboardPage({ initialSettings, onLogout }) {
         if (activeDesktopPage === "report") {
             return (
                 <ReportPage
+                    categories={categories}
                     monthOptions={monthOptions}
                     mode="desktop"
                     onNavigate={handleDesktopNavigate}
                     onSelectedMonthChange={setReportMonth}
                     selectedMonth={reportMonth}
+                    wallets={wallets}
                 />
             );
         }
@@ -523,8 +545,12 @@ export default function DashboardPage({ initialSettings, onLogout }) {
             );
         }
 
+        if (activeDesktopPage === "settings") {
+            return <SettingsPage categories={allCategories} mode="desktop" wallets={allWallets} />;
+        }
+
         return (
-            <WebDashboardView
+            <DesktopDashboardSurface
                 budgets={budgets}
                 categorySpending={categorySpending}
                 monthLabel={currentMonthLabel}
@@ -563,6 +589,11 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                 subtitle: "Theo dõi xu hướng thu chi và dự báo",
                 title: "Báo cáo chi tiêu",
             },
+            settings: {
+                eyebrow: "Cá nhân hóa",
+                subtitle: "Định dạng, danh mục, ví và dữ liệu của bạn",
+                title: "Cài đặt",
+            },
             transactions: {
                 eyebrow: "Giao dịch",
                 subtitle: "Quản lý tất cả giao dịch thu chi của bạn",
@@ -574,10 +605,10 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                 title: "Ví tiền",
             },
         }[activeDesktopPage];
-        const desktopViewClassName = ["web-dashboard-view", desktopViewClasses[activeDesktopPage]]
+        const desktopSurfaceClassName = ["desktop-dashboard-surface", desktopSurfaceClassByPageId[activeDesktopPage]]
             .filter(Boolean)
             .join(" ");
-        const desktopMainClassName = ["web-dashboard-view__main", desktopMainClasses[activeDesktopPage]]
+        const desktopMainClassName = ["desktop-dashboard-surface__main", desktopMainClassByPageId[activeDesktopPage]]
             .filter(Boolean)
             .join(" ");
         const desktopHeaderPageActions =
@@ -618,26 +649,25 @@ export default function DashboardPage({ initialSettings, onLogout }) {
             ) : null;
 
         return (
-            <div className={desktopViewClassName}>
+            <div className={desktopSurfaceClassName}>
                 <ExpenseSidebar
                     activeId={activeDesktopPage}
                     items={expenseNavItems}
+                    onLogout={handleLogout}
                     onNavigate={handleDesktopNavigate}
+                    onToggleTheme={handleToggleTheme}
+                    theme={settings.theme}
                 />
                 <main className={desktopMainClassName}>
                     <ExpenseHeader
-                        eyebrow={desktopHeaderContent.eyebrow}
-                        onAddTransactionClick={openDesktopAddTransaction}
-                        onLogout={handleLogout}
-                        onToggleTheme={handleToggleTheme}
+                        onAddTransactionClick={activeDesktopPage === "settings" ? undefined : openDesktopAddTransaction}
                         pageActions={desktopHeaderPageActions}
                         subtitle={desktopHeaderContent.subtitle}
-                        theme={settings.theme}
                         title={desktopHeaderContent.title}
                     />
                     {renderDesktopPage()}
                     {isDesktopAddTransactionOpen ? (
-                        <WebAddTransactionPanel
+                        <DesktopTransactionDialog
                             categories={categories}
                             onCancel={closeDesktopAddTransaction}
                             onSubmit={handleAddDesktopTransaction}

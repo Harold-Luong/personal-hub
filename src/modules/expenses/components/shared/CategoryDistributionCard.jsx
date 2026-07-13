@@ -1,7 +1,7 @@
 import AmountText from "./AmountText";
 import DonutChart from "./DonutChart";
 import SectionCard from "./SectionCard";
-import { distributionFallbackColors } from "../../constant/expensesMetaData";
+import { distributionFallbackColors } from "../../constants/expenseMetadata";
 
 function getPercent(amount, total) {
     return total > 0 ? Math.round((amount / total) * 1000) / 10 : 0;

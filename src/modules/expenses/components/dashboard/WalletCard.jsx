@@ -1,12 +1,8 @@
 import AmountText from "../shared/AmountText";
-import ExpenseIcon from "../shared/ExpenseEmoji";
+import ExpenseIcon from "../shared/ExpenseIcon";
 import SectionCard from "../shared/SectionCard";
-import { creditCardWalletTypeId } from "../../constant/expensesMetaData";
-import { expenseUiText } from "../../constant/expensesUiMetaData";
-
-function isCreditCardWallet(wallet) {
-    return wallet.type === creditCardWalletTypeId;
-}
+import { expenseUiText } from "../../constants/expenseUiMetadata";
+import { isCreditCardWallet } from "../../utils/walletUtils";
 
 function getWalletMeta(wallet) {
     if (isCreditCardWallet(wallet)) {

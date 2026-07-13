@@ -4,7 +4,7 @@ import RecentTransactionsCard from "../dashboard/RecentTransactionsCard";
 import SummaryCardList from "../shared/SummaryCardList";
 import WalletCard from "../dashboard/WalletCard";
 
-export default function WebDashboardView({
+export default function DesktopDashboardSurface({
     budgets,
     categorySpending,
     monthLabel,
@@ -21,7 +21,7 @@ export default function WebDashboardView({
     return (
         <>
             <SummaryCardList items={summary} />
-            <div className="web-dashboard-view__grid">
+            <div className="desktop-dashboard-surface__grid">
                 <CategorySpendingCard
                     categories={categorySpending}
                     limit={10}

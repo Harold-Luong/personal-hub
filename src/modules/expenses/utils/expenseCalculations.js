@@ -2,7 +2,7 @@ import {
     budgetExceededThresholdPercentage,
     budgetWarningThresholdPercentage,
     transactionTypes,
-} from "../constant/expensesMetaData";
+} from "../constants/expenseMetadata";
 
 // Chuyen moi gia tri ve so an toan de tranh NaN lam hong cong thuc.
 function toSafeNumber(value) {

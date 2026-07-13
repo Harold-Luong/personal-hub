@@ -1,4 +1,4 @@
-.mobile-transactions-view {
+.mobile-transactions-surface {
     display: none;
 }
 
@@ -13,7 +13,7 @@
     display: none;
 }
 
-.web-transactions-view__main {
+.desktop-transactions-surface__main {
     background:
         radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--expense-active-soft) 42%, transparent), transparent 28%),
         color-mix(in srgb, var(--expense-surface-solid) 92%, #fff6f9);
@@ -546,18 +546,18 @@
 }
 
 .transactions-page__confirm button.is-danger {
-    background: #c71919;
+    background: var(--expense-danger-strong);
     color: white;
     width: auto;
     padding: 0 14px;
 }
 
 @media (max-width: 1180px) and (min-width: 901px) {
-    .web-transactions-view {
+    .desktop-transactions-surface {
         grid-template-columns: 220px minmax(0, 1fr);
     }
 
-    .web-transactions-view__main {
+    .desktop-transactions-surface__main {
         padding: 36px 20px 28px;
     }
 
@@ -896,30 +896,29 @@
         padding: 16px 12px calc(16px + env(safe-area-inset-bottom));
     }
 
-    .mobile-transactions-view {
+    .mobile-transactions-surface {
         display: block;
         min-height: 100svh;
     }
 
-    .mobile-transactions-view__header {
+    .mobile-transactions-surface__header {
         margin-bottom: 18px;
     }
 
-    .mobile-transactions-view__header h1 {
+    .mobile-transactions-surface__header h1 {
         color: var(--expense-heading);
         font-size: 22px;
         line-height: 1.2;
         margin: 0;
     }
 
-    .mobile-transactions-view__search-row {
+    .mobile-transactions-surface__search-row {
         display: grid;
         gap: 8px;
-        grid-template-columns: minmax(0, 1fr) 44px;
+        grid-template-columns: minmax(0, 1fr);
     }
 
-    .mobile-transactions-view__search,
-    .mobile-transactions-view__filter-button {
+    .mobile-transactions-surface__search {
         background: color-mix(in srgb,
                 var(--expense-surface-solid) 68%,
                 var(--expense-border-strong));
@@ -929,7 +928,7 @@
         height: 46px;
     }
 
-    .mobile-transactions-view__search {
+    .mobile-transactions-surface__search {
         align-items: center;
         border: 1px solid var(--expense-border-strong);
         display: flex;
@@ -938,11 +937,11 @@
         padding: 0 12px;
     }
 
-    .mobile-transactions-view__search svg {
+    .mobile-transactions-surface__search svg {
         flex: 0 0 auto;
     }
 
-    .mobile-transactions-view__search input {
+    .mobile-transactions-surface__search input {
         background: transparent;
         border: 0;
         color: var(--expense-heading);
@@ -953,25 +952,16 @@
         width: 100%;
     }
 
-    .mobile-transactions-view__search input::placeholder {
+    .mobile-transactions-surface__search input::placeholder {
         color: var(--expense-muted);
         opacity: 1;
     }
 
-    .mobile-transactions-view__search input::-webkit-search-cancel-button {
+    .mobile-transactions-surface__search input::-webkit-search-cancel-button {
         cursor: pointer;
     }
 
-    .mobile-transactions-view__filter-button {
-        align-items: center;
-        border: 1px solid var(--expense-border-strong);
-        cursor: pointer;
-        display: inline-flex;
-        justify-content: center;
-        padding: 0;
-    }
-
-    .mobile-transactions-view__filters {
+    .mobile-transactions-surface__filters {
         display: flex;
         gap: 8px;
         margin: 16px 0 22px;
@@ -979,11 +969,11 @@
         scrollbar-width: none;
     }
 
-    .mobile-transactions-view__filters::-webkit-scrollbar {
+    .mobile-transactions-surface__filters::-webkit-scrollbar {
         display: none;
     }
 
-    .mobile-transactions-view__filters button {
+    .mobile-transactions-surface__filters button {
         background: color-mix(in srgb,
                 var(--expense-surface-solid) 72%,
                 var(--expense-border-strong));
@@ -998,14 +988,14 @@
         padding: 0 12px;
     }
 
-    .mobile-transactions-view__filters button.is-active {
+    .mobile-transactions-surface__filters button.is-active {
         background: var(--expense-active-strong);
         border-color: var(--expense-active-strong);
         box-shadow: 0 5px 12px color-mix(in srgb, var(--expense-active-strong) 22%, transparent);
         color: white;
     }
 
-    .mobile-transactions-view__groups {
+    .mobile-transactions-surface__groups {
         display: grid;
         gap: 16px;
     }
@@ -1074,7 +1064,7 @@
         font-weight: 800;
     }
 
-    .mobile-transactions-view__empty {
+    .mobile-transactions-surface__empty {
         color: var(--expense-muted);
         font-size: 13px;
         margin: 32px 0;

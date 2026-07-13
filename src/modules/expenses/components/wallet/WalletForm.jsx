@@ -5,8 +5,9 @@ import {
     expenseCurrencySymbolByLabel,
     expenseDefaultCurrency,
     walletTypeOptions,
-} from "../../constant/expensesMetaData";
-import { expenseUiText } from "../../constant/expensesUiMetaData";
+} from "../../constants/expenseMetadata";
+import { normalizeWalletName } from "../../utils/walletUtils";
+import { expenseUiText } from "../../constants/expenseUiMetadata";
 import {
     formatCurrency,
     formatCurrencyInput,
@@ -60,21 +61,14 @@ function getFormState(wallet) {
     };
 }
 
-function normalizeWalletNameForComparison(name) {
-    return String(name ?? "")
-        .trim()
-        .replace(/\s+/g, " ")
-        .toLocaleLowerCase("vi");
-}
-
 function findDuplicateWalletName(wallets, name, excludedWalletId) {
-    const normalizedName = normalizeWalletNameForComparison(name);
+    const normalizedName = normalizeWalletName(name);
 
     return wallets.find(
         (wallet) =>
             wallet.id !== excludedWalletId &&
             !wallet.isArchived &&
-            normalizeWalletNameForComparison(wallet.name) === normalizedName,
+            normalizeWalletName(wallet.name) === normalizedName,
     );
 }
 

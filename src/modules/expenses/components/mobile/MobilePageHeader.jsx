@@ -6,11 +6,11 @@ export default function MobilePageHeader({
     title,
     titleTag: TitleTag = "p",
 }) {
-    const headerClassName = ["mobile-dashboard-view__header", className].filter(Boolean).join(" ");
+    const headerClassName = ["mobile-dashboard-surface__header", className].filter(Boolean).join(" ");
 
     return (
         <header className={headerClassName}>
-            <div className="mobile-dashboard-view__header-copy">
+            <div className="mobile-dashboard-surface__header-copy">
                 {children ?? (
                     <>
                         {title ? <TitleTag>{title}</TitleTag> : null}
@@ -18,7 +18,7 @@ export default function MobilePageHeader({
                     </>
                 )}
             </div>
-            {actions ? <div className="mobile-dashboard-view__header-actions">{actions}</div> : null}
+            {actions ? <div className="mobile-dashboard-surface__header-actions">{actions}</div> : null}
         </header>
     );
 }

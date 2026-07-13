@@ -172,14 +172,14 @@
 .summary-card--danger,
 .summary-card--expense,
 .summary-card--red {
-  --summary-card-tone: #dc1717;
+  --summary-card-tone: var(--expense-danger);
   --summary-card-soft: #fff0ee;
   --summary-card-border: #f5d9d4;
   background: linear-gradient(135deg, #fff, #fff2ee);
 }
 
 .summary-card--warning {
-  --summary-card-tone: #a86a00;
+  --summary-card-tone: var(--expense-warning);
   --summary-card-soft: #fff7e8;
   --summary-card-border: #f2dfb8;
   background: linear-gradient(135deg, #fff, #fff7e8);
@@ -270,7 +270,7 @@
 }
 
 .summary-card__meta--bad {
-  color: #dc1717;
+  color: var(--expense-danger);
 }
 
 .summary-card-list--compact {
@@ -774,13 +774,13 @@
 .budget-item--warning .budget-item__percentage,
 .budget-item--warning .budget-item__spent .amount-text,
 .budget-item--warning strong {
-  color: #a86a00;
+  color: var(--expense-warning);
 }
 
 .budget-item--exceeded .budget-item__percentage,
 .budget-item--exceeded .budget-item__spent .amount-text,
 .budget-item--exceeded strong {
-  color: #dc1717;
+  color: var(--expense-danger);
 }
 
 .wallet-card {

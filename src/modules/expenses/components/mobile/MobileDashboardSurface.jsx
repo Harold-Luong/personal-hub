@@ -4,11 +4,11 @@ import RecentTransactionsCard from "../dashboard/RecentTransactionsCard";
 import MobilePageHeader from "./MobilePageHeader";
 import MonthlyBudgetCard from "./MonthlyBudgetCard";
 import { formatDate } from "./../../utils/formatDate";
-import { BellIcon, ThemeIcon } from "../../icon/ExpenseIcons";
+import { ThemeIcon } from "../../icon/ExpenseIcons";
 import { selectAuthUser, useAuthSessionStore } from "../../../../stores/authSessionStore";
-import { expenseDefaultTheme } from "../../constant/expensesMetaData";
+import { expenseDefaultTheme } from "../../constants/expenseMetadata";
 
-export default function MobileDashboardView({
+export default function MobileDashboardSurface({
     budgets,
     categorySpending = [],
     monthLabel,
@@ -21,30 +21,28 @@ export default function MobileDashboardView({
     transactions,
 }) {
     const user = useAuthSessionStore(selectAuthUser);
-    const balance = summary.find((item) => item.id === "balance")?.value ?? 0;
-    const balanceTrend = summary.find((item) => item.id === "balance")?.trend ?? 0;
-    const income = summary.find((item) => item.id === "income")?.value ?? 0;
-    const incomeTrend = summary.find((item) => item.id === "income")?.trend ?? 0;
-    const expense = Math.abs(summary.find((item) => item.id === "expense")?.value ?? 0);
-    const expenseTrend = summary.find((item) => item.id === "expense")?.trend ?? 0;
+    const balanceSummary = summary.find((item) => item.id === "balance");
+    const incomeSummary = summary.find((item) => item.id === "income");
+    const expenseSummary = summary.find((item) => item.id === "expense");
+    const balance = balanceSummary?.value ?? 0;
+    const balanceTrend = balanceSummary?.trend ?? 0;
+    const income = incomeSummary?.value ?? 0;
+    const incomeTrend = incomeSummary?.trend ?? 0;
+    const expense = Math.abs(expenseSummary?.value ?? 0);
+    const expenseTrend = expenseSummary?.trend ?? 0;
 
     return (
-        <div className="mobile-dashboard-view">
+        <div className="mobile-dashboard-surface">
             <MobilePageHeader
                 actions={
-                    <>
-                        <button
-                            aria-label={`Đổi giao diện hiện tại: ${theme}`}
-                            className="mobile-dashboard-view__theme-toggle"
-                            onClick={onToggleTheme}
-                            type="button"
-                        >
-                            <ThemeIcon size={22} />
-                        </button>
-                        <button aria-label="Thông báo" className="mobile-dashboard-view__notification" type="button">
-                            <BellIcon size={22} />
-                        </button>
-                    </>
+                    <button
+                        aria-label={`Đổi giao diện hiện tại: ${theme}`}
+                        className="mobile-dashboard-surface__theme-toggle"
+                        onClick={onToggleTheme}
+                        type="button"
+                    >
+                        <ThemeIcon size={22} />
+                    </button>
                 }
                 subtitle={formatDate(new Date())}
                 title={

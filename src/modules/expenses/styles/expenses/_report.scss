@@ -2,11 +2,11 @@
     display: none;
 }
 
-.web-report-view {
+.desktop-report-surface {
     max-width: 1780px;
 }
 
-.web-report-view__main {
+.desktop-report-surface__main {
     background:
         linear-gradient(180deg, color-mix(in srgb, var(--expense-surface-solid) 94%, #f4f8fb), var(--expense-page-bg));
 }
@@ -640,7 +640,7 @@ button.report-heatmap__day:focus-visible .report-heatmap__tooltip {
 
 .report-insight-card--red i {
     background: #ffd9d9;
-    color: #dc1717;
+    color: var(--expense-danger);
 }
 
 .report-insight-card--orange {
@@ -824,22 +824,22 @@ button.report-heatmap__day:focus-visible .report-heatmap__tooltip {
 
 .report-category-comparison-chart__group--decrease header span,
 .report-category-comparison-chart__group--decrease .report-category-comparison-chart__row-head span {
-    color: #16a450;
+    color: var(--expense-success);
 }
 
 .report-category-comparison-chart__group--decrease header b {
     background: #e8f8ee;
-    color: #16a450;
+    color: var(--expense-success);
 }
 
 .report-category-comparison-chart__group--increase header span,
 .report-category-comparison-chart__group--increase .report-category-comparison-chart__row-head span {
-    color: #dc1717;
+    color: var(--expense-danger);
 }
 
 .report-category-comparison-chart__group--increase header b {
     background: #fff0ee;
-    color: #dc1717;
+    color: var(--expense-danger);
 }
 
 .report-category-comparison-chart__rows {
@@ -894,11 +894,11 @@ button.report-heatmap__day:focus-visible .report-heatmap__tooltip {
 }
 
 .report-category-comparison-chart__group--decrease .report-category-comparison-chart__track i {
-    background: #16a450;
+    background: var(--expense-success);
 }
 
 .report-category-comparison-chart__group--increase .report-category-comparison-chart__track i {
-    background: #dc1717;
+    background: var(--expense-danger);
 }
 
 .report-category-comparison-chart__row small {
@@ -994,12 +994,12 @@ button.report-heatmap__day:focus-visible .report-heatmap__tooltip {
 
 .report-category-comparison--increased .report-category-comparison__delta strong,
 .report-category-comparison--new .report-category-comparison__delta strong {
-    color: #dc1717;
+    color: var(--expense-danger);
 }
 
 .report-category-comparison--decreased .report-category-comparison__delta strong,
 .report-category-comparison--stopped .report-category-comparison__delta strong {
-    color: #16a450;
+    color: var(--expense-success);
 }
 
 .report-panel--sumary {
@@ -1100,11 +1100,11 @@ button.report-heatmap__day:focus-visible .report-heatmap__tooltip {
 }
 
 .report-table__row .is-danger {
-    color: #dc1717;
+    color: var(--expense-danger);
 }
 
 .report-table__row .is-good {
-    color: #16a450;
+    color: var(--expense-success);
 }
 
 .report-table__saving {

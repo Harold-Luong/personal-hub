@@ -9,15 +9,19 @@ import { firestore } from "../../../lib/firebase/firestore";
 import { expenseCollections } from "./expenseFirestoreSchema";
 import { getDocumentReference } from "./getReference";
 import {
+    expenseAmountFormatIds,
     expenseCurrencyLabels,
+    expenseDateFormatIds,
+    expenseDefaultAmountFormat,
     expenseDefaultCurrency,
+    expenseDefaultDateFormat,
     expenseDefaultTheme,
     expenseDefaultTimezone,
     expenseDefaultWalletId,
     expenseDefaultWalletTypeId,
     expenseDefaultWalletTypeMeta,
     expenseThemeIds,
-} from "../constant/expensesMetaData";
+} from "../constants/expenseMetadata";
 
 const defaultWalletId = expenseDefaultWalletId;
 const defaultExpenseCategories = [
@@ -234,12 +238,17 @@ const defaultCategories = [
 ];
 
 const defaultExpenseSettings = {
+    amountFormat: expenseDefaultAmountFormat,
     theme: expenseDefaultTheme,
     currency: expenseDefaultCurrency,
+    dateFormat: expenseDefaultDateFormat,
     timezone: expenseDefaultTimezone,
     hideBalance: false,
     notificationsEnabled: true,
     defaultWalletId,
+    defaultCategoryId: null,
+    hiddenCategoryIds: [],
+    hiddenWalletIds: [],
 };
 
 const userDataInitializationRequests = new Map();
@@ -252,6 +261,14 @@ function isAlreadyExistsError(error) {
 }
 
 function validateExpenseSetting(key, value) {
+    if (key === "amountFormat" && !expenseAmountFormatIds.includes(value)) {
+        throw new Error(`Unsupported amount format: ${value}.`);
+    }
+
+    if (key === "dateFormat" && !expenseDateFormatIds.includes(value)) {
+        throw new Error(`Unsupported date format: ${value}.`);
+    }
+
     if (key === "theme" && !expenseThemeIds.includes(value)) {
         throw new Error(`Unsupported expense theme: ${value}.`);
     }
@@ -275,11 +292,18 @@ function validateExpenseSetting(key, value) {
     }
 
     if (
-        key === "defaultWalletId" &&
+        (key === "defaultWalletId" || key === "defaultCategoryId") &&
         value !== null &&
         (typeof value !== "string" || value.trim().length === 0)
     ) {
-        throw new Error("defaultWalletId must be a non-empty string or null.");
+        throw new Error(`${key} must be a non-empty string or null.`);
+    }
+
+    if (
+        (key === "hiddenCategoryIds" || key === "hiddenWalletIds") &&
+        (!Array.isArray(value) || value.some((id) => typeof id !== "string" || !id.trim()))
+    ) {
+        throw new Error(`${key} must be an array of non-empty strings.`);
     }
 }
 
@@ -324,6 +348,7 @@ export async function getExpenseSettings(uid) {
 
     return {
         id: snapshot.id,
+        ...defaultExpenseSettings,
         ...snapshot.data(),
     };
 }
@@ -529,8 +554,18 @@ export async function ensureExpenseSettings(uid, settings = {}) {
 
 export async function updateExpenseSettings(uid, settings) {
     const validatedSettings = validateExpenseSettings(settings);
+    const currentSettings = await getExpenseSettings(uid);
+
+    if (!currentSettings) {
+        throw new Error("Expense settings not found.");
+    }
+
+    const persistedSettings = { ...currentSettings };
+    delete persistedSettings.id;
+    delete persistedSettings.updatedAt;
 
     await updateDoc(getDocumentReference(uid, expenseCollections.SETTINGS, "main"), {
+        ...persistedSettings,
         ...validatedSettings,
         updatedAt: serverTimestamp(),
     });

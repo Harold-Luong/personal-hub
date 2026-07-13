@@ -3,23 +3,23 @@
         background: var(--expense-page-bg-mobile);
     }
 
-    .web-dashboard-view {
+    .desktop-dashboard-surface {
         display: none;
     }
 
-    .mobile-dashboard-view,
-    .mobile-transactions-view,
-    .mobile-add-transaction-view,
+    .mobile-dashboard-surface,
+    .mobile-transactions-surface,
+    .mobile-add-transaction-surface,
     .mobile-budget-page,
     .mobile-report-page,
     .mobile-wallet-page,
-    .mobile-settings-view {
+    .mobile-settings-surface {
         margin: 0 auto;
         max-width: 430px;
         padding: 42px 18px 92px;
     }
 
-    .mobile-dashboard-view {
+    .mobile-dashboard-surface {
         align-content: start;
         display: grid;
         gap: 22px;
@@ -87,7 +87,7 @@
         display: none;
     }
 
-    .web-dashboard-view {
+    .desktop-dashboard-surface {
         background: color-mix(in srgb, var(--expense-surface-solid) 55%, transparent);
         border: 1px solid color-mix(in srgb, var(--expense-surface-solid) 80%, transparent);
         border-radius: 8px;
@@ -100,7 +100,7 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .web-dashboard-view__grid {
+    .desktop-dashboard-surface__grid {
         grid-template-columns: 1fr;
     }
 }
