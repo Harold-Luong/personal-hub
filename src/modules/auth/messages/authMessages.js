@@ -38,7 +38,19 @@ export const authErrorMessages = {
     'auth/weak-password': 'Mật khẩu cần có ít nhất 6 ký tự.',
 }
 
+const appCheckErrorMessage = 'Không thể xác minh ứng dụng với Firebase App Check. Vui lòng tải lại trang hoặc liên hệ quản trị viên.'
+
+function isAppCheckError(error) {
+    const errorDetails = `${error?.code ?? ''} ${error?.message ?? ''}`.toLowerCase()
+
+    return errorDetails.includes('app-check') || errorDetails.includes('app check')
+}
+
 export function getAuthErrorMessage(error) {
+    if (isAppCheckError(error)) {
+        return appCheckErrorMessage
+    }
+
     return authErrorMessages[error.code]
         || 'Không thể xác thực. Vui lòng thử lại.'
 }
