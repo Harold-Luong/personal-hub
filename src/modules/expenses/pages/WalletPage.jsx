@@ -3,7 +3,7 @@ import AmountText from "../components/shared/AmountText";
 import ExpenseDialog from "../components/shared/ExpenseDialog";
 import SectionCard from "../components/shared/SectionCard";
 import MobilePageHeader from "../components/mobile/MobilePageHeader";
-import ExpenseIcon from "../components/shared/ExpenseIcon";
+import ExpenseIcon from "../icon/ExpenseIcon";
 import DesktopWalletDialog from "../components/desktop/DesktopWalletDialog";
 import WalletForm from "../components/wallet/WalletForm";
 import { walletTypeLabels } from "../constants/expenseMetadata";
@@ -122,7 +122,6 @@ export default function WalletPage({
                                     type="button"
                                 >
                                     <ExpenseIcon
-                                        appearance="emoji"
                                         color={wallet.color}
                                         icon={wallet.icon}
                                         label={wallet.name}

@@ -22,6 +22,7 @@ import {
     expenseDefaultWalletTypeMeta,
     expenseThemeIds,
 } from "../constants/expenseMetadata";
+import { expenseDefaultIconSet, expenseIconSetIdValues } from "../icon/iconSets";
 
 const defaultWalletId = expenseDefaultWalletId;
 const defaultExpenseCategories = [
@@ -29,7 +30,7 @@ const defaultExpenseCategories = [
         id: "food",
         name: "Ăn uống",
         type: "expense",
-        icon: "utensils",
+        icon: "food",
         color: "#f4a340",
     },
     {
@@ -43,14 +44,14 @@ const defaultExpenseCategories = [
         id: "transport",
         name: "Di chuyển",
         type: "expense",
-        icon: "bus",
+        icon: "transport",
         color: "#56b879",
     },
     {
         id: "shopping",
         name: "Mua sắm",
         type: "expense",
-        icon: "bag",
+        icon: "shopping",
         color: "#ef6f7e",
     },
     {
@@ -71,7 +72,7 @@ const defaultExpenseCategories = [
         id: "fun",
         name: "Giải trí",
         type: "expense",
-        icon: "game",
+        icon: "entertainment",
         color: "#9b7bd8",
     },
     {
@@ -106,35 +107,35 @@ const defaultExpenseCategories = [
         id: "bills",
         name: "Hóa đơn",
         type: "expense",
-        icon: "bill",
+        icon: "bills",
         color: "#7aa6c2",
     },
     {
         id: "personal-care",
         name: "Cá nhân",
         type: "expense",
-        icon: "user",
+        icon: "personal-care",
         color: "#c58bb5",
     },
     {
         id: "pets",
         name: "Thú cưng",
         type: "expense",
-        icon: "pet",
+        icon: "pets",
         color: "#c49a6c",
     },
     {
         id: "gifts",
         name: "Quà tặng",
         type: "expense",
-        icon: "gift",
+        icon: "gifts",
         color: "#e28c8c",
     },
     {
         id: "charity",
         name: "Từ thiện",
         type: "expense",
-        icon: "heart",
+        icon: "charity",
         color: "#de8fb0",
     },
     {
@@ -148,7 +149,7 @@ const defaultExpenseCategories = [
         id: "tax",
         name: "Thuế & phí",
         type: "expense",
-        icon: "receipt",
+        icon: "tax",
         color: "#9aa0a6",
     },
     {
@@ -200,14 +201,14 @@ const defaultIncomeCategories = [
         id: "business",
         name: "Kinh doanh",
         type: "income",
-        icon: "shop",
+        icon: "business",
         color: "#4f93d7",
     },
     {
         id: "gift-income",
         name: "Được cho/tặng",
         type: "income",
-        icon: "gift",
+        icon: "gifts",
         color: "#e0b88a",
     },
     {
@@ -239,6 +240,7 @@ const defaultCategories = [
 
 const defaultExpenseSettings = {
     amountFormat: expenseDefaultAmountFormat,
+    iconSet: expenseDefaultIconSet,
     theme: expenseDefaultTheme,
     currency: expenseDefaultCurrency,
     dateFormat: expenseDefaultDateFormat,
@@ -271,6 +273,10 @@ function validateExpenseSetting(key, value) {
 
     if (key === "theme" && !expenseThemeIds.includes(value)) {
         throw new Error(`Unsupported expense theme: ${value}.`);
+    }
+
+    if (key === "iconSet" && !expenseIconSetIdValues.includes(value)) {
+        throw new Error(`Unsupported expense icon set: ${value}.`);
     }
 
     if (key === "currency" && !expenseCurrencyLabels.includes(value)) {

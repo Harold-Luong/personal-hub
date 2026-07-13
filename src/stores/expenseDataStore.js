@@ -9,6 +9,8 @@ const defaultExpenseDataState = {
     recentTransactions: [],
     transactionsRevision: 0,
     wallets: [],
+    walletsLoadStatus: "idle",
+    walletsOwnerUid: null,
 };
 
 /**
@@ -157,18 +159,28 @@ export const useExpenseDataStore = create((set, get) => ({
     // Tải danh sách ví chi tiêu
     loadExpenseWallets: async (uid) => {
         if (!uid) {
-            set({ wallets: [] });
+            set({ wallets: [], walletsLoadStatus: "idle", walletsOwnerUid: null });
             return [];
         }
+
+        set({ wallets: [], walletsLoadStatus: "loading", walletsOwnerUid: uid });
 
         try {
             const { getExpenseWallets } = await import("../modules/expenses/api/walletsRepository");
             const wallets = await getExpenseWallets(uid);
 
-            set({ wallets });
+            set((state) =>
+                state.walletsOwnerUid === uid
+                    ? { wallets, walletsLoadStatus: "loaded" }
+                    : {},
+            );
             return wallets;
         } catch {
-            set({ wallets: [] });
+            set((state) =>
+                state.walletsOwnerUid === uid
+                    ? { wallets: [], walletsLoadStatus: "error" }
+                    : {},
+            );
             return [];
         }
     },
@@ -534,6 +546,8 @@ export const useExpenseDataStore = create((set, get) => ({
 
 export const selectExpenseCategories = (state) => state.categories;
 export const selectExpenseWallets = (state) => state.wallets;
+export const selectExpenseWalletsLoadStatus = (state) => state.walletsLoadStatus;
+export const selectExpenseWalletsOwnerUid = (state) => state.walletsOwnerUid;
 export const selectExpenseRecentTransactions = (state) => state.recentTransactions;
 export const selectExpenseTransactionsRevision = (state) => state.transactionsRevision;
 export const selectExpenseBudgetLimitsByMonth = (state) => state.budgetLimitsByMonth;

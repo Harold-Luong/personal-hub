@@ -78,26 +78,29 @@ Quan hệ nghiệp vụ quan trọng:
 
 Luồng tiền hiện tại:
 
-1. Tạo expense: tạo transaction, tăng `monthlyStats.expenseMinor`, tăng
+1. Lần đăng nhập đầu tiên: sau khi tải ví thành công, UI bắt buộc hoàn tất ví
+   mặc định placeholder; số dư ban đầu phải lớn hơn `0` và được lưu trực tiếp
+   vào `initialBalance`/`balance`, không tạo transaction.
+2. Tạo expense: tạo transaction, tăng `monthlyStats.expenseMinor`, tăng
    spending của category. Nếu dùng wallet thường thì trừ `wallet.balance`; nếu
    dùng `credit-card` thì tăng `outstandingDebt` và giảm `availableCredit`.
-2. Tạo income: tạo transaction, cộng `wallet.balance`, tăng
+3. Tạo income: tạo transaction, cộng `wallet.balance`, tăng
    `monthlyStats.incomeMinor`, tăng income của category.
-3. Tạo transfer: tạo transaction, trừ ví nguồn, cộng ví đích, không đổi
+4. Tạo transfer: tạo transaction, trừ ví nguồn, cộng ví đích, không đổi
    income/expense report.
-4. Tạo `creditPayment`: tạo transaction "Thanh toán thẻ tín dụng", trừ
+5. Tạo `creditPayment`: tạo transaction "Thanh toán thẻ tín dụng", trừ
    `fromWalletId`, giảm `outstandingDebt` của credit-card ở `toWalletId`, tăng
    `availableCredit`, không tăng `monthlyStats.expenseMinor` hoặc budget spent vì
    khoản chi đã được ghi lúc quẹt thẻ.
-5. Sửa transaction: đảo toàn bộ tác động cũ, áp tác động mới, cập nhật wallet và
+6. Sửa transaction: đảo toàn bộ tác động cũ, áp tác động mới, cập nhật wallet và
    monthlyStats liên quan.
-6. Xóa transaction: không xóa document; chuyển `status` sang `voided` và đảo tác
+7. Xóa transaction: không xóa document; chuyển `status` sang `voided` và đảo tác
    động tài chính.
-7. Sửa số dư ví chưa có active transaction: cập nhật `initialBalance` và
+8. Sửa số dư ví chưa có active transaction: cập nhật `initialBalance` và
    `balance`, không tạo transaction.
-8. Sửa số dư ví đã có active transaction: tạo transaction `adjustment`, cập nhật
+9. Sửa số dư ví đã có active transaction: tạo transaction `adjustment`, cập nhật
    `wallet.balance`, không đổi `monthlyStats`.
-9. Archive wallet: chỉ cho archive ví không phải default, không phải ví active
+10. Archive wallet: chỉ cho archive ví không phải default, không phải ví active
    cuối cùng và không còn `balance`/`outstandingDebt`.
 
 ## 3. Các quyết định chính
@@ -246,6 +249,7 @@ Shape đề xuất:
 ```js
 {
   theme: "sage",
+  iconSet: "emoji",
   currency: "VND",
   timezone: "Asia/Bangkok",
   hideBalance: false,
@@ -274,6 +278,9 @@ retro
 Quy tắc:
 
 - Theme là preference của user và nên được lưu trên Firestore.
+- `iconSet` nhận `emoji` hoặc `base`; lựa chọn này áp dụng đồng bộ cho icon nội dung,
+  điều hướng và thao tác, trong đó `base` là bộ SVG Scandinavian. Riêng thao tác
+  đăng xuất luôn dùng base icon để giữ hình thức nhất quán và không dùng emoji cửa.
 - Theme cũng được cache trong `localStorage` để tránh nháy giao diện lúc app
   khởi động.
 - Khi chưa đăng nhập, theme chỉ được lưu trong `localStorage`.
@@ -1428,6 +1435,7 @@ Security Rules cần giới hạn:
 - Chỉ owner được đọc/ghi.
 - Chỉ các field hợp lệ được thay đổi.
 - `theme` thuộc danh sách theme cho phép.
+- `iconSet` thuộc `emoji` hoặc `base`.
 - `currency` thuộc danh sách currency hỗ trợ.
 - Boolean fields phải đúng type.
 - `defaultWalletId` là string hoặc null.

@@ -1,5 +1,5 @@
 import AmountText from "../shared/AmountText";
-import ExpenseIcon from "../shared/ExpenseIcon";
+import ExpenseIcon from "../../icon/ExpenseIcon";
 
 export default function TransactionItem({ transaction }) {
     if (!transaction) {
@@ -8,7 +8,7 @@ export default function TransactionItem({ transaction }) {
 
     return (
         <article className="transaction-item">
-            <ExpenseIcon appearance="emoji" icon={transaction.icon ?? transaction.category} label={transaction.title} />
+            <ExpenseIcon icon={transaction.icon ?? transaction.category} label={transaction.title} />
             <div>
                 <strong>{transaction.title}</strong>
                 <p>{transaction.subtitle}</p>

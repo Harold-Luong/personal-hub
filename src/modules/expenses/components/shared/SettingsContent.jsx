@@ -1,11 +1,11 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
 import {
     expenseAmountFormatOptions,
     expenseCurrencyLabels,
     expenseDateFormatOptions,
 } from "../../constants/expenseMetadata";
-import { ChevronIcon, DownloadIcon, EyeIcon, StarIcon, UploadIcon } from "../../icon/ExpenseIcons";
-import ExpenseIcon from "./ExpenseIcon";
+import ExpenseIcon from "../../icon/ExpenseIcon";
+import { expenseIconSetOptions } from "../../icon/iconSets";
 import SectionCard from "./SectionCard";
 
 function PreferenceSelect({ description, label, onChange, options, value }) {
@@ -15,7 +15,11 @@ function PreferenceSelect({ description, label, onChange, options, value }) {
             <select onChange={(event) => onChange(event.target.value)} value={value}>
                 {options.map((option) => (
                     <option key={option.id ?? option} value={option.id ?? option}>
-                        {option.label ? `${option.label} (${option.example})` : option}
+                        {option.label
+                            ? option.example
+                                ? `${option.label} (${option.example})`
+                                : option.label
+                            : option}
                     </option>
                 ))}
             </select>
@@ -47,16 +51,16 @@ function EntityRow({
             </span>
             <span className="settings-content__entity-actions">
                 <button aria-label={`Đưa ${entity.name} lên`} disabled={!canMoveUp} onClick={() => onMove(-1)} title="Đưa lên" type="button">
-                    <ChevronIcon direction="up" />
+                    <ExpenseIcon bare icon="chevron-up" size={16} />
                 </button>
                 <button aria-label={`Đưa ${entity.name} xuống`} disabled={!canMoveDown} onClick={() => onMove(1)} title="Đưa xuống" type="button">
-                    <ChevronIcon direction="down" />
+                    <ExpenseIcon bare icon="chevron-down" size={16} />
                 </button>
                 <button aria-label={`${isHidden ? "Hiện" : "Ẩn"} ${entity.name}`} disabled={isDefault} onClick={onToggleHidden} title={isDefault ? "Không thể ẩn mục mặc định" : isHidden ? "Hiện" : "Ẩn"} type="button">
-                    <EyeIcon off={isHidden} />
+                    <ExpenseIcon bare icon="visibility" size={20} />
                 </button>
                 <button aria-label={`Chọn ${entity.name} làm mặc định`} className={isDefault ? "is-active" : ""} disabled={!canSetDefault || isHidden} onClick={onSetDefault} title={canSetDefault ? "Chọn mặc định" : "Chỉ áp dụng cho danh mục chi tiêu"} type="button">
-                    <StarIcon filled={isDefault} />
+                    <ExpenseIcon bare icon="favorite" size={20} />
                 </button>
             </span>
         </li>
@@ -104,9 +108,7 @@ function EntityManager({ categories, onMoveCategory, onMoveWallet, onSetDefaultC
     );
 }
 
-export default function SettingsContent({ categories = [], isWorking, message, onExport, onImport, onMoveCategory, onMoveWallet, onSetDefaultCategory, onSetDefaultWallet, onSettingChange, onToggleCategory, onToggleWallet, settings, wallets = [] }) {
-    const fileInputRef = useRef(null);
-
+export default function SettingsContent({ categories = [], isWorking, message, onExport, onMoveCategory, onMoveWallet, onSetDefaultCategory, onSetDefaultWallet, onSettingChange, onToggleCategory, onToggleWallet, settings, wallets = [] }) {
     return (
         <div className="settings-content">
             {message ? <p className={`settings-content__message ${message.tone === "error" ? "is-error" : "is-success"}`} role="status">{message.text}</p> : null}
@@ -115,16 +117,15 @@ export default function SettingsContent({ categories = [], isWorking, message, o
                     <PreferenceSelect description="Đơn vị dùng khi hiển thị số tiền" label="Tiền tệ" onChange={(value) => onSettingChange("currency", value)} options={expenseCurrencyLabels} value={settings.currency} />
                     <PreferenceSelect description="Cách rút gọn số tiền trên các báo cáo" label="Định dạng số tiền" onChange={(value) => onSettingChange("amountFormat", value)} options={expenseAmountFormatOptions} value={settings.amountFormat} />
                     <PreferenceSelect description="Áp dụng cho ngày hiển thị trong ứng dụng" label="Định dạng ngày" onChange={(value) => onSettingChange("dateFormat", value)} options={expenseDateFormatOptions} value={settings.dateFormat} />
+                    <PreferenceSelect description="Áp dụng cho danh mục, ví và điều hướng" label="Bộ biểu tượng" onChange={(value) => onSettingChange("iconSet", value)} options={expenseIconSetOptions} value={settings.iconSet} />
                 </SectionCard>
 
                 <SectionCard actionLabel={null} className="settings-content__data" title="Dữ liệu CSV">
-                    <p>Xuất toàn bộ giao dịch hoặc nhập lại từ tệp CSV theo đúng mẫu của ứng dụng.</p>
+                    <p>Xuất toàn bộ giao dịch thành tệp CSV để lưu trữ hoặc sử dụng bên ngoài ứng dụng.</p>
                     <div className="settings-content__data-actions">
-                        <button disabled={isWorking} onClick={onExport} type="button"><DownloadIcon /> Xuất CSV</button>
-                        <button disabled={isWorking} onClick={() => fileInputRef.current?.click()} type="button"><UploadIcon /> Nhập CSV</button>
-                        <input accept=".csv,text/csv" className="sr-only" onChange={(event) => { const [file] = event.target.files; if (file) onImport(file); event.target.value = ""; }} ref={fileInputRef} type="file" />
+                        <button disabled={isWorking} onClick={onExport} type="button"><ExpenseIcon bare icon="download" size={20} /> Xuất CSV</button>
                     </div>
-                    <small>{isWorking ? "Đang xử lý dữ liệu..." : "Ngày trong CSV dùng định dạng YYYY-MM-DD; số tiền là số nguyên."}</small>
+                    <small>{isWorking ? "Đang xuất dữ liệu..." : "Tệp CSV bao gồm toàn bộ lịch sử giao dịch hiện có."}</small>
                 </SectionCard>
             </div>
 

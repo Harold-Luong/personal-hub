@@ -10,6 +10,10 @@ import {
     expenseDefaultTheme,
     expenseThemeIds,
 } from "../modules/expenses/constants/expenseMetadata";
+import {
+    expenseDefaultIconSet,
+    expenseIconSetIdValues,
+} from "../modules/expenses/icon/iconSets";
 
 const defaultExpensePreferences = {
     amountFormat: expenseDefaultAmountFormat,
@@ -20,6 +24,7 @@ const defaultExpensePreferences = {
     hideBalance: false,
     hiddenCategoryIds: [],
     hiddenWalletIds: [],
+    iconSet: expenseDefaultIconSet,
     notificationsEnabled: true,
     theme: expenseDefaultTheme,
 };
@@ -66,6 +71,9 @@ function normalizeExpensePreferences(preferences = {}) {
                 : defaultExpensePreferences.notificationsEnabled,
         hiddenCategoryIds: normalizeIds(preferences.hiddenCategoryIds),
         hiddenWalletIds: normalizeIds(preferences.hiddenWalletIds),
+        iconSet: expenseIconSetIdValues.includes(preferences.iconSet)
+            ? preferences.iconSet
+            : defaultExpensePreferences.iconSet,
         theme: expenseThemeIds.includes(preferences.theme)
             ? preferences.theme
             : defaultExpensePreferences.theme,
@@ -205,4 +213,5 @@ export const useExpensePreferencesStore = create(
 );
 
 export const selectExpensePreferences = (state) => state.expensePreferences;
+export const selectExpenseIconSet = (state) => state.expensePreferences.iconSet;
 export const selectExpenseSettingsError = (state) => state.settingsError;

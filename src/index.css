@@ -36,3 +36,21 @@ button {
     min-height: 100svh;
     width: 100%;
 }
+
+.money-care-logo__background {
+    fill: currentColor;
+}
+
+.money-care-logo__mark,
+.money-care-logo__base {
+    stroke: white;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 4.2;
+}
+
+.money-care-logo__coin {
+    fill: #e6b85c;
+    stroke: currentColor;
+    stroke-width: 2.4;
+}

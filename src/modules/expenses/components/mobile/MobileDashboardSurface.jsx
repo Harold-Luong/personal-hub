@@ -4,7 +4,7 @@ import RecentTransactionsCard from "../dashboard/RecentTransactionsCard";
 import MobilePageHeader from "./MobilePageHeader";
 import MonthlyBudgetCard from "./MonthlyBudgetCard";
 import { formatDate } from "./../../utils/formatDate";
-import { ThemeIcon } from "../../icon/ExpenseIcons";
+import ExpenseIcon from "../../icon/ExpenseIcon";
 import { selectAuthUser, useAuthSessionStore } from "../../../../stores/authSessionStore";
 import { expenseDefaultTheme } from "../../constants/expenseMetadata";
 
@@ -41,13 +41,13 @@ export default function MobileDashboardSurface({
                         onClick={onToggleTheme}
                         type="button"
                     >
-                        <ThemeIcon size={22} />
+                        <ExpenseIcon bare icon="theme" size={22} />
                     </button>
                 }
                 subtitle={formatDate(new Date())}
                 title={
                     <>
-                        Xin chào, {user?.displayName || user?.email} <span aria-hidden="true">👋</span>
+                        Xin chào, {user?.displayName || user?.email} <ExpenseIcon bare icon="greeting" size={18} />
                     </>
                 }
             />

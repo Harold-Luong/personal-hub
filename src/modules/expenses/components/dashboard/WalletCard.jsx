@@ -1,5 +1,5 @@
 import AmountText from "../shared/AmountText";
-import ExpenseIcon from "../shared/ExpenseIcon";
+import ExpenseIcon from "../../icon/ExpenseIcon";
 import SectionCard from "../shared/SectionCard";
 import { expenseUiText } from "../../constants/expenseUiMetadata";
 import { isCreditCardWallet } from "../../utils/walletUtils";

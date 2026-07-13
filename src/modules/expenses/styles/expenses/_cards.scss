@@ -258,10 +258,12 @@
 }
 
 .summary-card__meta {
+  align-items: center;
   color: var(--expense-muted);
-  display: block;
+  display: flex;
   font-size: 12px;
   font-weight: 800;
+  gap: 4px;
   margin-top: 18px;
 }
 

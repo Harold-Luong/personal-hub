@@ -1,9 +1,9 @@
 import { useState } from "react";
+import MoneyCareLogo from "../../../../components/brand/MoneyCareLogo";
 import { selectAuthUser, useAuthSessionStore } from "../../../../stores/authSessionStore";
 import { expenseDefaultTheme } from "../../constants/expenseMetadata";
 import { expenseUiText } from "../../constants/expenseUiMetadata";
-import { LogoutIcon, ThemeIcon } from "../../icon/ExpenseIcons";
-import ExpenseIcon from "../shared/ExpenseIcon";
+import ExpenseIcon from "../../icon/ExpenseIcon";
 import ExpenseButton from "../shared/ExpenseButton";
 
 export default function ExpenseSidebar({
@@ -36,7 +36,7 @@ export default function ExpenseSidebar({
     return (
         <aside className="expense-sidebar">
             <div className="expense-sidebar__brand">
-                <span className="expense-sidebar__logo">MC</span>
+                <MoneyCareLogo className="expense-sidebar__logo" label={null} size={42} />
                 <strong>MoneyCare</strong>
             </div>
 
@@ -72,7 +72,7 @@ export default function ExpenseSidebar({
                     <ExpenseButton
                         ariaLabel={expenseUiText.actions.TOGGLE_THEME}
                         className="expense-sidebar__theme"
-                        icon={ThemeIcon}
+                        icon="theme"
                         iconSize={17}
                         label={theme}
                         labelTag="span"
@@ -83,7 +83,8 @@ export default function ExpenseSidebar({
                         ariaLabel={expenseUiText.actions.LOGOUT}
                         className="expense-sidebar__logout"
                         disabled={isSigningOut}
-                        icon={LogoutIcon}
+                        icon="logout"
+                        iconAppearance="base"
                         iconSize={17}
                         onClick={handleLogout}
                         title={expenseUiText.actions.LOGOUT}

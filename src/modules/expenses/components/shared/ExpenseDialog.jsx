@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { expenseUiText } from "../../constants/expenseUiMetadata";
-import { XIcon } from "../../icon/ExpenseIcons";
 import ExpenseButton from "./ExpenseButton";
 
 export default function ExpenseDialog({
@@ -53,13 +52,15 @@ export default function ExpenseDialog({
                     ) : (
                         <h2 id={headingId}>{title}</h2>
                     )}
-                    <ExpenseButton
-                        ariaLabel={expenseUiText.actions.CLOSE}
-                        className={closeButtonClassName}
-                        icon={XIcon}
-                        onClick={onClose}
-                        title={expenseUiText.actions.CLOSE}
-                    />
+                    {onClose ? (
+                        <ExpenseButton
+                            ariaLabel={expenseUiText.actions.CLOSE}
+                            className={closeButtonClassName}
+                            icon="close"
+                            onClick={onClose}
+                            title={expenseUiText.actions.CLOSE}
+                        />
+                    ) : null}
                 </header>
                 {children}
             </div>

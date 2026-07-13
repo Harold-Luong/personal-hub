@@ -11,7 +11,7 @@ import {
 } from "../../../stores/expenseDataStore";
 import AmountText from "../components/shared/AmountText";
 import DonutChart from "../components/shared/DonutChart";
-import ExpenseIcon from "../components/shared/ExpenseIcon";
+import ExpenseIcon from "../icon/ExpenseIcon";
 import ExpenseStateMessage from "../components/shared/ExpenseStateMessage";
 import SummaryCardList from "../components/shared/SummaryCardList";
 import {
@@ -24,7 +24,6 @@ import {
     transactionTypes,
 } from "../constants/expenseMetadata";
 import { expenseSortKeys, expenseUiText } from "../constants/expenseUiMetadata";
-import { BudgetIcon, CalendarIcon, ChevronIcon, ReportIcon, TransactionListIcon } from "../icon/ExpenseIcons";
 import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { formatCurrency } from "../utils/formatCurrency";
 import { getEmptyMonthlyStats } from "../utils/monthlyStatsUtils";
@@ -164,14 +163,14 @@ function CategorySummaryCards({ categories, monthlyStats, budgets }) {
     const summaryCards = [
         {
             id: "total",
-            icon: ReportIcon,
+            icon: "card",
             label: "Tổng chi",
             tone: "expense",
             value: totalExpense,
         },
         {
             id: "count",
-            icon: TransactionListIcon,
+            icon: "category",
             label: "Danh mục có chi",
             tone: "neutral",
             value: `${categories.length}`,
@@ -179,7 +178,7 @@ function CategorySummaryCards({ categories, monthlyStats, budgets }) {
         },
         {
             id: "top",
-            icon: ChevronIcon,
+            icon: topCategory?.icon ?? "category",
             label: "Cao nhất",
             tone: "good",
             value: topCategory ? topCategory.name : "-",
@@ -187,7 +186,7 @@ function CategorySummaryCards({ categories, monthlyStats, budgets }) {
         },
         {
             id: "budget",
-            icon: BudgetIcon,
+            icon: "budget",
             label: "Vượt ngân sách",
             tone: overBudgetCount ? "danger" : "neutral",
             value: totalBudget ? `${overBudgetCount}` : "-",
@@ -298,7 +297,7 @@ function CategoryTransactionItem({ transaction }) {
             </div>
             <div className="category-spending-page__transaction-mobile-meta transactions-page__mobile-meta" role="cell">
                 <time className="transactions-page__mobile-date" dateTime={dateTime}>
-                    <CalendarIcon size={18} />
+                    <ExpenseIcon bare icon="calendar" size={18} />
                     <span>
                         {timeLabel} - {dateLabel}
                     </span>
@@ -438,7 +437,6 @@ function CategoryTableRow({
             <div className="category-spending-page__category-row" role="row">
                 <div className="category-spending-page__category-main" role="cell">
                     <ExpenseIcon
-                        appearance="emoji"
                         color={category.color}
                         icon={category.icon}
                         label={category.name}
@@ -483,7 +481,7 @@ function CategoryTableRow({
                         title={expandLabel}
                         type="button"
                     >
-                        <ChevronIcon size={14} />
+                        <ExpenseIcon bare icon="chevron-right" size={14} />
                     </button>
                 </div>
             </div>
@@ -826,7 +824,7 @@ export default function CategorySpendingPage({
         <div className={`category-spending-page category-spending-page--${mode}`}>
             {!isDesktopMode ? (
                 <button className="category-spending-page__back" onClick={onBack} type="button">
-                    <ChevronIcon direction="left" size={15} />
+                    <ExpenseIcon bare icon="chevron-left" size={15} />
                     <span>Cài đặt</span>
                 </button>
             ) : null}

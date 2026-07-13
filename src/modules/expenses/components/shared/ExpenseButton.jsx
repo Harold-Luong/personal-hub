@@ -1,9 +1,20 @@
+import ExpenseIcon from "../../icon/ExpenseIcon";
+
+function ExpenseButtonIcon({ appearance, icon, size }) {
+    if (!icon) {
+        return null;
+    }
+
+    return <ExpenseIcon appearance={appearance} bare icon={icon} size={size} />;
+}
+
 export default function ExpenseButton({
     ariaLabel,
     children,
     className = "",
     disabled = false,
-    icon: Icon,
+    icon,
+    iconAppearance = "auto",
     iconSize = 18,
     isLoading = false,
     label,
@@ -24,7 +35,7 @@ export default function ExpenseButton({
             title={title}
             type={type}
         >
-            {Icon ? <Icon size={iconSize} /> : null}
+            <ExpenseButtonIcon appearance={iconAppearance} icon={icon} size={iconSize} />
             {LabelTag && content !== undefined ? <LabelTag>{content}</LabelTag> : content}
         </button>
     );

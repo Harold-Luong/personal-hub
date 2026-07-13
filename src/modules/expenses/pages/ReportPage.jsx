@@ -28,6 +28,7 @@ import {
 import MobilePageHeader from "../components/mobile/MobilePageHeader";
 import AmountText from "../components/shared/AmountText";
 import ExpenseButton from "../components/shared/ExpenseButton";
+import ExpenseIcon from "../icon/ExpenseIcon";
 import ExpenseStateMessage from "../components/shared/ExpenseStateMessage";
 import ProgressBar from "../components/shared/ProgressBar";
 import SummaryCardList from "../components/shared/SummaryCardList";
@@ -41,14 +42,6 @@ import {
     transactionTypes,
 } from "../constants/expenseMetadata";
 import { expenseReportTrendViews, expenseUiText } from "../constants/expenseUiMetadata";
-import {
-    ArrowDownIcon,
-    ArrowUpIcon,
-    BudgetIcon,
-    CalendarIcon,
-    ReportIcon,
-    TransactionListIcon,
-} from "../icon/ExpenseIcons";
 import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { formatCurrency } from "../utils/formatCurrency";
 import { calculateTrend, getEmptyMonthlyStats, getPreviousMonthKey } from "../utils/monthlyStatsUtils";
@@ -669,12 +662,11 @@ function ReportInsightCard({ label, tone, value }) {
     return (
         <article className={`report-insight-card report-insight-card--${tone}`}>
             <i aria-hidden="true">
-                <ReportIcon size={18} />
+                <ExpenseIcon bare icon="chart" size={18} />
             </i>
             <div>
                 <strong>{label}</strong>
                 <p>{value}</p>
-                {/* <button type="button">Xem chi tiết →</button> */}
             </div>
         </article>
     );
@@ -809,40 +801,40 @@ function ReportQuickSummary({ days, monthKey, topCategory, transactions }) {
     );
     const items = [
         {
-            icon: TransactionListIcon,
+            icon: "transactions",
             id: "count",
             label: "Tổng giao dịch",
             value: transactionCount,
         },
         {
-            icon: ReportIcon,
+            icon: "chart",
             id: "average",
             label: "Giá trị giao dịch trung bình",
             value: transactionCount ? Math.round(transactionTotal / transactionCount) : 0,
             valueType: "amount",
         },
         {
-            icon: ArrowUpIcon,
+            icon: "trend-up",
             id: "largest",
             label: "Giao dịch lớn nhất",
             value: transactionAmounts.length ? Math.max(...transactionAmounts) : 0,
             valueType: "amount",
         },
         {
-            icon: ArrowDownIcon,
+            icon: "trend-down",
             id: "smallest",
             label: "Giao dịch nhỏ nhất",
             value: transactionAmounts.length ? Math.min(...transactionAmounts) : 0,
             valueType: "amount",
         },
         {
-            icon: CalendarIcon,
+            icon: "calendar",
             id: "highest-day",
             label: "Ngày chi nhiều nhất",
             value: getFullDateLabel(monthKey, highestSpendingDay.day),
         },
         {
-            icon: BudgetIcon,
+            icon: topCategory?.icon ?? "category",
             id: "top-category",
             label: "Danh mục chi nhiều nhất",
             value: topCategory ? `${topCategory.name} (${topCategory.percentage}%)` : "-",
@@ -858,9 +850,9 @@ function ReportQuickSummary({ days, monthKey, topCategory, transactions }) {
                 </div>
             </header>
             <div className="report-quick-summary__list" role="list">
-                {items.map(({ icon: Icon, id, label, value, valueType }) => (
+                {items.map(({ icon, id, label, value, valueType }) => (
                     <div className="report-quick-summary__item" key={id} role="listitem">
-                        <i aria-hidden="true"><Icon size={15} /></i>
+                        <i aria-hidden="true"><ExpenseIcon bare icon={icon} size={15} /></i>
                         <span>{label}</span>
                         <strong>{valueType === "amount" ? <AmountText amount={value} /> : value}</strong>
                     </div>
@@ -1132,7 +1124,7 @@ export default function ReportPage({
     const reportSummaryItems = [
         {
             emphasizeValue: true,
-            icon: ArrowUpIcon,
+            icon: "income",
             iconSize: 20,
             id: "income",
             label: "Tổng thu nhập",
@@ -1142,7 +1134,7 @@ export default function ReportPage({
         },
         {
             emphasizeValue: true,
-            icon: ArrowDownIcon,
+            icon: "card",
             iconSize: 20,
             id: "expense",
             label: "Tổng chi tiêu",
@@ -1152,7 +1144,7 @@ export default function ReportPage({
         },
         {
             emphasizeValue: true,
-            icon: ReportIcon,
+            icon: "chart",
             iconSize: 20,
             id: "net",
             label: "Dòng tiền (Thu - Chi)",
@@ -1162,7 +1154,7 @@ export default function ReportPage({
         },
         {
             emphasizeValue: true,
-            icon: BudgetIcon,
+            icon: "saving",
             iconSize: 20,
             id: "saving",
             label: "Tỷ lệ tiết kiệm",
@@ -1337,7 +1329,7 @@ export default function ReportPage({
             <section className="report-page__secondary-grid">
                 <article className="report-panel report-panel--daily-heatmap">
                     <header className="report-heatmap__header">
-                        <i aria-hidden="true"><CalendarIcon size={19} /></i>
+                        <i aria-hidden="true"><ExpenseIcon bare icon="calendar" size={19} /></i>
                         <div>
                             <h2>Lịch chi tiêu (Heatmap)</h2>
                             <span>{getMonthLabel(selectedMonth)}</span>
@@ -1357,7 +1349,7 @@ export default function ReportPage({
                             topTransactions.map((transaction) => (
                                 <div className="report-transaction" key={transaction.id}>
                                     <i style={{ "--transaction-color": transaction.categoryColor || "#8aa2ff" }}>
-                                        <TransactionListIcon size={17} />
+                                        <ExpenseIcon bare icon={transaction.icon ?? transaction.category ?? "transactions"} label={transaction.title} size={17} />
                                     </i>
                                     <div>
                                         <strong>{transaction.title}</strong>
@@ -1374,7 +1366,7 @@ export default function ReportPage({
                         )}
                     </div>
                     <ExpenseButton className="report-panel__link" onClick={handleViewTransactions}>
-                        Xem tất cả giao dịch <span>›</span>
+                        Xem tất cả giao dịch <ExpenseIcon bare icon="chevron-right" size={15} />
                     </ExpenseButton>
                 </article>
 
@@ -1402,9 +1394,6 @@ export default function ReportPage({
                             <ExpenseStateMessage className="report-page__empty" message="Chưa có chi tiêu theo ví." />
                         )}
                     </div>
-                    {/* <button className="report-panel__link" type="button">
-                        Xem chi tiết theo ví <span>›</span>
-                    </button> */}
                 </article>
             </section>
 
@@ -1417,7 +1406,7 @@ export default function ReportPage({
                         </span>
                     </div>
                     <ExpenseButton className="report-panel__link" onClick={handleViewCategories}>
-                        Xem chi tiết danh mục <span>›</span>
+                        Xem chi tiết danh mục <ExpenseIcon bare icon="chevron-right" size={15} />
                     </ExpenseButton>
                 </header>
                 {isLoading ? (
@@ -1451,13 +1440,13 @@ export default function ReportPage({
                         </span>
                     </div>
                     <div className="report-callout">
-                        <ReportIcon size={18} />
+                        <ExpenseIcon bare icon="chart" size={18} />
                         <span>
                             Chi tiêu tháng {getCompactMonthLabel(selectedMonth)} {expenseTrend >= 0 ? "tăng" : "giảm"}{" "}
                             {Math.abs(expenseTrend)}% ({formatCurrency(Math.abs(expense - previousExpense))}) so với
                             tháng trước.
                         </span>
-                        <b>›</b>
+                        <ExpenseIcon bare icon="chevron-right" size={15} />
                     </div>
                 </article>
 

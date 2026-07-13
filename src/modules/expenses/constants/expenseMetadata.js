@@ -13,7 +13,7 @@ export const expensePageMeta = {
     },
     transactions: {
         label: "Giao dịch",
-        icon: "card",
+        icon: "transactions",
         path: "/expenses/transactions",
         isRouted: true,
     },
@@ -31,7 +31,7 @@ export const expensePageMeta = {
     },
     budgets: {
         label: "Ngân sách",
-        icon: "income",
+        icon: "budget",
         path: "/expenses/budgets",
         isRouted: true,
     },
@@ -128,9 +128,9 @@ export const expenseDefaultTheme = expenseThemeOptions[0].id;
 export const creditCardWalletTypeId = "credit-card";
 
 export const walletTypeOptions = [
-    { id: "cash", label: "Tiền mặt", icon: "wallet", color: "#56b879" },
+    { id: "cash", label: "Tiền mặt", icon: "cash", color: "#56b879" },
     { id: "bank", label: "Ngân hàng", icon: "bank", color: "#4f93d7" },
-    { id: "eWallet", label: "Ví điện tử", icon: "momo", color: "#d77fa1" },
+    { id: "eWallet", label: "Ví điện tử", icon: "digital-wallet", color: "#d77fa1" },
     { id: creditCardWalletTypeId, label: "Thẻ tín dụng", icon: "card", color: "#9b7bd8" },
     { id: "saving", label: "Tiết kiệm", icon: "saving", color: "#d9a441" },
     { id: "other", label: "Khác", icon: "more", color: "#b8bec8" },
@@ -235,7 +235,7 @@ export const expenseSummaryItems = [
         id: "income",
         label: "Tổng thu nhập",
         tone: "positive",
-        icon: "wallet",
+        icon: "income",
     },
     {
         id: "expense",
