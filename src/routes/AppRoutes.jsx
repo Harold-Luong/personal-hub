@@ -4,7 +4,7 @@ import useEnsureUserProfile from "../modules/auth/hooks/useEnsureUserProfile";
 import AuthPage from "../modules/auth/pages/AuthPage";
 import ExpenseModuleRoute from "../modules/expenses/routes/ExpenseModuleRoute";
 import HubHomePage from "../modules/hub/pages/HubHomePage";
-import QuotesPage from "../modules/quotes/pages/QuotesPage";
+import QuotesRouter from "../modules/quotes/routes/QuotesRouter";
 
 function AuthenticatedApplication({ user }) {
     const userProfile = useEnsureUserProfile(user);
@@ -39,7 +39,7 @@ function AuthenticatedApplication({ user }) {
             <Route path="/hub" element={<HubHomePage onLogout={logout} user={user} />} />
             <Route path="/expenses" element={<Navigate replace to="/expenses/dashboard" />} />
             <Route path="/expenses/*" element={<ExpenseModuleRoute onLogout={logout} />} />
-            <Route path="/quotes/*" element={<QuotesPage />} />
+            <Route path="/quotes/*" element={<QuotesRouter />} />
             <Route path="*" element={<Navigate replace to="/hub" />} />
         </Routes>
     );
