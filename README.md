@@ -222,6 +222,7 @@ Hãy kiểm tra đúng Firebase project trước khi deploy. Thay đổi trong f
 
 - [`src/modules/expenses/README.md`](./src/modules/expenses/README.md): mô hình dữ liệu và quy tắc nghiệp vụ của module Expenses.
 - [`FIREBASE_FIRESTORE_SETUP.md`](./FIREBASE_FIRESTORE_SETUP.md): cấu hình Firebase CLI, Firestore Rules và Indexes.
+- [`FIREBASE_HOSTING_DEPLOY.md`](./FIREBASE_HOSTING_DEPLOY.md): build, preview và deploy MoneyCare lên Firebase Hosting.
 - [`SECURITY.md`](./SECURITY.md): Authentication, App Check và checklist bảo mật.
 
 ---
