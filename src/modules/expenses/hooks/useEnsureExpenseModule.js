@@ -8,7 +8,7 @@ const initialState = {
     settings: null,
 };
 
-export default function useEnsureExpenseSettings(user) {
+export default function useEnsureExpenseModule() {
     const uid = useAuthSessionStore(selectAuthUid);
     const [attempt, setAttempt] = useState(0);
     const [state, setState] = useState(initialState);
@@ -22,11 +22,11 @@ export default function useEnsureExpenseSettings(user) {
         let isCancelled = false;
 
         import("../api/expenseSettingsRepository")
-            .then(async ({ ensureUserDataInitialized, getExpenseSettings }) => {
+            .then(async ({ ensureExpenseModuleInitialized, getExpenseSettings }) => {
                 const existingSettings = await getExpenseSettings(uid);
 
                 if (existingSettings) {
-                    ensureUserDataInitialized(user).catch(() => {});
+                    ensureExpenseModuleInitialized(uid).catch(() => {});
 
                     return existingSettings;
                 }
@@ -40,7 +40,7 @@ export default function useEnsureExpenseSettings(user) {
                     });
                 }
 
-                return ensureUserDataInitialized(user);
+                return ensureExpenseModuleInitialized(uid);
             })
             .then((settings) => {
                 if (!isCancelled) {
@@ -66,7 +66,7 @@ export default function useEnsureExpenseSettings(user) {
         return () => {
             isCancelled = true;
         };
-    }, [requestKey, uid, user]);
+    }, [requestKey, uid]);
 
     if (!uid) {
         return {

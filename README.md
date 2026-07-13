@@ -2,15 +2,15 @@
   <img src="./public/favicon.svg" alt="Logo MoneyCare" width="88" height="88">
 </p>
 
-<h1 align="center">MoneyCare</h1>
+<h1 align="center">Personal Hub</h1>
 
 <p align="center">
-  Ứng dụng quản lý tài chính cá nhân giúp theo dõi ví, giao dịch, ngân sách và dòng tiền trên cả desktop lẫn mobile.
+  Hub cá nhân gồm các module độc lập cho tài chính, cảm hứng và những nhu cầu hằng ngày.
 </p>
 
 ## Tổng quan
 
-MoneyCare tập trung các hoạt động tài chính hằng ngày vào một nơi: ghi nhận thu chi, quản lý nhiều loại ví, kiểm soát ngân sách theo danh mục và theo dõi xu hướng qua biểu đồ. Mỗi tài khoản có vùng dữ liệu riêng trên Firebase và có thể cá nhân hóa giao diện theo nhu cầu sử dụng.
+Personal Hub đưa người dùng về một màn hình chung sau đăng nhập. Mỗi module chỉ khởi tạo dữ liệu khi được mở lần đầu. Module Expenses (MoneyCare) quản lý thu chi, ví, ngân sách và báo cáo; module Quotes cung cấp nội dung tĩnh và không tạo dữ liệu Firestore cho người dùng.
 
 <p align="center">
   <img src="./public/ui/expenses-ui.png" alt="MoneyCare trên desktop" width="100%">
@@ -26,11 +26,19 @@ MoneyCare tập trung các hoạt động tài chính hằng ngày vào một n�
 
 ## Tính năng nổi bật
 
+### Hub và module
+
+- Sau đăng nhập, người dùng được chuyển đến `/hub` để chọn module.
+- Expenses chỉ khởi tạo settings, ví và danh mục mặc định khi route `/expenses/*` được mở.
+- Quotes hoạt động độc lập và không ghi Firestore khi người dùng chỉ đọc nội dung.
+- Có thể thêm module mới mà không đưa bootstrap của module đó vào auth flow.
+
 ### Đăng nhập và thiết lập ban đầu
 
 - Đăng ký, đăng nhập bằng email/mật khẩu hoặc Google.
 - Tự động tách dữ liệu theo tài khoản người dùng.
-- Yêu cầu tạo ví đầu tiên với số dư ban đầu lớn hơn `0` khi tài khoản chưa có ví.
+- Hồ sơ dùng chung được khởi tạo sau auth; dữ liệu nghiệp vụ được khởi tạo riêng theo module.
+- Expenses yêu cầu thiết lập số dư ví ban đầu khi người dùng mở module lần đầu.
 - Đồng bộ tên hiển thị giữa Firebase Authentication và hồ sơ Firestore.
 
 ### Giao dịch và ví
@@ -81,7 +89,9 @@ MoneyCare tập trung các hoạt động tài chính hằng ngày vào một n�
 ```mermaid
 flowchart LR
     User[Desktop / Mobile] --> Routes[Router và Auth Guard]
-    Routes --> Pages[Pages và UI Surfaces]
+    Routes --> Hub[Hub Home]
+    Hub --> ModuleGate[Module Route Gate]
+    ModuleGate --> Pages[Pages và UI Surfaces]
     Pages --> Components[Shared Components]
     Pages --> Stores[Zustand Stores]
     Stores --> Repositories[Firestore Repositories]
@@ -104,6 +114,7 @@ src/
 ├── components/brand/              Logo và nhận diện MoneyCare
 ├── lib/firebase/                  Firebase app, auth, firestore và App Check
 ├── modules/auth/                  Đăng nhập, đăng ký và hồ sơ người dùng
+├── modules/hub/                   Hub Home và metadata module
 ├── modules/expenses/
 │   ├── api/                       Firestore repositories và schema
 │   ├── components/
@@ -117,6 +128,7 @@ src/
 │   ├── pages/                     Các trang theo route
 │   ├── styles/expenses/           Sass theo màn hình và component
 │   └── utils/                     Tính toán, định dạng và xuất CSV
+├── modules/quotes/                Module Quotes không lưu dữ liệu người dùng
 ├── routes/                        App routes và auth guard
 └── stores/                        Zustand stores
 ```
@@ -125,6 +137,7 @@ src/
 
 | Route | Màn hình |
 | --- | --- |
+| `/hub` | Hub Home và danh sách module |
 | `/expenses/dashboard` | Tổng quan |
 | `/expenses/transactions` | Giao dịch |
 | `/expenses/category-spending` | Chi tiêu theo danh mục |
@@ -132,10 +145,11 @@ src/
 | `/expenses/budgets` | Ngân sách |
 | `/expenses/wallets` | Ví tiền |
 | `/expenses/settings` | Cài đặt |
+| `/quotes` | Quotes |
 
 ## Mô hình dữ liệu
 
-Dữ liệu của mỗi người dùng nằm dưới `users/{uid}`:
+Dữ liệu của mỗi người dùng nằm dưới `users/{uid}`. Document profile được tạo sau auth; cây `modules/expenses` chỉ được tạo khi người dùng vào Expenses:
 
 ```text
 users/{uid}
@@ -150,6 +164,8 @@ users/{uid}
 ```
 
 Firestore Security Rules giới hạn người dùng chỉ được truy cập dữ liệu thuộc tài khoản của mình, đồng thời kiểm tra schema và các bất biến tài chính trước khi chấp nhận ghi dữ liệu.
+
+Quotes hiện chỉ đọc nội dung đóng gói cùng frontend nên không có collection riêng trong Firestore.
 
 ## Chạy dự án trên máy local
 
@@ -227,4 +243,4 @@ Hãy kiểm tra đúng Firebase project trước khi deploy. Thay đổi trong f
 
 ---
 
-MoneyCare đang được phát triển theo hướng một ứng dụng tài chính cá nhân gọn gàng, dễ sử dụng và nhất quán trên mọi kích thước màn hình.
+Personal Hub được phát triển theo hướng các module độc lập, chỉ tải và khởi tạo dữ liệu khi người dùng thực sự mở module đó.

@@ -35,6 +35,7 @@ function toggleId(ids = [], id) {
 export default function SettingsPage({
     categories = [],
     mode = "mobile",
+    onBackToHub,
     onLogout,
     onManageBudget,
     onManageCategories,
@@ -140,6 +141,7 @@ export default function SettingsPage({
             {...contentProps}
             hideBalance={settings.hideBalance}
             notificationsEnabled={settings.notificationsEnabled}
+            onBackToHub={onBackToHub}
             onLogout={onLogout}
             onManageBudget={onManageBudget}
             onManageCategories={onManageCategories}

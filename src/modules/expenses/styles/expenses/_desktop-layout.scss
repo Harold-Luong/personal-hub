@@ -9,10 +9,23 @@
 
 .expense-sidebar__brand {
     align-items: center;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
     display: flex;
     font-size: 19px;
     gap: 12px;
     margin-bottom: 22px;
+    padding: 0;
+    text-align: left;
+    width: fit-content;
+}
+
+.expense-sidebar__brand:hover,
+.expense-sidebar__brand:focus-visible {
+    color: var(--expense-active-strong);
+    outline: 0;
 }
 
 .expense-sidebar__logo {
