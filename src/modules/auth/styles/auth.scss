@@ -21,17 +21,24 @@
 }
 
 .auth-card__brand {
+    align-items: center;
     color: #2f7a4d;
-    font-size: 13px;
+    display: flex;
+    font-size: 18px;
     font-weight: 800;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    gap: 10px;
+    letter-spacing: -0.02em;
+}
+
+.auth-card__brand svg {
+    display: block;
+    flex: 0 0 auto;
 }
 
 .auth-card h1 {
     font-size: 30px;
     line-height: 1.15;
-    margin: 12px 0 8px;
+    margin: 18px 0 8px;
 }
 
 .auth-card__intro {

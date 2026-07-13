@@ -116,6 +116,7 @@ service cloud.firestore {
     function allowedExpenseSettingsKeys() {
       return [
         'theme',
+        'iconSet',
         'currency',
         'timezone',
         'hideBalance',
@@ -145,6 +146,7 @@ service cloud.firestore {
       return data.keys().hasOnly(allowedExpenseSettingsKeys())
         && data.keys().hasAll([
           'theme',
+          'iconSet',
           'currency',
           'timezone',
           'hideBalance',
@@ -158,6 +160,7 @@ service cloud.firestore {
           'updatedAt',
         ])
         && isValidExpenseTheme(data.theme)
+        && data.iconSet in ['emoji', 'base']
         && isValidCurrency(data.currency)
         && isValidString(data.timezone)
         && data.hideBalance is bool
@@ -254,6 +257,15 @@ service cloud.firestore {
         );
     }
 
+    function isValidInitialWalletBalanceSetup() {
+      return !(
+          resource.data.type != 'credit-card'
+          && !resource.data.isBalanceInitialized
+          && request.resource.data.isBalanceInitialized
+        )
+        || request.resource.data.initialBalance > 0;
+    }
+
     function isValidWalletCreate(data) {
       return data.keys().hasOnly(allowedWalletKeys())
         && data.keys().hasAll([
@@ -319,6 +331,7 @@ service cloud.firestore {
         && request.resource.data.isDefault is bool
         && request.resource.data.isBalanceInitialized is bool
         && request.resource.data.isArchived is bool
+        && isValidInitialWalletBalanceSetup()
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.updatedAt == request.time;
     }

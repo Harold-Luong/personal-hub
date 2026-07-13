@@ -1,5 +1,5 @@
 import AmountText from "../shared/AmountText";
-import ExpenseIcon from "../shared/ExpenseIcon";
+import ExpenseIcon from "../../icon/ExpenseIcon";
 import ProgressBar from "../shared/ProgressBar";
 import SectionCard from "../shared/SectionCard";
 import { budgetStatusColors } from "../../constants/expenseMetadata";
@@ -28,7 +28,6 @@ export default function BudgetOverviewCard({ budgets = [], monthLabel, onManageB
                             type="button"
                         >
                             <ExpenseIcon
-                                appearance="emoji"
                                 color={budget.color}
                                 icon={budget.icon}
                                 label={budget.category}

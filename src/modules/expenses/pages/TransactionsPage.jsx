@@ -26,33 +26,20 @@ import {
     expenseSortKeys,
     expenseUiText,
 } from "../constants/expenseUiMetadata";
-import {
-    ArrowDownIcon,
-    ArrowUpIcon,
-    CalendarIcon,
-    ChevronIcon,
-    EditIcon,
-    FilterIcon,
-    PlusIcon,
-    SearchIcon,
-    SwapIcon,
-    TransactionListIcon,
-    TrashIcon,
-} from "../icon/ExpenseIcons";
 import AmountText from "../components/shared/AmountText";
 import ExpenseButton from "../components/shared/ExpenseButton";
 import ExpenseStateMessage from "../components/shared/ExpenseStateMessage";
-import ExpenseIcon from "../components/shared/ExpenseIcon";
+import ExpenseIcon from "../icon/ExpenseIcon";
 import SummaryCardList from "../components/shared/SummaryCardList";
 import DesktopTransactionDialog from "../components/desktop/DesktopTransactionDialog";
 import { getTransactionWalletLabel } from "../utils/transactionDisplayUtils";
 import { getWalletDisplayName } from "../utils/walletUtils";
 
 const transactionSummaryIcons = {
-    count: TransactionListIcon,
-    [transactionTypes.EXPENSE]: ArrowDownIcon,
-    [transactionTypes.INCOME]: ArrowUpIcon,
-    [transactionTypes.TRANSFER]: SwapIcon,
+    count: "transactions",
+    [transactionTypes.EXPENSE]: "card",
+    [transactionTypes.INCOME]: "income",
+    [transactionTypes.TRANSFER]: "transfer",
 };
 
 function getTransactionCategoryLabel(transaction) {
@@ -311,7 +298,7 @@ function TransactionRow({ onDelete, onEdit, transaction }) {
                     <strong>{walletLabel}</strong>
                 </span>
                 <time className="transactions-page__mobile-date" dateTime={dateTime}>
-                    <CalendarIcon size={18} />
+                    <ExpenseIcon bare icon="calendar" size={18} />
                     <span>
                         {timeLabel} - {dateLabel}
                     </span>
@@ -323,7 +310,7 @@ function TransactionRow({ onDelete, onEdit, transaction }) {
             <div className="transactions-page__actions" role="cell">
                 {canEdit ? (
                     <button aria-label={`Sửa ${transaction.title}`} onClick={() => onEdit(transaction)} type="button">
-                        <EditIcon size={16} />
+                        <ExpenseIcon bare icon="edit" size={16} />
                     </button>
                 ) : null}
                 <button
@@ -332,7 +319,7 @@ function TransactionRow({ onDelete, onEdit, transaction }) {
                     onClick={() => onDelete(transaction)}
                     type="button"
                 >
-                    <TrashIcon size={16} />
+                    <ExpenseIcon bare icon="delete" size={16} />
                 </button>
             </div>
         </article>
@@ -474,10 +461,10 @@ function TransactionsSurface({
 
     const getSortIndicator = (key) => {
         if (transactionSort.key !== key) {
-            return "↕";
+            return "sort";
         }
 
-        return transactionSort.direction === expenseSortDirections.DESCENDING ? "↓" : "↑";
+        return transactionSort.direction === expenseSortDirections.DESCENDING ? "trend-down" : "trend-up";
     };
 
     useEffect(() => {
@@ -674,7 +661,7 @@ function TransactionsSurface({
                         <p>Quản lý tất cả giao dịch thu chi của bạn</p>
                     </div>
                     <button className="transactions-page__add-button" onClick={openCreateEditor} type="button">
-                        <PlusIcon size={18} />
+                        <ExpenseIcon bare icon="add" size={18} />
                         <span>Thêm giao dịch</span>
                     </button>
                 </section>
@@ -687,7 +674,7 @@ function TransactionsSurface({
                 aria-label="Bộ lọc giao dịch"
             >
                 <label className="transactions-page__search">
-                    <SearchIcon size={18} />
+                    <ExpenseIcon bare icon="search" size={18} />
                     <span className="sr-only">Tìm kiếm giao dịch</span>
                     <input
                         onChange={(event) => {
@@ -708,7 +695,7 @@ function TransactionsSurface({
                     onClick={() => setIsFilterPanelOpen((isOpen) => !isOpen)}
                     type="button"
                 >
-                    <FilterIcon size={18} />
+                    <ExpenseIcon bare icon="filter" size={18} />
                     <span>Bộ lọc</span>
                     {activeFilterCount ? <strong>{activeFilterCount}</strong> : null}
                 </button>
@@ -824,7 +811,7 @@ function TransactionsSurface({
                         type="button"
                     >
                         <span>Ngày</span>
-                        <span aria-hidden="true">{getSortIndicator(expenseSortKeys.DATE)}</span>
+                        <ExpenseIcon bare icon={getSortIndicator(expenseSortKeys.DATE)} size={13} />
                     </button>
                     <button
                         aria-label={getSortButtonLabel(expenseSortKeys.AMOUNT, "số tiền")}
@@ -836,7 +823,7 @@ function TransactionsSurface({
                         type="button"
                     >
                         <span>Số tiền</span>
-                        <span aria-hidden="true">{getSortIndicator(expenseSortKeys.AMOUNT)}</span>
+                        <ExpenseIcon bare icon={getSortIndicator(expenseSortKeys.AMOUNT)} size={13} />
                     </button>
                     <span>Thao tác</span>
                 </div>
@@ -874,7 +861,7 @@ function TransactionsSurface({
                             onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
                             type="button"
                         >
-                            <ChevronIcon direction="left" size={15} />
+                            <ExpenseIcon bare icon="chevron-left" size={15} />
                         </button>
                         {pageNumbers.map((pageNumber) => (
                             <button
@@ -894,7 +881,7 @@ function TransactionsSurface({
                             onClick={() => setCurrentPage((page) => page + 1)}
                             type="button"
                         >
-                            <ChevronIcon size={15} />
+                            <ExpenseIcon bare icon="chevron-right" size={15} />
                         </button>
                     </div>
                     <label className="transactions-page__page-size">

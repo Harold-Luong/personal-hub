@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { BellIcon, LogoutIcon, SettingsIcon, ThemeIcon } from "../../icon/ExpenseIcons";
 import { expenseThemeOptions } from "../../constants/expenseMetadata";
 import MobilePageHeader from "./MobilePageHeader";
 import SectionCard from "../shared/SectionCard";
 import SettingsContent from "../shared/SettingsContent";
-import ExpenseIcon from "../shared/ExpenseIcon";
+import ExpenseIcon from "../../icon/ExpenseIcon";
 import UserProfileCard from "../shared/UserProfileCard";
 
 function SettingsSwitch({ checked, description, label, onChange }) {
@@ -35,7 +34,6 @@ export default function MobileSettingsSurface({
     message,
     notificationsEnabled,
     onExport,
-    onImport,
     onLogout,
     onManageBudget,
     onManageCategories,
@@ -78,7 +76,7 @@ export default function MobileSettingsSurface({
             <section className="mobile-settings-surface__section">
                 <div className="mobile-settings-surface__section-heading">
                     <span className="mobile-settings-surface__section-icon">
-                        <ThemeIcon size={18} />
+                        <ExpenseIcon bare icon="theme" label="Giao diện" size={18} />
                     </span>
                     <span>
                         <h2>Giao diện</h2>
@@ -109,7 +107,7 @@ export default function MobileSettingsSurface({
             <section className="mobile-settings-surface__section">
                 <div className="mobile-settings-surface__section-heading">
                     <span className="mobile-settings-surface__section-icon">
-                        <SettingsIcon size={18} />
+                        <ExpenseIcon bare icon="settings" label="Tùy chọn" size={18} />
                     </span>
                     <span>
                         <h2>Tùy chọn</h2>
@@ -136,7 +134,7 @@ export default function MobileSettingsSurface({
             <section className="mobile-settings-surface__section">
                 <div className="mobile-settings-surface__section-heading">
                     <span className="mobile-settings-surface__section-icon">
-                        <SettingsIcon size={18} />
+                        <ExpenseIcon bare icon="category" label="Quản lý nhanh" size={18} />
                     </span>
                     <span>
                         <h2>Quản lý nhanh</h2>
@@ -177,7 +175,6 @@ export default function MobileSettingsSurface({
                 isWorking={isWorking}
                 message={message}
                 onExport={onExport}
-                onImport={onImport}
                 onMoveCategory={onMoveCategory}
                 onMoveWallet={onMoveWallet}
                 onSetDefaultCategory={onSetDefaultCategory}
@@ -192,11 +189,11 @@ export default function MobileSettingsSurface({
             <section className="mobile-settings-surface__section">
                 <div className="mobile-settings-surface__section-heading">
                     <span className="mobile-settings-surface__section-icon">
-                        <BellIcon size={18} />
+                        <ExpenseIcon bare icon="app" label="Ứng dụng" size={18} />
                     </span>
                     <span>
                         <h2>Ứng dụng</h2>
-                        <p>Personal Hub Expenses</p>
+                        <p>MoneyCare</p>
                     </span>
                 </div>
                 <SectionCard actionLabel={null} as="div" className="mobile-settings-surface__about">
@@ -213,7 +210,7 @@ export default function MobileSettingsSurface({
                 }}
                 type="button"
             >
-                <LogoutIcon size={19} />
+                <ExpenseIcon appearance="base" bare icon="logout" size={19} />
                 <span>
                     <strong>Đăng xuất</strong>
                     <small>Thoát khỏi tài khoản hiện tại</small>
@@ -238,7 +235,7 @@ export default function MobileSettingsSurface({
                         role="dialog"
                     >
                         <span className="mobile-settings-surface__dialog-icon">
-                            <LogoutIcon size={22} />
+                            <ExpenseIcon appearance="base" bare icon="logout" size={22} />
                         </span>
                         <h2 id="logout-dialog-title">Đăng xuất tài khoản?</h2>
                         <p>Bạn cần đăng nhập lại để tiếp tục quản lý chi tiêu.</p>

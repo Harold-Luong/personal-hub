@@ -464,6 +464,11 @@ export async function createExpenseWallet(uid, input) {
     const wallet = normalizeWalletInput(input, {
         order: getNextWalletOrder(activeWallets),
     })
+
+    if (activeWallets.length === 0 && !isCreditCardWallet(wallet) && wallet.balance <= 0) {
+        throw new Error('Số dư ban đầu phải lớn hơn 0.')
+    }
+
     assertUniqueWalletName(activeWallets, wallet)
 
     const shouldBeDefault =
@@ -528,7 +533,7 @@ export async function updateExpenseWallet(uid, input) {
     const shouldApplyBalanceChange = (hasTargetBalance || shouldSetInitialBalance) && isRegularWallet
     const shouldRecalculateOpeningBalance = shouldApplyBalanceChange && !existingWallet.isBalanceInitialized && !shouldSetInitialBalance
     const initialBalance = shouldSetInitialBalance
-        ? normalizeNonNegativeInteger(input.initialBalance, 'Initial wallet balance')
+        ? normalizePositiveInteger(input.initialBalance, 'Initial wallet balance')
         : null
     const targetBalance = shouldApplyBalanceChange
         ? shouldSetInitialBalance

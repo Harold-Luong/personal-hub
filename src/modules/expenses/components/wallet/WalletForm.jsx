@@ -72,7 +72,7 @@ function findDuplicateWalletName(wallets, name, excludedWalletId) {
     );
 }
 
-export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubmit, wallets = [] }) {
+export default function WalletForm({ initialWalletId, isInitialSetup = false, onCancel, onDelete, onSubmit, wallets = [] }) {
     const [walletId, setWalletId] = useState(() => getInitialWalletId(wallets, initialWalletId));
     const selectedWallet = getWalletForId(wallets, walletId);
     const [formState, setFormState] = useState(() => getFormState(selectedWallet));
@@ -166,6 +166,11 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                 ? parseSignedCurrencyInput(formState.balance)
                 : parseCurrencyInput(formState.balance);
 
+            if (isInitialSetup && balance <= 0) {
+                setSubmitError("Số dư ban đầu phải lớn hơn 0.");
+                return;
+            }
+
             if (isOpeningBalanceSetup) {
                 wallet.initialBalance = balance;
             } else {
@@ -215,21 +220,23 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
     return (
         <form className="wallet-form" onSubmit={handleSubmit}>
             <div className="wallet-form__content">
-                <ExpenseField className="wallet-form__field" label="Ví">
-                    <select
-                        disabled={isWorking}
-                        name="walletId"
-                        onChange={handleWalletChange}
-                        value={selectedWallet?.id ?? ""}
-                    >
-                        <option value="">Tạo ví mới</option>
-                        {wallets.map((wallet) => (
-                            <option key={wallet.id} value={wallet.id}>
-                                {wallet.name}
-                            </option>
-                        ))}
-                    </select>
-                </ExpenseField>
+                {!isInitialSetup ? (
+                    <ExpenseField className="wallet-form__field" label="Ví">
+                        <select
+                            disabled={isWorking}
+                            name="walletId"
+                            onChange={handleWalletChange}
+                            value={selectedWallet?.id ?? ""}
+                        >
+                            <option value="">Tạo ví mới</option>
+                            {wallets.map((wallet) => (
+                                <option key={wallet.id} value={wallet.id}>
+                                    {wallet.name}
+                                </option>
+                            ))}
+                        </select>
+                    </ExpenseField>
+                ) : null}
 
                 <ExpenseField className="wallet-form__field" label="Tên ví">
                     <input
@@ -247,11 +254,13 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                 <div className="wallet-form__field-row">
                     <ExpenseField className="wallet-form__field" label="Loại ví">
                         <select disabled={isWorking} name="type" onChange={handleTypeChange} value={formState.type}>
-                            {walletTypeOptions.map((walletType) => (
+                            {walletTypeOptions
+                                .filter((walletType) => !isInitialSetup || walletType.id !== creditCardWalletTypeId)
+                                .map((walletType) => (
                                 <option key={walletType.id} value={walletType.id}>
                                     {walletType.label}
                                 </option>
-                            ))}
+                                ))}
                         </select>
                     </ExpenseField>
 
@@ -295,7 +304,7 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                                 })
                             }
                             placeholder="0"
-                            required={isCreditCard}
+                            required={isCreditCard || isInitialSetup}
                             type="text"
                             value={isCreditCard ? formState.creditLimit : formState.balance}
                         />
@@ -372,12 +381,14 @@ export default function WalletForm({ initialWalletId, onCancel, onDelete, onSubm
                         onClick={handleDelete}
                     />
                 ) : null}
-                <ExpenseButton
-                    className="wallet-form__cancel"
-                    disabled={isWorking}
-                    label={expenseUiText.actions.CANCEL}
-                    onClick={onCancel}
-                />
+                {!isInitialSetup ? (
+                    <ExpenseButton
+                        className="wallet-form__cancel"
+                        disabled={isWorking}
+                        label={expenseUiText.actions.CANCEL}
+                        onClick={onCancel}
+                    />
+                ) : null}
                 <ExpenseButton
                     className="wallet-form__submit"
                     disabled={isWorking}

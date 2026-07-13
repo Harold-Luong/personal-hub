@@ -1,5 +1,5 @@
 export const authPageMessages = {
-    brand: 'Personal Hub',
+    brand: 'MoneyCare',
     divider: 'hoặc',
     emailLabel: 'Email',
     emailPlaceholder: 'you@example.com',

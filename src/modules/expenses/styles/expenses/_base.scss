@@ -63,6 +63,22 @@
   font-weight: 400;
 }
 
+.category-icon--base svg {
+  display: block;
+}
+
+.category-icon--bare {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  height: auto;
+  width: auto;
+}
+
+.category-icon--bare.category-icon--emoji {
+  font-size: var(--expense-icon-size, 17px);
+}
+
 .section-card {
   align-content: start;
   background: var(--expense-surface);

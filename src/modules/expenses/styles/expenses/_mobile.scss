@@ -45,14 +45,16 @@
   font-weight: 800;
 }
 
+.expense-bottom-nav .expense-bottom-nav__icon {
+  font-size: 19px;
+}
+
 .expense-bottom-nav .expense-bottom-nav__action {
   align-self: start;
-  background:
-    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.22), transparent 34%),
-    linear-gradient(145deg, var(--expense-action-start), var(--expense-action-end));
+  background: color-mix(in srgb, var(--expense-active-color) 12%, var(--expense-surface-solid));
+  border: 1px solid currentColor;
   border-radius: 50%;
-  box-shadow: 0 12px 24px var(--expense-action-shadow);
-  color: white;
+  color: var(--expense-active-strong);
   height: 52px;
   justify-self: center;
   margin-top: -18px;

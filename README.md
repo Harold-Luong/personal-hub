@@ -19,6 +19,7 @@ trên desktop lẫn mobile.
 - Tạo, sửa và hủy giao dịch thu, chi và chuyển khoản.
 - Thanh toán thẻ tín dụng bằng transaction `creditPayment`.
 - Quản lý ví thường, ví điện tử, ngân hàng, tiết kiệm và thẻ tín dụng.
+- Yêu cầu thiết lập ví với số dư ban đầu lớn hơn `0` trong lần đăng nhập đầu tiên.
 - Thiết lập số dư ban đầu và tạo adjustment khi chỉnh số dư đã phát sinh giao
   dịch.
 - Chọn ví mặc định, sắp xếp và ẩn ví ít dùng.
@@ -123,6 +124,7 @@ Settings hiện lưu:
 ```js
 {
   theme,
+  iconSet,
   currency,
   timezone,
   hideBalance,

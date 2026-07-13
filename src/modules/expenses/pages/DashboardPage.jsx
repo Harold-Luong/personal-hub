@@ -9,6 +9,8 @@ import {
     selectExpenseMonthlyStatsByMonth,
     selectExpenseRecentTransactions,
     selectExpenseWallets,
+    selectExpenseWalletsLoadStatus,
+    selectExpenseWalletsOwnerUid,
     useExpenseDataStore,
 } from "../../../stores/expenseDataStore";
 import { selectExpensePreferences, useExpensePreferencesStore } from "../../../stores/expensePreferencesStore";
@@ -19,6 +21,7 @@ import MobileDashboardSurface from "../components/mobile/MobileDashboardSurface"
 import DesktopTransactionDialog from "../components/desktop/DesktopTransactionDialog";
 import DesktopDashboardSurface from "../components/desktop/DesktopDashboardSurface";
 import CreditCardPaymentDialog from "../components/wallet/CreditCardPaymentDialog";
+import InitialWalletSetupDialog from "../components/wallet/InitialWalletSetupDialog";
 import AddTransactionPage from "./AddTransactionPage";
 import BudgetPage from "./BudgetPage";
 import CategorySpendingPage from "./CategorySpendingPage";
@@ -84,6 +87,8 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     const waitForExpensePreferenceWrites = useExpensePreferencesStore((state) => state.waitForExpensePreferenceWrites);
     const allCategories = useExpenseDataStore(selectExpenseCategories);
     const allWallets = useExpenseDataStore(selectExpenseWallets);
+    const walletsLoadStatus = useExpenseDataStore(selectExpenseWalletsLoadStatus);
+    const walletsOwnerUid = useExpenseDataStore(selectExpenseWalletsOwnerUid);
     const transactions = useExpenseDataStore(selectExpenseRecentTransactions);
     const budgetLimitsByMonth = useExpenseDataStore(selectExpenseBudgetLimitsByMonth);
     const monthlyStatsByMonth = useExpenseDataStore(selectExpenseMonthlyStatsByMonth);
@@ -128,6 +133,16 @@ export default function DashboardPage({ initialSettings, onLogout }) {
         () => allWallets.filter((wallet) => !settings.hiddenWalletIds.includes(wallet.id)),
         [allWallets, settings.hiddenWalletIds],
     );
+    const initialSetupWallet =
+        walletsOwnerUid === uid &&
+        walletsLoadStatus === "loaded" &&
+        (allWallets.length === 0 ||
+            (allWallets.length === 1 &&
+                allWallets[0].type !== creditCardWalletTypeId &&
+                !allWallets[0].isBalanceInitialized))
+            ? (allWallets[0] ?? null)
+            : undefined;
+    const shouldShowInitialWalletSetup = initialSetupWallet !== undefined;
     const monthlyStats = monthlyStatsByMonth[currentMonthKey] ?? getEmptyMonthlyStats(currentMonthKey);
     const previousMonthlyStats = monthlyStatsByMonth[previousMonthKey] ?? getEmptyMonthlyStats(previousMonthKey);
     const budgetLimits = budgetLimitsByMonth[currentMonthKey] ?? [];
@@ -704,6 +719,13 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                     onCancel={closeCreditPaymentDialog}
                     onSubmit={handleCreditPaymentSubmit}
                     sourceWallets={getCreditPaymentSourceWallets(creditPaymentCard)}
+                />
+            ) : null}
+            {shouldShowInitialWalletSetup ? (
+                <InitialWalletSetupDialog
+                    onSubmit={handleSaveWallet}
+                    wallet={initialSetupWallet}
+                    wallets={allWallets}
                 />
             ) : null}
         </div>

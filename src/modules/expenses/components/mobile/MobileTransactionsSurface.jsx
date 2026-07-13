@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { SearchIcon } from "../../icon/ExpenseIcons";
 import {
     getLatestTransactionDate,
     getTransactionGroupLabel,
@@ -10,7 +9,7 @@ import { expenseFilterValues, expenseUiText } from "../../constants/expenseUiMet
 import MobilePageHeader from "./MobilePageHeader";
 import AmountText from "../shared/AmountText";
 import ExpenseButton from "../shared/ExpenseButton";
-import ExpenseIcon from "../shared/ExpenseIcon";
+import ExpenseIcon from "../../icon/ExpenseIcon";
 import ExpenseStateMessage from "../shared/ExpenseStateMessage";
 import SectionCard from "../shared/SectionCard";
 
@@ -18,7 +17,6 @@ function MobileTransactionItem({ transaction }) {
     return (
         <article className="mobile-transaction-item">
             <ExpenseIcon
-                appearance="emoji"
                 className={`mobile-transaction-item__icon mobile-transaction-item__icon--${transaction.icon ?? transaction.category}`}
                 icon={transaction.icon ?? transaction.category}
                 label={transaction.title}
@@ -48,7 +46,7 @@ export default function MobileTransactionsSurface({ transactions = [] }) {
 
             <div className="mobile-transactions-surface__search-row">
                 <label className="mobile-transactions-surface__search">
-                    <SearchIcon size={20} />
+                    <ExpenseIcon bare icon="search" size={20} />
                     <span className="sr-only">Tìm kiếm giao dịch</span>
                     <input
                         onChange={(event) => setSearchTerm(event.target.value)}

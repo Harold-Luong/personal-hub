@@ -3,10 +3,9 @@ import BudgetForm from "../components/budget/BudgetForm";
 import MobileBudgetFormSheet from "../components/budget/MobileBudgetFormSheet";
 import MobilePageHeader from "../components/mobile/MobilePageHeader";
 import AmountText from "../components/shared/AmountText";
-import ExpenseIcon from "../components/shared/ExpenseIcon";
+import ExpenseIcon from "../icon/ExpenseIcon";
 import ProgressBar from "../components/shared/ProgressBar";
 import { budgetStatusColors, budgetStatusLabels } from "../constants/expenseMetadata";
-import { CalendarIcon, ChevronIcon, FilterIcon, PlusIcon } from "../icon/ExpenseIcons";
 import {
     calculateBudgetUsagePercentage,
     calculateMonthlyBudgetTotals,
@@ -169,7 +168,7 @@ function DesktopBudgetSummary({ monthKey, totals }) {
                 <strong><AmountText amount={Math.abs(remaining)} /></strong>
                 <p>{remaining >= 0 ? "Bạn còn có thể chi trong tháng này" : "Ngân sách tháng đã vượt hạn mức"}</p>
                 <div className="budget-page__daily-budget">
-                    <CalendarIcon size={20} />
+                    <ExpenseIcon bare icon="calendar" label="Thời gian còn lại" size={20} />
                     <span>
                         <strong>Còn {remainingDays} ngày nữa trong tháng</strong>
                         <small>Chi tiêu bình quân mỗi ngày</small>
@@ -216,12 +215,12 @@ function BudgetSectionHeading({ budgetCount, hasCategoryWithoutBudget, isDesktop
                 <p>{budgetCount} hạn mức trong tháng này</p>
             </div>
             <button onClick={onCreate} type="button">
-                {isDesktopMode ? <PlusIcon size={18} /> : null}
+                {isDesktopMode ? <ExpenseIcon bare icon="add" size={18} /> : null}
                 {hasCategoryWithoutBudget ? "Tạo ngân sách" : "Sửa ngân sách"}
             </button>
             {isDesktopMode ? (
                 <button className="budget-page__filter" type="button" aria-label="Lọc danh mục ngân sách">
-                    <FilterIcon size={18} />
+                    <ExpenseIcon bare icon="filter" size={18} />
                 </button>
             ) : null}
         </div>
@@ -229,7 +228,7 @@ function BudgetSectionHeading({ budgetCount, hasCategoryWithoutBudget, isDesktop
 }
 
 function BudgetRowIcon({ budget }) {
-    return <ExpenseIcon appearance="emoji" color={budget.color} icon={budget.icon} label={budget.category} />;
+    return <ExpenseIcon color={budget.color} icon={budget.icon} label={budget.category} />;
 }
 
 function DesktopBudgetRow({ budget, isSelected, onSelect, status, statusColor, usagePercentage }) {
@@ -267,7 +266,7 @@ function DesktopBudgetRow({ budget, isSelected, onSelect, status, statusColor, u
                 <strong><AmountText amount={Math.abs(remaining)} /></strong>
             </span>
             <span className="budget-item-row__chevron" aria-hidden="true">
-                <ChevronIcon size={20} />
+                <ExpenseIcon bare icon="chevron-right" size={20} />
             </span>
         </button>
     );
@@ -346,7 +345,7 @@ function BudgetList({ budgets, isDesktopMode, onCreate, onSelect, selectedCatego
 function BudgetTip() {
     return (
         <aside className="budget-page__tip">
-            <span aria-hidden="true">💡</span>
+            <ExpenseIcon bare icon="tip" size={20} />
             <p><strong>Mẹo:</strong> Thiết lập ngân sách cho các danh mục chưa có ở trên để kiểm soát chi tiêu tốt hơn.</p>
         </aside>
     );

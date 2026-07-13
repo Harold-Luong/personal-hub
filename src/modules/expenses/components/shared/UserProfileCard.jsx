@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { selectAuthUser, useAuthSessionStore } from "../../../../stores/authSessionStore";
-import { EditIcon, XIcon } from "../../icon/ExpenseIcons";
+import ExpenseIcon from "../../icon/ExpenseIcon";
 import SectionCard from "./SectionCard";
 
 export default function UserProfileCard({ onUpdateDisplayName }) {
@@ -70,7 +70,7 @@ export default function UserProfileCard({ onUpdateDisplayName }) {
                             value={displayName}
                         />
                         <button aria-label="Hủy chỉnh sửa" disabled={isSaving} onClick={cancelEditing} title="Hủy" type="button">
-                            <XIcon size={17} />
+                            <ExpenseIcon bare icon="close" size={17} />
                         </button>
                         <button disabled={isSaving} type="submit">{isSaving ? "Đang lưu" : "Lưu"}</button>
                     </div>
@@ -92,7 +92,7 @@ export default function UserProfileCard({ onUpdateDisplayName }) {
                         title="Đổi tên hiển thị"
                         type="button"
                     >
-                        <EditIcon size={17} />
+                        <ExpenseIcon bare icon="edit" size={17} />
                         <span>Chỉnh sửa</span>
                     </button>
                 </>

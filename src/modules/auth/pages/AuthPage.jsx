@@ -1,4 +1,5 @@
 import { useState } from "react";
+import MoneyCareLogo from "../../../components/brand/MoneyCareLogo";
 import { loginWithEmail, loginWithGoogle, registerWithEmail } from "../api/authRepository";
 import { authPageMessages, getAuthErrorMessage } from "../messages/authMessages";
 import "../styles/auth.scss";
@@ -52,7 +53,10 @@ export default function AuthPage() {
     return (
         <main className="auth-page">
             <section className="auth-card" aria-labelledby="auth-title">
-                <div className="auth-card__brand">{authPageMessages.brand}</div>
+                <div className="auth-card__brand">
+                    <MoneyCareLogo label={null} size={44} />
+                    <span>{authPageMessages.brand}</span>
+                </div>
                 <h1 id="auth-title">{modeMessages.title}</h1>
                 <p className="auth-card__intro">{modeMessages.intro}</p>
 

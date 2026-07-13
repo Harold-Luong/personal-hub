@@ -1,18 +1,12 @@
 import AmountText from "./AmountText";
-import ExpenseIcon from "./ExpenseIcon";
+import ExpenseIcon from "../../icon/ExpenseIcon";
 
 function renderIcon(icon, label, size) {
     if (!icon) {
         return null;
     }
 
-    if (typeof icon === "function") {
-        const Icon = icon;
-
-        return <Icon size={size} />;
-    }
-
-    return <ExpenseIcon appearance="emoji" icon={icon} label={label} />;
+    return <ExpenseIcon icon={icon} label={label} size={size} />;
 }
 
 function getTrendTone(tone, trend) {
@@ -25,12 +19,6 @@ function getTrendTone(tone, trend) {
     }
 
     return trend < 0 ? "bad" : "good";
-}
-
-function getTrendText(trend, trendLabel) {
-    const direction = trend < 0 ? "↓" : "↑";
-
-    return `${direction} ${Math.abs(trend)}% ${trendLabel}`;
 }
 
 export default function SummaryCard({
@@ -72,7 +60,8 @@ export default function SummaryCard({
             </strong>
             {hasTrend ? (
                 <small className={`summary-card__meta summary-card__meta--${resolvedTrendTone}`}>
-                    {getTrendText(trend, trendLabel)}
+                    <ExpenseIcon bare icon={trend < 0 ? "trend-down" : "trend-up"} size={13} />
+                    <span>{`${Math.abs(trend)}% ${trendLabel}`}</span>
                 </small>
             ) : null}
         </article>

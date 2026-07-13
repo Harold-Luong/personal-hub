@@ -9,12 +9,7 @@ import { useExpenseDataStore } from "../../../stores/expenseDataStore";
 import { updateAuthDisplayName } from "../../auth/api/authRepository";
 import MobileSettingsSurface from "../components/mobile/MobileSettingsSurface";
 import DesktopSettingsSurface from "../components/desktop/DesktopSettingsSurface";
-import {
-    createExpenseCsv,
-    downloadExpenseCsv,
-    mapExpenseCsvRows,
-    readExpenseCsvFile,
-} from "../utils/expenseCsvUtils";
+import { createExpenseCsv, downloadExpenseCsv } from "../utils/expenseCsvUtils";
 
 function moveItem(items, itemId, direction, groupKey) {
     const item = items.find((currentItem) => currentItem.id === itemId);
@@ -54,7 +49,6 @@ export default function SettingsPage({
     const reorderCategories = useExpenseDataStore((state) => state.reorderExpenseCategories);
     const reorderWallets = useExpenseDataStore((state) => state.reorderExpenseWallets);
     const setDefaultWallet = useExpenseDataStore((state) => state.setDefaultExpenseWallet);
-    const createTransaction = useExpenseDataStore((state) => state.createExpenseTransaction);
     const [isWorking, setIsWorking] = useState(false);
     const [message, setMessage] = useState(null);
 
@@ -111,23 +105,11 @@ export default function SettingsPage({
         downloadExpenseCsv(createExpenseCsv(transactions), `expense-transactions-${date}.csv`);
     }, "Đã xuất dữ liệu CSV.");
 
-    const handleImport = (file) => runTask(async () => {
-        const rows = await readExpenseCsvFile(file);
-        const transactions = mapExpenseCsvRows(rows, categories, wallets);
-
-        for (const transaction of transactions) {
-            await createTransaction(uid, transaction);
-        }
-
-        setMessage({ text: `Đã nhập ${transactions.length} giao dịch.`, tone: "success" });
-    }, "Đã nhập dữ liệu CSV.");
-
     const contentProps = {
         categories,
         isWorking,
         message: message ?? (settingsError ? { text: settingsError, tone: "error" } : null),
         onExport: handleExport,
-        onImport: handleImport,
         onMoveCategory: handleMoveCategory,
         onMoveWallet: handleMoveWallet,
         onSetDefaultCategory: (categoryId) => handleSettingChange("defaultCategoryId", categoryId),

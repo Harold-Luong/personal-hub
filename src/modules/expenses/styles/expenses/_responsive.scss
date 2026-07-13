@@ -34,7 +34,13 @@
     }
 
     .category-spending-card--mobile .category-spending-card__chart {
-        width: min(68vw, 184px);
+        max-width: 280px;
+        width: min(82vw, 280px);
+    }
+
+    .category-spending-card--mobile .category-spending-card__chart-label-text {
+        font-size: 11px;
+        stroke-width: 1.5px;
     }
 
     .category-spending-card--mobile .hidden-items {

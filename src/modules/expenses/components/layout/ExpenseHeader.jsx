@@ -1,5 +1,4 @@
 import { expenseUiText } from "../../constants/expenseUiMetadata";
-import { PlusIcon } from "../../icon/ExpenseIcons";
 import ExpenseButton from "../shared/ExpenseButton";
 
 export default function ExpenseHeader({
@@ -25,7 +24,7 @@ export default function ExpenseHeader({
                     <ExpenseButton
                         ariaLabel={expenseUiText.actions.ADD_TRANSACTION}
                         className="expense-header__add"
-                        icon={PlusIcon}
+                        icon="add"
                         iconSize={17}
                         label={expenseUiText.actions.ADD_TRANSACTION}
                         labelTag="span"

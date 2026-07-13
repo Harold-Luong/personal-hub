@@ -1,12 +1,5 @@
-import { HomeIcon, PlusIcon, ReportIcon, SettingsIcon, TransactionIcon } from "../../icon/ExpenseIcons";
+import ExpenseIcon from "../../icon/ExpenseIcon";
 import { expenseBottomNavOrder } from "../../constants/expenseMetadata";
-
-const bottomNavIconMap = {
-    dashboard: HomeIcon,
-    transactions: TransactionIcon,
-    report: ReportIcon,
-    settings: SettingsIcon,
-};
 
 export default function ExpenseBottomNav({ items = [], activeId = "dashboard", onNavigate }) {
     const navItems = expenseBottomNavOrder.map((id) => items.find((item) => item.id === id)).filter(Boolean);
@@ -14,8 +7,6 @@ export default function ExpenseBottomNav({ items = [], activeId = "dashboard", o
     const rightItems = navItems.slice(2);
 
     const renderNavItem = (item) => {
-        const Icon = bottomNavIconMap[item.id] ?? bottomNavIconMap[item.icon] ?? HomeIcon;
-
         return (
             <button
                 aria-label={item.label}
@@ -24,7 +15,7 @@ export default function ExpenseBottomNav({ items = [], activeId = "dashboard", o
                 onClick={() => onNavigate?.(item.id)}
                 type="button"
             >
-                <Icon size={22} />
+                <ExpenseIcon bare className="expense-bottom-nav__icon" icon={item.icon} label={item.label} size={22} />
                 <span>{item.label}</span>
             </button>
         );
@@ -39,7 +30,7 @@ export default function ExpenseBottomNav({ items = [], activeId = "dashboard", o
                 onClick={() => onNavigate?.("add")}
                 type="button"
             >
-                <PlusIcon size={30} />
+                <ExpenseIcon bare icon="add" label="Thêm giao dịch" size={30} />
             </button>
             {rightItems.map(renderNavItem)}
         </nav>
