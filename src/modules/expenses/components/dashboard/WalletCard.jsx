@@ -2,7 +2,11 @@ import AmountText from "../shared/AmountText";
 import ExpenseIcon from "../../icon/ExpenseIcon";
 import SectionCard from "../shared/SectionCard";
 import { expenseUiText } from "../../constants/expenseUiMetadata";
-import { isCreditCardWallet } from "../../utils/walletUtils";
+import {
+    getWalletNameWithDefaultLabel,
+    getWalletsDefaultFirst,
+    isCreditCardWallet,
+} from "../../utils/walletUtils";
 
 function getWalletMeta(wallet) {
     if (isCreditCardWallet(wallet)) {
@@ -17,10 +21,12 @@ function getWalletMeta(wallet) {
         return <small>Số dư tạm tính từ 0đ</small>;
     }
 
-    return wallet.isDefault ? <small>Mặc định</small> : null;
+    return null;
 }
 
 export default function WalletCard({ onManageWallet, onPayCreditCard, wallets = [] }) {
+    const orderedWallets = getWalletsDefaultFirst(wallets);
+
     return (
         <SectionCard
             actionLabel={wallets.length ? expenseUiText.actions.MANAGE : expenseUiText.actions.CREATE_WALLET}
@@ -28,12 +34,12 @@ export default function WalletCard({ onManageWallet, onPayCreditCard, wallets = 
             onAction={onManageWallet}
             title="Ví của tôi"
         >
-            {wallets.length ? (
-                wallets.map((wallet) => (
+            {orderedWallets.length ? (
+                orderedWallets.map((wallet) => (
                     <article className="wallet-item" key={wallet.id}>
-                        <ExpenseIcon color={wallet.color} icon={wallet.icon} label={wallet.name} />
+                        <ExpenseIcon color={wallet.color} icon={wallet.icon} label={getWalletNameWithDefaultLabel(wallet)} />
                         <span>
-                            <strong>{wallet.name}</strong>
+                            <strong>{getWalletNameWithDefaultLabel(wallet)}</strong>
                             {getWalletMeta(wallet)}
                         </span>
                         <strong>
@@ -41,7 +47,7 @@ export default function WalletCard({ onManageWallet, onPayCreditCard, wallets = 
                         </strong>
                         {isCreditCardWallet(wallet) && (wallet.outstandingDebt ?? 0) > 0 ? (
                             <button
-                                aria-label={`Thanh toán thẻ tín dụng ${wallet.name}`}
+                                aria-label={`Thanh toán thẻ tín dụng ${getWalletNameWithDefaultLabel(wallet)}`}
                                 className="wallet-item__credit-payment"
                                 onClick={() => onPayCreditCard?.(wallet)}
                                 type="button"

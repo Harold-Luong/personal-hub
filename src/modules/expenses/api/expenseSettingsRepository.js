@@ -3,7 +3,6 @@ import {
     getDocFromServer,
     runTransaction,
     serverTimestamp,
-    updateDoc,
 } from "firebase/firestore";
 import { firestore } from "../../../lib/firebase/firestore";
 import { expenseCollections } from "./expenseFirestoreSchema";
@@ -438,7 +437,6 @@ async function initializeUserData(user, settings = {}) {
                     initialBalance: 0,
                     currency: expenseDefaultCurrency,
                     order: 10,
-                    isDefault: true,
                     isBalanceInitialized: false,
                     isArchived: false,
                     createdAt: timestamp,
@@ -560,20 +558,35 @@ export async function ensureExpenseSettings(uid, settings = {}) {
 
 export async function updateExpenseSettings(uid, settings) {
     const validatedSettings = validateExpenseSettings(settings);
-    const currentSettings = await getExpenseSettings(uid);
+    const settingsRef = getDocumentReference(uid, expenseCollections.SETTINGS, "main");
 
-    if (!currentSettings) {
-        throw new Error("Expense settings not found.");
-    }
+    await runTransaction(firestore, async (transaction) => {
+        const settingsSnapshot = await transaction.get(settingsRef);
 
-    const persistedSettings = { ...currentSettings };
-    delete persistedSettings.id;
-    delete persistedSettings.updatedAt;
+        if (!settingsSnapshot.exists()) {
+            throw new Error("Expense settings not found.");
+        }
 
-    await updateDoc(getDocumentReference(uid, expenseCollections.SETTINGS, "main"), {
-        ...persistedSettings,
-        ...validatedSettings,
-        updatedAt: serverTimestamp(),
+        if (validatedSettings.defaultWalletId) {
+            const walletSnapshot = await transaction.get(
+                getDocumentReference(
+                    uid,
+                    expenseCollections.WALLETS,
+                    validatedSettings.defaultWalletId,
+                ),
+            );
+
+            if (!walletSnapshot.exists() || walletSnapshot.data().isArchived) {
+                throw new Error("Default wallet must reference an active wallet.");
+            }
+        }
+
+        transaction.update(settingsRef, {
+            ...defaultExpenseSettings,
+            ...settingsSnapshot.data(),
+            ...validatedSettings,
+            updatedAt: serverTimestamp(),
+        });
     });
 }
 

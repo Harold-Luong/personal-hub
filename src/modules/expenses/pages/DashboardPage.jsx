@@ -47,6 +47,10 @@ import {
     getMonthLabel,
     getVisibleMonthOptions,
 } from "../utils/monthUtils";
+import {
+    getWalletsDefaultFirst,
+    getWalletsWithResolvedDefault,
+} from "../utils/walletUtils";
 import "../styles/expenses.scss";
 
 function getExpenseRoutePage(pathname) {
@@ -129,18 +133,24 @@ export default function DashboardPage({ initialSettings, onLogout }) {
         () => allCategories.filter((category) => !settings.hiddenCategoryIds.includes(category.id)),
         [allCategories, settings.hiddenCategoryIds],
     );
+    const resolvedAllWallets = useMemo(
+        () => getWalletsDefaultFirst(
+            getWalletsWithResolvedDefault(allWallets, settings.defaultWalletId),
+        ),
+        [allWallets, settings.defaultWalletId],
+    );
     const wallets = useMemo(
-        () => allWallets.filter((wallet) => !settings.hiddenWalletIds.includes(wallet.id)),
-        [allWallets, settings.hiddenWalletIds],
+        () => resolvedAllWallets.filter((wallet) => !settings.hiddenWalletIds.includes(wallet.id)),
+        [resolvedAllWallets, settings.hiddenWalletIds],
     );
     const initialSetupWallet =
         walletsOwnerUid === uid &&
         walletsLoadStatus === "loaded" &&
-        (allWallets.length === 0 ||
-            (allWallets.length === 1 &&
-                allWallets[0].type !== creditCardWalletTypeId &&
-                !allWallets[0].isBalanceInitialized))
-            ? (allWallets[0] ?? null)
+        (resolvedAllWallets.length === 0 ||
+            (resolvedAllWallets.length === 1 &&
+                resolvedAllWallets[0].type !== creditCardWalletTypeId &&
+                !resolvedAllWallets[0].isBalanceInitialized))
+            ? (resolvedAllWallets[0] ?? null)
             : undefined;
     const shouldShowInitialWalletSetup = initialSetupWallet !== undefined;
     const monthlyStats = monthlyStatsByMonth[currentMonthKey] ?? getEmptyMonthlyStats(currentMonthKey);
@@ -347,7 +357,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
         wallets.filter((wallet) => wallet.id !== creditWallet?.id && wallet.type !== creditCardWalletTypeId);
 
     const getDefaultCreditPaymentSourceWallet = (creditWallet) =>
-        getCreditPaymentSourceWallets(creditWallet).find((wallet) => wallet.isDefault) ??
+        getCreditPaymentSourceWallets(creditWallet).find((wallet) => wallet.isDefaultWallet) ??
         getCreditPaymentSourceWallets(creditWallet)[0];
 
     const openCreditPaymentTransaction = (creditWallet) => {
@@ -398,7 +408,14 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     };
 
     const handleSaveWallet = async (wallet) => {
-        await upsertExpenseWalletAction(uid, wallet);
+        const result = await upsertExpenseWalletAction(uid, wallet);
+        const savedWallet = result.wallet ?? result;
+
+        if (wallet.setAsDefault && savedWallet.id !== settings.defaultWalletId) {
+            await saveExpensePreference(uid, "defaultWalletId", savedWallet.id);
+        }
+
+        return result;
     };
 
     const handleDeleteWallet = async (wallet) => {
@@ -475,7 +492,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                     onManageBudget={() => navigateExpenseRoute("budgets")}
                     onManageCategories={() => navigateExpenseRoute("categories")}
                     onManageWallet={() => navigateExpenseRoute("wallets")}
-                    wallets={allWallets}
+                    wallets={resolvedAllWallets}
                 />
             );
         }
@@ -492,6 +509,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                 summary={summary}
                 theme={settings.theme}
                 transactions={transactions}
+                wallets={wallets}
             />
         );
     };
@@ -561,7 +579,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
         }
 
         if (activeDesktopPage === "settings") {
-            return <SettingsPage categories={allCategories} mode="desktop" wallets={allWallets} />;
+            return <SettingsPage categories={allCategories} mode="desktop" wallets={resolvedAllWallets} />;
         }
 
         return (
@@ -725,7 +743,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                 <InitialWalletSetupDialog
                     onSubmit={handleSaveWallet}
                     wallet={initialSetupWallet}
-                    wallets={allWallets}
+                    wallets={resolvedAllWallets}
                 />
             ) : null}
         </div>

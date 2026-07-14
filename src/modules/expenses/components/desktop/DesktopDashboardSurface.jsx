@@ -28,7 +28,7 @@ export default function DesktopDashboardSurface({
                     monthLabel={monthLabel}
                     onViewAll={onViewCategorySpending}
                 />
-                <RecentTransactionsCard limit={10} onViewAll={onViewTransactions} transactions={transactions} />
+                <RecentTransactionsCard limit={10} onViewAll={onViewTransactions} transactions={transactions} wallets={wallets} />
                 <BudgetOverviewCard
                     budgets={budgets}
                     monthLabel={monthLabel}

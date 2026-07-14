@@ -142,7 +142,14 @@ service cloud.firestore {
       ];
     }
 
-    function isValidExpenseSettings(data) {
+    function isValidDefaultWalletReference(data, uid) {
+      return data.defaultWalletId == null
+        || getAfter(
+          /databases/$(database)/documents/users/$(uid)/modules/expenses/wallets/$(data.defaultWalletId)
+        ).data.isArchived == false;
+    }
+
+    function isValidExpenseSettings(data, uid) {
       return data.keys().hasOnly(allowedExpenseSettingsKeys())
         && data.keys().hasAll([
           'theme',
@@ -171,17 +178,18 @@ service cloud.firestore {
         && data.dateFormat in ['dd/MM/yyyy', 'MM/dd/yyyy', 'yyyy-MM-dd']
         && data.hiddenCategoryIds is list
         && data.hiddenWalletIds is list
+        && isValidDefaultWalletReference(data, uid)
         && data.updatedAt == request.time;
     }
 
-    function isValidExpenseSettingsCreate() {
-      return isValidExpenseSettings(request.resource.data);
+    function isValidExpenseSettingsCreate(uid) {
+      return isValidExpenseSettings(request.resource.data, uid);
     }
 
-    function isValidExpenseSettingsUpdate() {
+    function isValidExpenseSettingsUpdate(uid) {
       return request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly(allowedExpenseSettingsKeys())
-        && isValidExpenseSettings(request.resource.data);
+        && isValidExpenseSettings(request.resource.data, uid);
     }
 
     // =========================
@@ -190,6 +198,29 @@ service cloud.firestore {
     // =========================
 
     function allowedWalletKeys() {
+      return [
+        'name',
+        'type',
+        'icon',
+        'color',
+        'balance',
+        'initialBalance',
+        'creditLimit',
+        'outstandingDebt',
+        'availableCredit',
+        'currency',
+        'order',
+        'isBalanceInitialized',
+        'isArchived',
+        'createdAt',
+        'updatedAt',
+      ];
+    }
+
+    // Transitional schema for documents created before defaultWalletId became
+    // the single source of truth. Updates may preserve or remove isDefault,
+    // but cannot add or change it.
+    function allowedLegacyWalletKeys() {
       return [
         'name',
         'type',
@@ -277,7 +308,6 @@ service cloud.firestore {
           'initialBalance',
           'currency',
           'order',
-          'isDefault',
           'isBalanceInitialized',
           'isArchived',
           'createdAt',
@@ -292,14 +322,21 @@ service cloud.firestore {
         && isValidWalletProjection(data)
         && isValidCurrency(data.currency)
         && data.order is int
-        && data.isDefault is bool
         && data.isBalanceInitialized is bool
         && data.isArchived is bool
         && data.createdAt == request.time
         && data.updatedAt == request.time;
     }
 
-    function isValidWalletUpdate() {
+    function doesNotArchiveDefaultWallet(uid, walletId) {
+      return !request.resource.data.isArchived
+        || resource.data.isArchived
+        || getAfter(
+          /databases/$(database)/documents/users/$(uid)/modules/expenses/settings/main
+        ).data.defaultWalletId != walletId;
+    }
+
+    function isValidWalletUpdate(uid, walletId) {
       return request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly([
             'name',
@@ -318,7 +355,7 @@ service cloud.firestore {
             'isArchived',
             'updatedAt',
           ])
-        && request.resource.data.keys().hasOnly(allowedWalletKeys())
+        && request.resource.data.keys().hasOnly(allowedLegacyWalletKeys())
         && isValidString(request.resource.data.name)
         && isValidWalletType(request.resource.data.type)
         && isValidString(request.resource.data.icon)
@@ -328,9 +365,17 @@ service cloud.firestore {
         && isValidWalletProjection(request.resource.data)
         && isValidCurrency(request.resource.data.currency)
         && request.resource.data.order is int
-        && request.resource.data.isDefault is bool
+        && (
+          !('isDefault' in request.resource.data)
+          || (
+            'isDefault' in resource.data
+            && request.resource.data.isDefault is bool
+            && request.resource.data.isDefault == resource.data.isDefault
+          )
+        )
         && request.resource.data.isBalanceInitialized is bool
         && request.resource.data.isArchived is bool
+        && doesNotArchiveDefaultWallet(uid, walletId)
         && isValidInitialWalletBalanceSetup()
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.updatedAt == request.time;
@@ -767,10 +812,10 @@ service cloud.firestore {
           allow read: if isOwner(uid);
 
           allow create: if isOwner(uid)
-            && isValidExpenseSettingsCreate();
+            && isValidExpenseSettingsCreate(uid);
 
           allow update: if isOwner(uid)
-            && isValidExpenseSettingsUpdate();
+            && isValidExpenseSettingsUpdate(uid);
 
           allow delete: if false;
         }
@@ -782,7 +827,7 @@ service cloud.firestore {
             && isValidWalletCreate(request.resource.data);
 
           allow update: if isOwner(uid)
-            && isValidWalletUpdate();
+            && isValidWalletUpdate(uid, walletId);
 
           allow delete: if false;
         }

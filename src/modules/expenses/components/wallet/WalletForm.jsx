@@ -6,7 +6,11 @@ import {
     expenseDefaultCurrency,
     walletTypeOptions,
 } from "../../constants/expenseMetadata";
-import { normalizeWalletName } from "../../utils/walletUtils";
+import {
+    getWalletNameWithDefaultLabel,
+    getWalletsDefaultFirst,
+    normalizeWalletName,
+} from "../../utils/walletUtils";
 import { expenseUiText } from "../../constants/expenseUiMetadata";
 import {
     formatCurrency,
@@ -55,8 +59,8 @@ function getFormState(wallet) {
         creditLimit: wallet?.creditLimit ? formatCurrencyInput(wallet.creditLimit) : "",
         currency: wallet?.currency ?? expenseDefaultCurrency,
         icon: wallet?.icon ?? walletType.icon,
-        isDefault: Boolean(wallet?.isDefault),
         name: wallet?.name ?? "",
+        setAsDefault: Boolean(wallet?.isDefaultWallet),
         type: walletType.id,
     };
 }
@@ -73,7 +77,8 @@ function findDuplicateWalletName(wallets, name, excludedWalletId) {
 }
 
 export default function WalletForm({ initialWalletId, isInitialSetup = false, onCancel, onDelete, onSubmit, wallets = [] }) {
-    const [walletId, setWalletId] = useState(() => getInitialWalletId(wallets, initialWalletId));
+    const orderedWallets = getWalletsDefaultFirst(wallets);
+    const [walletId, setWalletId] = useState(() => getInitialWalletId(orderedWallets, initialWalletId));
     const selectedWallet = getWalletForId(wallets, walletId);
     const [formState, setFormState] = useState(() => getFormState(selectedWallet));
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,7 +95,7 @@ export default function WalletForm({ initialWalletId, isInitialSetup = false, on
     const hasBalance = selectedWalletIsCreditCard
         ? (selectedWallet?.outstandingDebt ?? 0) !== 0
         : (selectedWallet?.balance ?? 0) !== 0;
-    const canDelete = isEditing && wallets.length > 1 && !selectedWallet?.isDefault && !hasBalance;
+    const canDelete = isEditing && wallets.length > 1 && !selectedWallet?.isDefaultWallet && !hasBalance;
     const currencySymbol = expenseCurrencySymbolByLabel[formState.currency] ?? formState.currency;
 
     const updateFormState = (nextState) => {
@@ -152,8 +157,8 @@ export default function WalletForm({ initialWalletId, isInitialSetup = false, on
             currency: formState.currency,
             icon: formState.icon,
             id: selectedWallet?.id,
-            isDefault: selectedWallet?.isDefault || formState.isDefault,
             name: name,
+            setAsDefault: selectedWallet?.isDefaultWallet || formState.setAsDefault,
             type: formState.type,
         };
 
@@ -229,9 +234,9 @@ export default function WalletForm({ initialWalletId, isInitialSetup = false, on
                             value={selectedWallet?.id ?? ""}
                         >
                             <option value="">Tạo ví mới</option>
-                            {wallets.map((wallet) => (
+                            {orderedWallets.map((wallet) => (
                                 <option key={wallet.id} value={wallet.id}>
-                                    {wallet.name}
+                                    {getWalletNameWithDefaultLabel(wallet)}
                                 </option>
                             ))}
                         </select>
@@ -338,9 +343,9 @@ export default function WalletForm({ initialWalletId, isInitialSetup = false, on
 
                 <label className="wallet-form__checkbox">
                     <input
-                        checked={selectedWallet?.isDefault || formState.isDefault}
-                        disabled={isWorking || selectedWallet?.isDefault}
-                        onChange={(event) => updateFormState({ isDefault: event.target.checked })}
+                        checked={selectedWallet?.isDefaultWallet || formState.setAsDefault}
+                        disabled={isWorking || selectedWallet?.isDefaultWallet}
+                        onChange={(event) => updateFormState({ setAsDefault: event.target.checked })}
                         type="checkbox"
                     />
                     <span>Đặt làm ví mặc định</span>

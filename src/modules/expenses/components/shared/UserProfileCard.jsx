@@ -93,7 +93,7 @@ export default function UserProfileCard({ onUpdateDisplayName }) {
                         type="button"
                     >
                         <ExpenseIcon bare icon="edit" size={17} />
-                        <span>Chỉnh sửa</span>
+                        <span className="settings-profile-card__edit-label">Chỉnh sửa</span>
                     </button>
                 </>
             )}

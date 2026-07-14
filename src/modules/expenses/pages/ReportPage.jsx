@@ -46,6 +46,10 @@ import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { formatCurrency } from "../utils/formatCurrency";
 import { calculateTrend, getEmptyMonthlyStats, getPreviousMonthKey } from "../utils/monthlyStatsUtils";
 import { getCompactMonthLabel, getCurrentMonthKey, getCurrentYear, getMonthLabel } from "../utils/monthUtils";
+import {
+    getTransactionsWithCurrentWalletDisplayNames,
+    getWalletNameWithDefaultLabel,
+} from "../utils/walletUtils";
 
 function getTrailingMonthKeys(monthKey, count = reportTrendMonthCount) {
     const [year, month] = String(monthKey ?? "")
@@ -404,11 +408,18 @@ function getWalletRows(transactions, wallets) {
                 amount,
                 color: wallet?.color ?? "#7567e8",
                 id: walletId,
-                name: wallet?.name ?? "Ví khác",
+                isDefaultWallet: Boolean(wallet?.isDefaultWallet),
+                name: wallet ? getWalletNameWithDefaultLabel(wallet) : "Ví khác",
                 percentage: getPercent(amount, total),
             };
         })
-        .sort((firstWallet, secondWallet) => secondWallet.amount - firstWallet.amount);
+        .sort((firstWallet, secondWallet) => {
+            if (firstWallet.isDefaultWallet !== secondWallet.isDefaultWallet) {
+                return firstWallet.isDefaultWallet ? -1 : 1;
+            }
+
+            return secondWallet.amount - firstWallet.amount;
+        });
 }
 
 function getWeekendInsight(transactions) {
@@ -1097,11 +1108,13 @@ export default function ReportPage({
     const selectedWeek = weeklyRows.find((week) => week.id === selectedWeekId) ?? defaultSelectedWeek;
     const walletRows = useMemo(() => getWalletRows(reportTransactions, wallets), [reportTransactions, wallets]);
     const topTransactions = useMemo(
-        () =>
+        () => getTransactionsWithCurrentWalletDisplayNames(
             [...reportTransactions]
                 .sort((first, second) => Math.abs(second.amount) - Math.abs(first.amount))
                 .slice(0, reportTopTransactionLimit),
-        [reportTransactions],
+            wallets,
+        ),
+        [reportTransactions, wallets],
     );
     const lineMonths = trendStats.map((stat) => {
         const statIncome = stat.incomeMinor ?? 0;

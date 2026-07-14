@@ -1,6 +1,7 @@
 import {
     Timestamp,
     doc,
+    getDocsFromCache,
     getDocsFromServer,
     limit,
     or as orFilter,
@@ -600,7 +601,7 @@ function createTransactionDataFromInput({
     };
 }
 
-export async function getExpenseTransactionsPage(uid, options = {}) {
+function createExpenseTransactionsPageQuery(uid, options = {}) {
     const {
         categoryId = expenseFilterValues.ALL,
         cursor = null,
@@ -658,11 +659,16 @@ export async function getExpenseTransactionsPage(uid, options = {}) {
 
     queryConstraints.push(limit(normalizedPageSize + 1));
 
-    const transactionsQuery = query(
-        getCollectionReference(uid, expenseCollections.TRANSACTIONS),
-        ...queryConstraints,
-    );
-    const snapshot = await getDocsFromServer(transactionsQuery);
+    return {
+        normalizedPageSize,
+        transactionsQuery: query(
+            getCollectionReference(uid, expenseCollections.TRANSACTIONS),
+            ...queryConstraints,
+        ),
+    };
+}
+
+function mapExpenseTransactionsPage(snapshot, normalizedPageSize) {
     const pageDocs = snapshot.docs.slice(0, normalizedPageSize);
 
     return {
@@ -670,6 +676,21 @@ export async function getExpenseTransactionsPage(uid, options = {}) {
         hasNextPage: snapshot.docs.length > normalizedPageSize,
         transactions: pageDocs.map(mapTransactionSnapshot),
     };
+}
+
+async function readExpenseTransactionsPage(uid, options, readQuery) {
+    const { normalizedPageSize, transactionsQuery } = createExpenseTransactionsPageQuery(uid, options);
+    const snapshot = await readQuery(transactionsQuery);
+
+    return mapExpenseTransactionsPage(snapshot, normalizedPageSize);
+}
+
+export async function getCachedExpenseTransactionsPage(uid, options = {}) {
+    return readExpenseTransactionsPage(uid, options, getDocsFromCache);
+}
+
+export async function getExpenseTransactionsPage(uid, options = {}) {
+    return readExpenseTransactionsPage(uid, options, getDocsFromServer);
 }
 
 export async function getExpenseTransactions(uid, maxTransactions = 50) {

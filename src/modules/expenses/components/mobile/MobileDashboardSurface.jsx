@@ -19,6 +19,7 @@ export default function MobileDashboardSurface({
     summary,
     theme = expenseDefaultTheme,
     transactions,
+    wallets,
 }) {
     const user = useAuthSessionStore(selectAuthUser);
     const balanceSummary = summary.find((item) => item.id === "balance");
@@ -68,7 +69,7 @@ export default function MobileDashboardSurface({
                 onViewAll={onViewCategorySpending}
                 variant="mobile"
             />
-            <RecentTransactionsCard limit={5} onViewAll={onViewTransactions} transactions={transactions} variant="mobile" />
+            <RecentTransactionsCard limit={5} onViewAll={onViewTransactions} transactions={transactions} variant="mobile" wallets={wallets} />
         </div>
     );
 }

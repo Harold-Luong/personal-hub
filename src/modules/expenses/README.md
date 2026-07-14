@@ -288,7 +288,8 @@ Quy tắc:
 - Client có thể cập nhật settings trực tiếp nếu Security Rules whitelist field
   và giá trị hợp lệ.
 - `defaultCategoryId` chọn sẵn category expense khi mở form giao dịch mới.
-- `defaultWalletId` kết hợp với `wallet.isDefault` để chọn sẵn ví trong form.
+- `defaultWalletId` là nguồn sự thật duy nhất để chọn sẵn và đánh dấu ví mặc định
+  trong UI. Wallet không lưu thêm cờ mặc định.
 - `hiddenCategoryIds` và `hiddenWalletIds` chỉ điều khiển hiển thị; chúng không
   archive document và không làm mất lịch sử giao dịch.
 - `amountFormat` nhận `standard` hoặc `compact`.
@@ -314,7 +315,7 @@ Shape đề xuất:
   initialBalance: 5000000,
   currency: "VND",
   order: 20,
-  isDefault: false,
+  isBalanceInitialized: true,
   isArchived: false,
   createdAt: Timestamp,
   updatedAt: Timestamp
@@ -342,8 +343,10 @@ Quy tắc:
 - `color` là màu nhận diện của ví, không phụ thuộc trực tiếp vào theme.
 - `icon` là key trong `CategoryIcon`, ví dụ `wallet`, `bank`, `momo`, `card`,
   `saving`, `more`.
-- `order` dùng để sắp xếp ví trong UI.
-- `isDefault` đánh dấu ví mặc định của user.
+- `order` dùng để sắp xếp các ví không mặc định trong UI.
+- Trạng thái mặc định được suy ra bằng `wallet.id === settings.defaultWalletId`.
+  Ví này luôn đứng đầu mọi danh sách/dropdown và tên hiển thị luôn kèm hậu tố
+  `(mặc định)`; trạng thái và hậu tố không được ghi vào wallet document.
 - `isBalanceInitialized` đánh dấu số dư ví thường đã được user neo theo số dư
   thực tế. Ví mặc định auto-init có thể bắt đầu bằng `false` và `balance = 0`.
 - Tên wallet đang hoạt động phải là duy nhất theo user; `type` wallet được phép trùng.
@@ -914,9 +917,10 @@ Quy tắc merge đề xuất:
 ### Quản lý danh mục và ví trong Settings
 
 - Sắp xếp category ghi lại `sortOrder` theo bước 10 bằng write batch.
-- Sắp xếp wallet ghi lại `order` theo bước 10 bằng write batch.
-- Chọn ví mặc định cập nhật `isDefault` trên toàn bộ active wallets và
-  `settings.defaultWalletId`.
+- Sắp xếp wallet ghi lại `order` theo bước 10 bằng write batch; ví mặc định được khóa ở
+  đầu danh sách, các ví còn lại mới tham gia đổi thứ tự.
+- Chọn ví mặc định chỉ cập nhật `settings.defaultWalletId`; wallet document không
+  chứa cờ mặc định.
 - Chọn category mặc định cập nhật `settings.defaultCategoryId`.
 - Ẩn/hiện chỉ cập nhật mảng ID trong settings; không dùng `isArchived`.
 - Dashboard truyền danh sách đã lọc xuống transaction, report, budget và
