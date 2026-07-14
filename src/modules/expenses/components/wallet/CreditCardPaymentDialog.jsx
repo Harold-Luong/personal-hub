@@ -3,6 +3,10 @@ import { transactionTypes } from "../../constants/expenseMetadata";
 import { expenseUiText } from "../../constants/expenseUiMetadata";
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "../../utils/formatCurrency";
 import { getLocalDateValue, getLocalTimeValue } from "../../utils/transactionFormUtils";
+import {
+    getWalletNameWithDefaultLabel,
+    getWalletsDefaultFirst,
+} from "../../utils/walletUtils";
 import ExpenseButton from "../shared/ExpenseButton";
 import ExpenseDialog from "../shared/ExpenseDialog";
 import ExpenseField from "../shared/ExpenseField";
@@ -26,14 +30,15 @@ export default function CreditCardPaymentDialog({
     onSubmit,
     sourceWallets = [],
 }) {
+    const orderedSourceWallets = getWalletsDefaultFirst(sourceWallets);
     const cardDebt = getCardDebt(card);
-    const [selectedWalletId, setSelectedWalletId] = useState(() => initialWalletId ?? sourceWallets[0]?.id ?? "");
+    const [selectedWalletId, setSelectedWalletId] = useState(() => initialWalletId ?? orderedSourceWallets[0]?.id ?? "");
     const [amount, setAmount] = useState(() => formatCurrencyInput(cardDebt));
     const [paymentDate, setPaymentDate] = useState(getLocalDateValue);
     const [note, setNote] = useState(defaultPaymentNote);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
-    const selectedWallet = getSelectedWallet(sourceWallets, selectedWalletId);
+    const selectedWallet = getSelectedWallet(orderedSourceWallets, selectedWalletId);
     const resolvedWalletId = selectedWallet?.id ?? "";
     const numericAmount = parseCurrencyInput(amount);
     const nextSourceBalance = selectedWallet ? (selectedWallet.balance ?? 0) - numericAmount : 0;
@@ -89,7 +94,7 @@ export default function CreditCardPaymentDialog({
             headingId="credit-payment-dialog-title"
             onClose={onCancel}
             panelClassName="credit-payment-dialog"
-            title={card?.name ?? "Thẻ tín dụng"}
+            title={card ? getWalletNameWithDefaultLabel(card) : "Thẻ tín dụng"}
         >
             <section className="credit-payment-dialog__card-summary">
                 <span>Dư nợ hiện tại</span>
@@ -99,16 +104,16 @@ export default function CreditCardPaymentDialog({
             <form className="credit-payment-dialog__form" onSubmit={handleSubmit}>
                     <ExpenseField label="Thanh toán từ">
                         <select
-                            disabled={isSubmitting || sourceWallets.length === 0}
+                            disabled={isSubmitting || orderedSourceWallets.length === 0}
                             onChange={(event) => {
                                 setSelectedWalletId(event.target.value);
                                 setSubmitError("");
                             }}
                             value={resolvedWalletId}
                         >
-                            {sourceWallets.map((wallet) => (
+                            {orderedSourceWallets.map((wallet) => (
                                 <option key={wallet.id} value={wallet.id}>
-                                    {wallet.name}
+                                    {getWalletNameWithDefaultLabel(wallet)}
                                 </option>
                             ))}
                         </select>
@@ -165,7 +170,7 @@ export default function CreditCardPaymentDialog({
 
                     <section className="credit-payment-dialog__preview">
                         <p>
-                            <span>{selectedWallet?.name ?? "Ví nguồn"} sau thanh toán</span>
+                            <span>{selectedWallet ? getWalletNameWithDefaultLabel(selectedWallet) : "Ví nguồn"} sau thanh toán</span>
                             <strong>{formatCurrency(nextSourceBalance)}</strong>
                         </p>
                         <p>
@@ -188,7 +193,7 @@ export default function CreditCardPaymentDialog({
                             onClick={onCancel}
                         />
                         <ExpenseButton
-                            disabled={sourceWallets.length === 0}
+                            disabled={orderedSourceWallets.length === 0}
                             isLoading={isSubmitting}
                             label="Thanh toán"
                             loadingLabel="Đang thanh toán..."

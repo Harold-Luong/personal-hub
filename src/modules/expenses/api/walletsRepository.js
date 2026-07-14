@@ -1,6 +1,8 @@
 import {
     Timestamp,
+    deleteField,
     doc,
+    getDocFromServer,
     getDocsFromServer,
     limit,
     orderBy,
@@ -60,7 +62,7 @@ function sortWallets(firstWallet, secondWallet) {
         return orderComparison;
     }
 
-    return firstWallet.isDefault === secondWallet.isDefault ? 0 : firstWallet.isDefault ? -1 : 1;
+    return 0;
 }
 
 function mapWallet(documentSnapshot) {
@@ -81,7 +83,6 @@ function mapWallet(documentSnapshot) {
         availableCredit: data.availableCredit ?? Math.max(creditLimit - outstandingDebt, 0),
         currency: data.currency ?? expenseDefaultCurrency,
         order: data.order ?? data.sortOrder ?? Number.MAX_SAFE_INTEGER,
-        isDefault: data.isDefault ?? false,
         isBalanceInitialized: data.isBalanceInitialized ?? true,
         isArchived: data.isArchived ?? false,
         createdAt: data.createdAt,
@@ -378,7 +379,6 @@ function normalizeWalletInput(input = {}, { existingWallet, includeBalance = tru
         color: normalizeColor(input.color ?? existingWallet?.color, typeMeta.color),
         currency: normalizeCurrency(input.currency ?? existingWallet?.currency),
         icon: normalizeText(input.icon ?? existingWallet?.icon ?? typeMeta.icon, 'Wallet icon'),
-        isDefault: Boolean(input.isDefault ?? existingWallet?.isDefault ?? false),
         isBalanceInitialized: Boolean(input.isBalanceInitialized ?? existingWallet?.isBalanceInitialized ?? true),
         name: normalizeText(input.name ?? existingWallet?.name, 'Wallet name'),
         order: normalizeInteger(input.order ?? existingWallet?.order ?? order, 'Wallet order'),
@@ -429,24 +429,6 @@ function assertWalletTypeChangeAllowed(existingWallet, wallet) {
     }
 }
 
-function isUninitializedDefaultPlaceholderWallet(wallet) {
-    return Boolean(
-        wallet &&
-        wallet.isDefault &&
-        !wallet.isBalanceInitialized &&
-        !isCreditCardWallet(wallet) &&
-        (wallet.balance ?? 0) === 0,
-    )
-}
-
-async function shouldPromoteCreatedWalletToDefault(uid, activeWallets) {
-    if (activeWallets.length !== 1 || !isUninitializedDefaultPlaceholderWallet(activeWallets[0])) {
-        return false
-    }
-
-    return !(await hasActiveWalletTransactions(uid, activeWallets[0].id))
-}
-
 export async function getExpenseWallets(uid, { includeArchived = false } = {}) {
     const snapshot = await getDocsFromServer(
         getCollectionReference(uid, expenseCollections.WALLETS),
@@ -471,25 +453,11 @@ export async function createExpenseWallet(uid, input) {
 
     assertUniqueWalletName(activeWallets, wallet)
 
-    const shouldBeDefault =
-        wallet.isDefault ||
-        activeWallets.length === 0 ||
-        (await shouldPromoteCreatedWalletToDefault(uid, activeWallets))
     const timestamp = serverTimestamp()
     const batch = writeBatch(firestore)
 
-    if (shouldBeDefault) {
-        activeWallets.forEach((activeWallet) => {
-            batch.update(getDocumentReference(uid, expenseCollections.WALLETS, activeWallet.id), {
-                isDefault: false,
-                updatedAt: timestamp,
-            })
-        })
-    }
-
     batch.set(walletRef, {
         ...wallet,
-        isDefault: shouldBeDefault,
         isArchived: false,
         createdAt: timestamp,
         updatedAt: timestamp,
@@ -501,7 +469,6 @@ export async function createExpenseWallet(uid, input) {
         id: walletRef.id,
         isArchived: false,
         ...wallet,
-        isDefault: shouldBeDefault,
     }
 }
 
@@ -518,7 +485,6 @@ export async function updateExpenseWallet(uid, input) {
 
     const wallet = {
         ...normalizeWalletInput(input, { existingWallet, includeBalance: false }),
-        isDefault: existingWallet.isDefault || Boolean(input?.isDefault),
     }
     assertWalletTypeChangeAllowed(existingWallet, wallet)
     assertUniqueWalletName(activeWallets, wallet, walletId)
@@ -566,6 +532,7 @@ export async function updateExpenseWallet(uid, input) {
         const balanceDelta = shouldApplyBalanceChange ? targetBalance - currentBalance : 0
         const walletUpdate = {
             ...wallet,
+            isDefault: deleteField(),
             updatedAt: timestamp,
         }
         let adjustmentTransaction = null
@@ -601,24 +568,6 @@ export async function updateExpenseWallet(uid, input) {
             walletUpdate.balance = targetBalance
             walletUpdate.initialBalance = targetBalance
             walletUpdate.isBalanceInitialized = true
-        }
-
-        if (wallet.isDefault) {
-            activeWallets.forEach((activeWallet) => {
-                if (activeWallet.id !== walletId && activeWallet.isDefault) {
-                    firestoreTransaction.update(
-                        getDocumentReference(
-                            uid,
-                            expenseCollections.WALLETS,
-                            activeWallet.id,
-                        ),
-                        {
-                            isDefault: false,
-                            updatedAt: timestamp,
-                        },
-                    )
-                }
-            })
         }
 
         firestoreTransaction.update(walletRef, walletUpdate)
@@ -674,7 +623,11 @@ export async function deleteExpenseWallet(uid, input) {
         throw new Error('At least one active wallet is required.')
     }
 
-    if (wallet.isDefault) {
+    const settingsSnapshot = await getDocFromServer(
+        getDocumentReference(uid, expenseCollections.SETTINGS, "main"),
+    )
+
+    if (settingsSnapshot.data()?.defaultWalletId === walletId) {
         throw new Error('Choose another default wallet before archiving this wallet.')
     }
 
@@ -691,7 +644,7 @@ export async function deleteExpenseWallet(uid, input) {
 
     batch.update(getDocumentReference(uid, expenseCollections.WALLETS, walletId), {
         isArchived: true,
-        isDefault: false,
+        isDefault: deleteField(),
         updatedAt: timestamp,
     })
 
@@ -700,28 +653,6 @@ export async function deleteExpenseWallet(uid, input) {
     return {
         id: walletId,
     }
-}
-
-export async function setDefaultExpenseWallet(uid, walletId) {
-    const activeWallets = await getExpenseWallets(uid)
-
-    if (!activeWallets.some((wallet) => wallet.id === walletId)) {
-        throw new Error('Wallet not found.')
-    }
-
-    const timestamp = serverTimestamp()
-    const batch = writeBatch(firestore)
-
-    activeWallets.forEach((wallet) => {
-        batch.update(getDocumentReference(uid, expenseCollections.WALLETS, wallet.id), {
-            isDefault: wallet.id === walletId,
-            updatedAt: timestamp,
-        })
-    })
-
-    await batch.commit()
-
-    return { id: walletId }
 }
 
 export async function reorderExpenseWallets(uid, walletIds = []) {

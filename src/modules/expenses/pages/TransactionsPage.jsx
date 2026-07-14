@@ -5,6 +5,8 @@ import {
     getExpenseMonthOptionsCacheKey,
     selectExpenseCategories,
     selectExpenseMonthOptionsByYear,
+    selectExpenseMonthlyStatsByMonth,
+    selectExpenseTransactionsRevision,
     selectExpenseWallets,
     useExpenseDataStore,
 } from "../../../stores/expenseDataStore";
@@ -33,7 +35,10 @@ import ExpenseIcon from "../icon/ExpenseIcon";
 import SummaryCardList from "../components/shared/SummaryCardList";
 import DesktopTransactionDialog from "../components/desktop/DesktopTransactionDialog";
 import { getTransactionWalletLabel } from "../utils/transactionDisplayUtils";
-import { getWalletDisplayName } from "../utils/walletUtils";
+import {
+    getTransactionsWithCurrentWalletDisplayNames,
+    getWalletDisplayName,
+} from "../utils/walletUtils";
 
 const transactionSummaryIcons = {
     count: "transactions",
@@ -41,6 +46,46 @@ const transactionSummaryIcons = {
     [transactionTypes.INCOME]: "income",
     [transactionTypes.TRANSFER]: "transfer",
 };
+
+const transactionPageCacheLimit = 20;
+const transactionPageCache = new Map();
+
+function getTransactionPageCacheKey(uid, transactionsRevision, refreshRevision, currentPage, options) {
+    return JSON.stringify({
+        categoryId: options.categoryId,
+        currentPage,
+        cursorId: options.cursor?.id ?? null,
+        date: options.date,
+        monthKey: options.monthKey,
+        pageSize: options.pageSize,
+        refreshRevision,
+        searchTerm: options.searchTerm,
+        transactionsRevision,
+        type: options.type,
+        uid,
+        walletId: options.walletId,
+    });
+}
+
+function getCachedTransactionPage(cacheKey) {
+    const cachedResult = transactionPageCache.get(cacheKey);
+
+    if (cachedResult) {
+        transactionPageCache.delete(cacheKey);
+        transactionPageCache.set(cacheKey, cachedResult);
+    }
+
+    return cachedResult;
+}
+
+function cacheTransactionPage(cacheKey, result) {
+    transactionPageCache.delete(cacheKey);
+    transactionPageCache.set(cacheKey, result);
+
+    while (transactionPageCache.size > transactionPageCacheLimit) {
+        transactionPageCache.delete(transactionPageCache.keys().next().value);
+    }
+}
 
 function getTransactionCategoryLabel(transaction) {
     if (transaction.type === transactionTypes.TRANSFER) {
@@ -141,6 +186,7 @@ function addWalletFilterOption(optionsById, wallet, isArchived = false) {
     optionsById.set(wallet.id, {
         id: wallet.id,
         isArchived: Boolean(wallet.isArchived ?? isArchived),
+        isDefaultWallet: Boolean(wallet.isDefaultWallet || currentOption?.isDefaultWallet),
         name: getWalletDisplayName(wallet) || currentOption?.name || wallet.id,
         order: wallet.order ?? currentOption?.order ?? Number.MAX_SAFE_INTEGER,
     });
@@ -154,6 +200,7 @@ function addTransactionWalletFilterOption(optionsById, walletId, walletName) {
     optionsById.set(walletId, {
         id: walletId,
         isArchived: true,
+        isDefaultWallet: false,
         name: walletName || walletId,
         order: Number.MAX_SAFE_INTEGER,
     });
@@ -171,6 +218,10 @@ function getWalletFilterOptions(activeWallets, historicalWallets, transactions) 
     });
 
     return [...optionsById.values()].sort((firstWallet, secondWallet) => {
+        if (firstWallet.isDefaultWallet !== secondWallet.isDefaultWallet) {
+            return firstWallet.isDefaultWallet ? -1 : 1;
+        }
+
         if (firstWallet.isArchived !== secondWallet.isArchived) {
             return firstWallet.isArchived ? 1 : -1;
         }
@@ -213,27 +264,37 @@ function getDotColor(color) {
     return colorsFallback[Math.floor(Math.random() * colorsFallback.length)];
 }
 
-function TransactionSummary({ transactions }) {
-    const summary = transactions.reduce(
-        (totals, transaction) => {
-            if (transaction.type === transactionTypes.INCOME) {
-                totals.income += transaction.amountMinor ?? Math.abs(transaction.amount ?? 0);
-            } else if (transaction.type === transactionTypes.TRANSFER) {
-                totals.transfer += transaction.amountMinor ?? Math.abs(transaction.amount ?? 0);
-            } else if (transaction.type === transactionTypes.EXPENSE) {
-                totals.expense += transaction.amountMinor ?? Math.abs(transaction.amount ?? 0);
-            }
+function TransactionSummary({ defaultExpenseTotal = null, transactions }) {
+    const defaultExpenseValue = Number.isFinite(defaultExpenseTotal) ? defaultExpenseTotal : null;
+    const summary = useMemo(
+        () => transactions.reduce(
+            (totals, transaction) => {
+                if (transaction.type === transactionTypes.INCOME) {
+                    totals.income += transaction.amountMinor ?? Math.abs(transaction.amount ?? 0);
+                } else if (transaction.type === transactionTypes.TRANSFER) {
+                    totals.transfer += transaction.amountMinor ?? Math.abs(transaction.amount ?? 0);
+                } else if (
+                    transaction.type === transactionTypes.EXPENSE &&
+                    defaultExpenseValue === null
+                ) {
+                    totals.expense += transaction.amountMinor ?? Math.abs(transaction.amount ?? 0);
+                }
 
-            totals.count += 1;
-            return totals;
-        },
-        { count: 0, expense: 0, income: 0, transfer: 0 },
+                totals.count += 1;
+                return totals;
+            },
+            { count: 0, expense: defaultExpenseValue ?? 0, income: 0, transfer: 0 },
+        ),
+        [defaultExpenseValue, transactions],
     );
 
     const summaryItems = transactionSummaryItems.map(({ id, label, tone, valueKey }) => ({
         icon: transactionSummaryIcons[id],
         id,
-        label,
+        label:
+            valueKey === transactionTypes.EXPENSE && defaultExpenseValue !== null
+                ? label
+                : `${label} (trang hiện tại)`,
         tone,
         value: summary[valueKey],
         valueType: valueKey === "count" ? "text" : "currency",
@@ -340,6 +401,8 @@ function TransactionsSurface({
     const storeCategories = useExpenseDataStore(selectExpenseCategories);
     const storeWallets = useExpenseDataStore(selectExpenseWallets);
     const monthOptionsByYear = useExpenseDataStore(selectExpenseMonthOptionsByYear);
+    const monthlyStatsByMonth = useExpenseDataStore(selectExpenseMonthlyStatsByMonth);
+    const transactionsRevision = useExpenseDataStore(selectExpenseTransactionsRevision);
     const loadExpenseMonthOptions = useExpenseDataStore((state) => state.loadExpenseMonthOptions);
     const createExpenseTransactionAction = useExpenseDataStore((state) => state.createExpenseTransaction);
     const updateExpenseTransactionAction = useExpenseDataStore((state) => state.updateExpenseTransaction);
@@ -381,9 +444,13 @@ function TransactionsSurface({
     );
 
     const queryCursor = pageCursors[currentPage - 1] ?? null;
+    const displayPageTransactions = useMemo(
+        () => getTransactionsWithCurrentWalletDisplayNames(pageTransactions, wallets),
+        [pageTransactions, wallets],
+    );
     const visibleTransactions = useMemo(
         () =>
-            [...pageTransactions].sort((firstTransaction, secondTransaction) => {
+            [...displayPageTransactions].sort((firstTransaction, secondTransaction) => {
                 const sortValue =
                     transactionSort.key === expenseSortKeys.AMOUNT
                         ? getTransactionSortAmount(firstTransaction) - getTransactionSortAmount(secondTransaction)
@@ -393,7 +460,7 @@ function TransactionsSurface({
                     ? sortValue
                     : -sortValue;
             }),
-        [pageTransactions, transactionSort.direction, transactionSort.key],
+        [displayPageTransactions, transactionSort.direction, transactionSort.key],
     );
     const walletFilterOptions = useMemo(
         () => getWalletFilterOptions(wallets, uid ? historicalWallets : [], visibleTransactions),
@@ -415,6 +482,48 @@ function TransactionsSurface({
             : getCurrentMonthKey();
     const dayFilterOptions = getMonthDayOptions(dayFilterMonthKey);
     const dateFilter = dayFilter ? `${dayFilterMonthKey}-${dayFilter}` : "";
+    const isDefaultSummaryState =
+        activeFilter === expenseFilterValues.ALL &&
+        categoryFilter === expenseFilterValues.ALL &&
+        walletFilter === expenseFilterValues.ALL &&
+        monthFilter === currentMonthKey &&
+        !dayFilter &&
+        !querySearchTerm.trim();
+    const defaultExpenseTotal = isDefaultSummaryState
+        ? (monthlyStatsByMonth[currentMonthKey]?.expenseMinor ?? 0)
+        : null;
+    const transactionQueryOptions = useMemo(
+        () => ({
+            categoryId: categoryFilter,
+            cursor: queryCursor,
+            date: dateFilter,
+            monthKey: monthFilter,
+            pageSize,
+            searchTerm: querySearchTerm.trim(),
+            type: activeFilter,
+            walletId: walletFilter,
+        }),
+        [
+            activeFilter,
+            categoryFilter,
+            dateFilter,
+            monthFilter,
+            pageSize,
+            queryCursor,
+            querySearchTerm,
+            walletFilter,
+        ],
+    );
+    const transactionPageCacheKey = useMemo(
+        () => getTransactionPageCacheKey(
+            uid,
+            transactionsRevision,
+            refreshRevision,
+            currentPage,
+            transactionQueryOptions,
+        ),
+        [currentPage, refreshRevision, transactionQueryOptions, transactionsRevision, uid],
+    );
     const activeFilterCount = [
         activeFilter !== expenseFilterValues.ALL,
         categoryFilter !== expenseFilterValues.ALL,
@@ -514,12 +623,19 @@ function TransactionsSurface({
     useEffect(() => {
         let isCancelled = false;
 
-        Promise.resolve().then(() => {
-            if (!isCancelled) {
-                setIsLoading(true);
-                setLoadError("");
-            }
-        });
+        const applyPageResult = (result) => {
+            setPageTransactions(result.transactions);
+            setHasNextPage(result.hasNextPage);
+            setPageCursors((currentCursors) => {
+                const nextCursors = currentCursors.slice(0, currentPage);
+
+                if (result.hasNextPage && result.cursor) {
+                    nextCursors[currentPage] = result.cursor;
+                }
+
+                return nextCursors;
+            });
+        };
 
         if (!uid) {
             Promise.resolve().then(() => {
@@ -527,6 +643,7 @@ function TransactionsSurface({
                     setPageTransactions([]);
                     setHasNextPage(false);
                     setPageCursors([null]);
+                    setLoadError("");
                     setIsLoading(false);
                 }
             });
@@ -536,64 +653,63 @@ function TransactionsSurface({
             };
         }
 
-        import("../api/transactionsRepository")
-            .then(({ getExpenseTransactionsPage }) =>
-                getExpenseTransactionsPage(uid, {
-                    categoryId: categoryFilter,
-                    cursor: queryCursor,
-                    date: dateFilter,
-                    monthKey: monthFilter,
-                    pageSize,
-                    searchTerm: querySearchTerm,
-                    type: activeFilter,
-                    walletId: walletFilter,
-                }),
-            )
-            .then((result) => {
-                if (isCancelled) {
-                    return;
-                }
-                setPageTransactions(result.transactions);
-                setHasNextPage(result.hasNextPage);
-                setPageCursors((currentCursors) => {
-                    const nextCursors = currentCursors.slice(0, currentPage);
+        Promise.resolve().then(async () => {
+            if (isCancelled) {
+                return;
+            }
 
-                    if (result.hasNextPage && result.cursor) {
-                        nextCursors[currentPage] = result.cursor;
+            setIsLoading(true);
+            setLoadError("");
+
+            const cachedResult = getCachedTransactionPage(transactionPageCacheKey);
+
+            if (cachedResult) {
+                applyPageResult(cachedResult);
+            }
+
+            try {
+                const {
+                    getCachedExpenseTransactionsPage,
+                    getExpenseTransactionsPage,
+                } = await import("../api/transactionsRepository");
+
+                if (!cachedResult) {
+                    try {
+                        const firestoreCachedResult = await getCachedExpenseTransactionsPage(
+                            uid,
+                            transactionQueryOptions,
+                        );
+
+                        if (!isCancelled && firestoreCachedResult.transactions.length > 0) {
+                            cacheTransactionPage(transactionPageCacheKey, firestoreCachedResult);
+                            applyPageResult(firestoreCachedResult);
+                        }
+                    } catch {
+                        // Firestore cache is best-effort; the server remains authoritative.
                     }
-
-                    return nextCursors;
-                });
-            })
-            .catch(() => {
-                if (!isCancelled) {
-                    setPageTransactions([]);
-                    setHasNextPage(false);
-                    setLoadError("Không thể tải giao dịch. Vui lòng thử lại.");
                 }
-            })
-            .finally(() => {
+
+                const serverResult = await getExpenseTransactionsPage(uid, transactionQueryOptions);
+
+                if (!isCancelled) {
+                    cacheTransactionPage(transactionPageCacheKey, serverResult);
+                    applyPageResult(serverResult);
+                }
+            } catch {
+                if (!isCancelled) {
+                    setLoadError("Không thể cập nhật giao dịch. Đang hiển thị dữ liệu gần nhất.");
+                }
+            } finally {
                 if (!isCancelled) {
                     setIsLoading(false);
                 }
-            });
+            }
+        });
 
         return () => {
             isCancelled = true;
         };
-    }, [
-        activeFilter,
-        categoryFilter,
-        currentPage,
-        dateFilter,
-        monthFilter,
-        pageSize,
-        queryCursor,
-        querySearchTerm,
-        refreshRevision,
-        uid,
-        walletFilter,
-    ]);
+    }, [currentPage, transactionPageCacheKey, transactionQueryOptions, uid]);
 
     const openCreateEditor = () => {
         setEditingTransaction(null);
@@ -667,7 +783,10 @@ function TransactionsSurface({
                 </section>
             ) : null}
 
-            <TransactionSummary transactions={visibleTransactions} />
+            <TransactionSummary
+                defaultExpenseTotal={defaultExpenseTotal}
+                transactions={pageTransactions}
+            />
 
             <section
                 className={`transactions-page__toolbar section-card${isFilterPanelOpen ? " is-filter-open" : ""}`}
@@ -797,7 +916,11 @@ function TransactionsSurface({
                 </div>
             </section>
 
-            <section className="transactions-page__list section-card" aria-label="Danh sách giao dịch">
+            <section
+                aria-busy={isLoading}
+                aria-label="Danh sách giao dịch"
+                className="transactions-page__list section-card"
+            >
                 <div className="transactions-page__table-head" role="row">
                     <span>Giao dịch</span>
                     <span>Loại</span>
@@ -829,12 +952,20 @@ function TransactionsSurface({
                 </div>
                 {isLoading ? (
                     <ExpenseStateMessage
-                        className="transactions-page__empty"
-                        message={expenseUiText.transaction.LOADING}
+                        aria-live="polite"
+                        className="transactions-page__status"
+                        message={expenseUiText.transaction.UPDATING}
+                        role="status"
                     />
-                ) : loadError ? (
-                    <ExpenseStateMessage className="transactions-page__empty" message={loadError} />
-                ) : visibleTransactions.length ? (
+                ) : null}
+                {loadError ? (
+                    <ExpenseStateMessage
+                        className="transactions-page__status transactions-page__status--error"
+                        message={loadError}
+                        role="alert"
+                    />
+                ) : null}
+                {visibleTransactions.length ? (
                     visibleTransactions.map((transaction) => (
                         <TransactionRow
                             key={transaction.id}
@@ -843,12 +974,12 @@ function TransactionsSurface({
                             transaction={transaction}
                         />
                     ))
-                ) : (
+                ) : !isLoading && !loadError ? (
                     <ExpenseStateMessage
                         className="transactions-page__empty"
                         message={expenseUiText.transaction.NOT_FOUND}
                     />
-                )}
+                ) : null}
                 <footer className="transactions-page__pagination">
                     <span>
                         Hiển thị {pageStart} - {pageEnd}

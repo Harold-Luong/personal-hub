@@ -6,6 +6,10 @@ import {
 } from "../../constants/expenseMetadata";
 import ExpenseIcon from "../../icon/ExpenseIcon";
 import { expenseIconSetOptions } from "../../icon/iconSets";
+import {
+    getWalletNameWithDefaultLabel,
+    getWalletsDefaultFirst,
+} from "../../utils/walletUtils";
 import SectionCard from "./SectionCard";
 
 function PreferenceSelect({ description, label, onChange, options, value }) {
@@ -39,6 +43,9 @@ function EntityRow({
     type,
 }) {
     const canSetDefault = type === "wallet" || entity.type === "expense";
+    const entityDisplayName = type === "wallet"
+        ? getWalletNameWithDefaultLabel(entity)
+        : entity.name;
 
     return (
         <li className={isHidden ? "is-hidden" : ""}>
@@ -46,20 +53,20 @@ function EntityRow({
                 <ExpenseIcon icon={entity.icon} />
             </span>
             <span className="settings-content__entity-copy">
-                <strong>{entity.name}</strong>
-                <small>{isDefault ? "Mặc định" : isHidden ? "Đang ẩn" : type === "wallet" ? "Đang sử dụng" : entity.type === "income" ? "Thu nhập" : "Chi tiêu"}</small>
+                <strong>{entityDisplayName}</strong>
+                <small>{isDefault && type !== "wallet" ? "Mặc định" : isHidden ? "Đang ẩn" : type === "wallet" ? "Đang sử dụng" : entity.type === "income" ? "Thu nhập" : "Chi tiêu"}</small>
             </span>
             <span className="settings-content__entity-actions">
-                <button aria-label={`Đưa ${entity.name} lên`} disabled={!canMoveUp} onClick={() => onMove(-1)} title="Đưa lên" type="button">
+                <button aria-label={`Đưa ${entityDisplayName} lên`} disabled={!canMoveUp} onClick={() => onMove(-1)} title="Đưa lên" type="button">
                     <ExpenseIcon bare icon="chevron-up" size={16} />
                 </button>
-                <button aria-label={`Đưa ${entity.name} xuống`} disabled={!canMoveDown} onClick={() => onMove(1)} title="Đưa xuống" type="button">
+                <button aria-label={`Đưa ${entityDisplayName} xuống`} disabled={!canMoveDown} onClick={() => onMove(1)} title="Đưa xuống" type="button">
                     <ExpenseIcon bare icon="chevron-down" size={16} />
                 </button>
-                <button aria-label={`${isHidden ? "Hiện" : "Ẩn"} ${entity.name}`} disabled={isDefault} onClick={onToggleHidden} title={isDefault ? "Không thể ẩn mục mặc định" : isHidden ? "Hiện" : "Ẩn"} type="button">
+                <button aria-label={`${isHidden ? "Hiện" : "Ẩn"} ${entityDisplayName}`} disabled={isDefault} onClick={onToggleHidden} title={isDefault ? "Không thể ẩn mục mặc định" : isHidden ? "Hiện" : "Ẩn"} type="button">
                     <ExpenseIcon bare icon="visibility" size={20} />
                 </button>
-                <button aria-label={`Chọn ${entity.name} làm mặc định`} className={isDefault ? "is-active" : ""} disabled={!canSetDefault || isHidden} onClick={onSetDefault} title={canSetDefault ? "Chọn mặc định" : "Chỉ áp dụng cho danh mục chi tiêu"} type="button">
+                <button aria-label={`Chọn ${entityDisplayName} làm mặc định`} className={isDefault ? "is-active" : ""} disabled={!canSetDefault || isHidden} onClick={onSetDefault} title={canSetDefault ? "Chọn mặc định" : "Chỉ áp dụng cho danh mục chi tiêu"} type="button">
                     <ExpenseIcon bare icon="favorite" size={20} />
                 </button>
             </span>
@@ -69,7 +76,7 @@ function EntityRow({
 
 function EntityManager({ categories, onMoveCategory, onMoveWallet, onSetDefaultCategory, onSetDefaultWallet, onToggleCategory, onToggleWallet, settings, wallets }) {
     const [activeTab, setActiveTab] = useState("categories");
-    const entities = activeTab === "categories" ? categories : wallets;
+    const entities = activeTab === "categories" ? categories : getWalletsDefaultFirst(wallets);
     const hiddenIds = activeTab === "categories" ? settings.hiddenCategoryIds : settings.hiddenWalletIds;
 
     return (
@@ -87,11 +94,17 @@ function EntityManager({ categories, onMoveCategory, onMoveWallet, onSetDefaultC
                     const typeIndex = sameTypeEntities.findIndex((item) => item.id === entity.id);
                     const isDefault = activeTab === "categories"
                         ? settings.defaultCategoryId === entity.id
-                        : entity.isDefault;
+                        : entity.isDefaultWallet;
+                    const canMoveUp = activeTab === "categories"
+                        ? typeIndex > 0
+                        : !isDefault && typeIndex > 0 && !sameTypeEntities[typeIndex - 1]?.isDefaultWallet;
+                    const canMoveDown = activeTab === "categories"
+                        ? typeIndex < sameTypeEntities.length - 1
+                        : !isDefault && typeIndex < sameTypeEntities.length - 1;
                     return (
                         <EntityRow
-                            canMoveDown={typeIndex < sameTypeEntities.length - 1}
-                            canMoveUp={typeIndex > 0}
+                            canMoveDown={canMoveDown}
+                            canMoveUp={canMoveUp}
                             entity={entity}
                             isDefault={isDefault}
                             isHidden={hiddenIds.includes(entity.id)}

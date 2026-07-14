@@ -27,7 +27,7 @@ function sortWallets(firstWallet, secondWallet) {
         return orderComparison;
     }
 
-    return firstWallet.isDefault === secondWallet.isDefault ? 0 : firstWallet.isDefault ? -1 : 1;
+    return 0;
 }
 
 /**
@@ -453,17 +453,11 @@ export const useExpenseDataStore = create((set, get) => ({
         const savedWallet = result.wallet ?? result;
 
         set((state) => {
-            const nextWallets = savedWallet.isDefault
-                ? state.wallets.map((currentWallet) => ({
-                    ...currentWallet,
-                    isDefault: currentWallet.id === savedWallet.id,
-                }))
-                : state.wallets;
-            const existingWalletIndex = nextWallets.findIndex((currentWallet) => currentWallet.id === savedWallet.id);
+            const existingWalletIndex = state.wallets.findIndex((currentWallet) => currentWallet.id === savedWallet.id);
             const wallets =
                 existingWalletIndex === -1
-                    ? [...nextWallets, savedWallet].sort(sortWallets)
-                    : nextWallets
+                    ? [...state.wallets, savedWallet].sort(sortWallets)
+                    : state.wallets
                         .map((currentWallet, index) => (index === existingWalletIndex ? savedWallet : currentWallet))
                         .sort(sortWallets);
 
@@ -486,10 +480,6 @@ export const useExpenseDataStore = create((set, get) => ({
         set((state) => ({
             wallets: state.wallets
                 .filter((currentWallet) => currentWallet.id !== result.id)
-                .map((currentWallet) => ({
-                    ...currentWallet,
-                    isDefault: currentWallet.id === result.replacementDefaultWalletId ? true : currentWallet.isDefault,
-                }))
                 .sort(sortWallets),
         }));
 
@@ -530,18 +520,6 @@ export const useExpenseDataStore = create((set, get) => ({
         return orderedIds;
     },
 
-    setDefaultExpenseWallet: async (uid, walletId) => {
-        const { setDefaultExpenseWallet } = await import("../modules/expenses/api/walletsRepository");
-        await setDefaultExpenseWallet(uid, walletId);
-
-        set((state) => ({
-            wallets: state.wallets
-                .map((wallet) => ({ ...wallet, isDefault: wallet.id === walletId }))
-                .sort(sortWallets),
-        }));
-
-        return walletId;
-    },
 }));
 
 export const selectExpenseCategories = (state) => state.categories;

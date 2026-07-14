@@ -48,7 +48,6 @@ export default function SettingsPage({
     const saveExpensePreference = useExpensePreferencesStore((state) => state.saveExpensePreference);
     const reorderCategories = useExpenseDataStore((state) => state.reorderExpenseCategories);
     const reorderWallets = useExpenseDataStore((state) => state.reorderExpenseWallets);
-    const setDefaultWallet = useExpenseDataStore((state) => state.setDefaultExpenseWallet);
     const [isWorking, setIsWorking] = useState(false);
     const [message, setMessage] = useState(null);
 
@@ -93,10 +92,10 @@ export default function SettingsPage({
         );
     };
 
-    const handleSetDefaultWallet = (walletId) => runTask(async () => {
-        await setDefaultWallet(uid, walletId);
-        await saveExpensePreference(uid, "defaultWalletId", walletId);
-    }, "Đã chọn ví mặc định.");
+    const handleSetDefaultWallet = (walletId) => runTask(
+        () => saveExpensePreference(uid, "defaultWalletId", walletId),
+        "Đã chọn ví mặc định.",
+    );
 
     const handleExport = () => runTask(async () => {
         const { getAllExpenseTransactions } = await import("../api/transactionsRepository");

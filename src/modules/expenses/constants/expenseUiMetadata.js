@@ -19,6 +19,7 @@ export const expenseUiText = Object.freeze({
         LOADING: "Đang tải giao dịch...",
         NO_NOTE: "Không có ghi chú",
         NOT_FOUND: "Không tìm thấy giao dịch phù hợp.",
+        UPDATING: "Đang cập nhật giao dịch...",
     }),
     status: Object.freeze({
         LOADING_DATA: "Đang tải dữ liệu...",

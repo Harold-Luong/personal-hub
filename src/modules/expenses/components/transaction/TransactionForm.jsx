@@ -10,7 +10,12 @@ import { expenseUiText } from "../../constants/expenseUiMetadata";
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "../../utils/formatCurrency";
 import { getSignedTransactionAmount } from "../../utils/expenseCalculations";
 import { getLocalDateValue, getLocalTimeValue } from "../../utils/transactionFormUtils";
-import { getWalletDisplayName, isCreditCardWallet } from "../../utils/walletUtils";
+import {
+    getWalletDisplayName,
+    getWalletsDefaultFirst,
+    getWalletsWithResolvedDefault,
+    isCreditCardWallet,
+} from "../../utils/walletUtils";
 import ExpenseButton from "../shared/ExpenseButton";
 import ExpenseField from "../shared/ExpenseField";
 import ExpenseStateMessage from "../shared/ExpenseStateMessage";
@@ -28,12 +33,14 @@ function getCategoryOptions(type, categories) {
     return typedCategories.length > 0 ? typedCategories : [];
 }
 
-function getWalletOptions(type, wallets) {
-    if (type === transactionTypes.EXPENSE) {
-        return wallets;
-    }
+function getWalletOptions(type, wallets, defaultWalletId) {
+    const eligibleWallets = type === transactionTypes.EXPENSE
+        ? wallets
+        : wallets.filter((wallet) => !isCreditCardWallet(wallet));
 
-    return wallets.filter((wallet) => !isCreditCardWallet(wallet));
+    return getWalletsDefaultFirst(
+        getWalletsWithResolvedDefault(eligibleWallets, defaultWalletId),
+    );
 }
 
 function getTransactionSubtitle(date, time) {
@@ -60,11 +67,11 @@ export default function TransactionForm({
 }) {
     const preferences = useExpensePreferencesStore(selectExpensePreferences);
     const initialType = initialTransaction?.type ?? transactionTypes.EXPENSE;
+    const initialWalletOptions = getWalletOptions(initialType, wallets, preferences.defaultWalletId);
     const defaultCategory = getCategoryOptions(initialType, categories).find(
         (category) => category.id === preferences.defaultCategoryId,
     );
-    const defaultWallet = wallets.find((wallet) => wallet.id === preferences.defaultWalletId)
-        ?? wallets.find((wallet) => wallet.isDefault);
+    const defaultWallet = initialWalletOptions.find((wallet) => wallet.id === preferences.defaultWalletId);
     const [type, setType] = useState(initialType);
     const [amount, setAmount] = useState(() =>
         initialTransaction ? formatCurrencyInput(initialTransaction.amountMinor ?? Math.abs(initialTransaction.amount)) : "",
@@ -73,23 +80,26 @@ export default function TransactionForm({
     const [categoryId, setCategoryId] = useState(
         () => initialTransaction?.categoryId ?? initialTransaction?.category ?? defaultCategory?.id ?? getCategoryOptions(initialType, categories)[0]?.id ?? "",
     );
-    const [walletId, setWalletId] = useState(initialTransaction?.walletId ?? initialTransaction?.fromWalletId ?? defaultWallet?.id ?? wallets[0]?.id ?? "");
-    const [toWalletId, setToWalletId] = useState(initialTransaction?.toWalletId ?? wallets[1]?.id ?? "");
+    const [walletId, setWalletId] = useState(initialTransaction?.walletId ?? initialTransaction?.fromWalletId ?? defaultWallet?.id ?? initialWalletOptions[0]?.id ?? "");
+    const [toWalletId, setToWalletId] = useState(initialTransaction?.toWalletId ?? initialWalletOptions[1]?.id ?? "");
     const [date, setDate] = useState(initialTransaction?.date ?? getLocalDateValue);
     const [time, setTime] = useState(initialTransaction?.time ?? getLocalTimeValue);
     const [note, setNote] = useState(initialTransaction?.note ?? "");
+    const [hasSelectedWallet, setHasSelectedWallet] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
 
     const categoryOptions = getCategoryOptions(type, categories);
-    const walletOptions = getWalletOptions(type, wallets);
+    const walletOptions = getWalletOptions(type, wallets, preferences.defaultWalletId);
     const isTransfer = type === transactionTypes.TRANSFER;
     const selectedCategoryId = categoryOptions.some((category) => category.id === categoryId)
         ? categoryId
         : (categoryOptions.find((category) => category.id === preferences.defaultCategoryId)?.id ?? categoryOptions[0]?.id ?? "");
-    const selectedWalletId = walletOptions.some((wallet) => wallet.id === walletId)
+    const canKeepSelectedWallet = walletOptions.some((wallet) => wallet.id === walletId)
+        && (Boolean(initialTransaction) || hasSelectedWallet);
+    const selectedWalletId = canKeepSelectedWallet
         ? walletId
-        : (walletOptions[0]?.id ?? "");
+        : (walletOptions.find((wallet) => wallet.isDefaultWallet)?.id ?? walletOptions[0]?.id ?? "");
     const selectedToWalletId = walletOptions.some((wallet) => wallet.id === toWalletId && wallet.id !== selectedWalletId)
         ? toWalletId
         : (walletOptions.find((wallet) => wallet.id !== selectedWalletId)?.id ?? "");
@@ -271,7 +281,10 @@ export default function TransactionForm({
                     >
                         <select
                             name="wallet"
-                            onChange={(event) => setWalletId(event.target.value)}
+                            onChange={(event) => {
+                                setWalletId(event.target.value);
+                                setHasSelectedWallet(true);
+                            }}
                             required
                             value={selectedWalletId}
                         >

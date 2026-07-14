@@ -7,7 +7,11 @@ import ExpenseIcon from "../icon/ExpenseIcon";
 import DesktopWalletDialog from "../components/desktop/DesktopWalletDialog";
 import WalletForm from "../components/wallet/WalletForm";
 import { walletTypeLabels } from "../constants/expenseMetadata";
-import { isCreditCardWallet } from "../utils/walletUtils";
+import {
+    getWalletNameWithDefaultLabel,
+    getWalletsDefaultFirst,
+    isCreditCardWallet,
+} from "../utils/walletUtils";
 
 function WalletItemMeta({ wallet }) {
     if (isCreditCardWallet(wallet)) {
@@ -22,7 +26,7 @@ function WalletItemMeta({ wallet }) {
         return <small>Số dư tạm tính từ 0đ</small>;
     }
 
-    return wallet.isDefault ? <small>Mặc định</small> : null;
+    return null;
 }
 
 export default function WalletPage({
@@ -33,6 +37,7 @@ export default function WalletPage({
     onSaveWallet,
     wallets = [],
 }) {
+    const orderedWallets = getWalletsDefaultFirst(wallets);
     const [selectedWalletId, setSelectedWalletId] = useState("");
     const [isFormOpen, setIsFormOpen] = useState(false);
     const isDesktopMode = mode === "desktop";
@@ -111,7 +116,7 @@ export default function WalletPage({
 
                 {wallets.length ? (
                     <SectionCard actionLabel={null} as="div" className="mobile-wallet-page__list">
-                        {wallets.map((wallet) => (
+                        {orderedWallets.map((wallet) => (
                             <article
                                 className="mobile-wallet-item"
                                 key={wallet.id}
@@ -124,10 +129,10 @@ export default function WalletPage({
                                     <ExpenseIcon
                                         color={wallet.color}
                                         icon={wallet.icon}
-                                        label={wallet.name}
+                                        label={getWalletNameWithDefaultLabel(wallet)}
                                     />
                                     <span className="mobile-wallet-item__copy">
-                                        <strong>{wallet.name}</strong>
+                                        <strong>{getWalletNameWithDefaultLabel(wallet)}</strong>
                                         <span>{walletTypeLabels[wallet.type] ?? wallet.type}</span>
                                     </span>
                                     <span className="mobile-wallet-item__meta">
@@ -137,7 +142,7 @@ export default function WalletPage({
                                 </button>
                                 {isCreditCardWallet(wallet) && (wallet.outstandingDebt ?? 0) > 0 ? (
                                     <button
-                                        aria-label={`Thanh toán thẻ tín dụng ${wallet.name}`}
+                                        aria-label={`Thanh toán thẻ tín dụng ${getWalletNameWithDefaultLabel(wallet)}`}
                                         className="mobile-wallet-item__credit-payment"
                                         onClick={() => onPayCreditCard?.(wallet)}
                                         type="button"
