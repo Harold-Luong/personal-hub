@@ -1,10 +1,39 @@
 rules_version = '2';
 
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+// users/{uid}: private profile and initialization timestamps.
+// users/{uid}/modules/expenses: expense module state.
+// users/{uid}/modules/expenses/settings/main: UI and finance preferences.
+// users/{uid}/modules/expenses/wallets/{walletId}: wallet projections.
+// users/{uid}/modules/expenses/categories/{categoryId}: income/expense categories.
+// users/{uid}/modules/expenses/transactions/{transactionId}: financial ledger entries.
+// users/{uid}/modules/expenses/budgets/{budgetId}: monthly category budgets.
+// users/{uid}/modules/expenses/monthlyStats/{monthKey}: monthly projections.
+// users/{uid}/modules/quotes/favorites/{quoteId}: quoteId string and createdAt timestamp.
+// Every path is private to the authenticated owner identified by {uid}.
+// ===============================================================
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
     function isOwner(uid) {
-      return request.auth != null && request.auth.uid == uid;
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data)
+        || request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('uid' in request.resource.data)
+        || request.resource.data.uid == resource.data.uid;
     }
 
     // =========================
@@ -40,7 +69,8 @@ service cloud.firestore {
     }
 
     function isValidUserProfileCreate(data) {
-      return data.keys().hasOnly(allowedUserProfileKeys())
+      return uidUnchanged()
+        && data.keys().hasOnly(allowedUserProfileKeys())
         && data.keys().hasAll([
           'displayName',
           'email',
@@ -58,7 +88,8 @@ service cloud.firestore {
     }
 
     function isValidUserProfileUpdate() {
-      return request.resource.data.diff(resource.data).affectedKeys()
+      return uidNotModified()
+        && request.resource.data.diff(resource.data).affectedKeys()
           .hasOnly([
             'displayName',
             'updatedAt',
@@ -786,6 +817,58 @@ service cloud.firestore {
     }
 
     // =========================
+    // Quote favorites
+    // users/{uid}/modules/quotes/favorites/{quoteId}
+    // =========================
+
+    function isKnownQuoteId(quoteId) {
+      return quoteId in [
+        'life-quiet-road',
+        'life-small-choice',
+        'life-carry-light',
+        'healing-rest',
+        'healing-cracks',
+        'healing-gentle',
+        'ancient-dream',
+        'ancient-cloud',
+        'ancient-moon',
+        'peace-presence',
+        'peace-tea',
+        'peace-window',
+        'family-light',
+        'family-table',
+        'family-return',
+        'work-depth',
+        'work-seed',
+        'work-pause',
+        'motivation-step',
+        'motivation-mountain',
+        'motivation-begin',
+        'lonely-room',
+        'lonely-moon',
+        'lonely-listen',
+      ];
+    }
+
+    function isValidQuoteFavorite(data, quoteId) {
+      return data.keys().hasOnly([
+          'quoteId',
+          'createdAt',
+        ])
+        && data.keys().hasAll([
+          'quoteId',
+          'createdAt',
+        ])
+        && data.quoteId is string
+        && data.quoteId.size() > 0
+        && data.quoteId.size() <= 80
+        && data.quoteId.matches('^[a-z0-9-]+$')
+        && data.quoteId == quoteId
+        && isKnownQuoteId(quoteId)
+        && data.createdAt == request.time;
+    }
+
+    // =========================
     // Rules
     // =========================
 
@@ -878,6 +961,21 @@ service cloud.firestore {
             && isValidMonthlyStats(request.resource.data, monthKey);
 
           allow delete: if false;
+        }
+      }
+
+      match /modules/quotes {
+        allow read: if isOwner(uid);
+        allow create, update, delete: if false;
+
+        match /favorites/{quoteId} {
+          allow read: if isOwner(uid);
+
+          allow create: if isOwner(uid)
+            && isValidQuoteFavorite(request.resource.data, quoteId);
+
+          allow update: if false;
+          allow delete: if isOwner(uid);
         }
       }
 

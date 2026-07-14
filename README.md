@@ -10,7 +10,7 @@
 
 ## Tổng quan
 
-Personal Hub đưa người dùng về một màn hình chung sau đăng nhập. Mỗi module chỉ khởi tạo dữ liệu khi được mở lần đầu. Module Expenses (MoneyCare) quản lý thu chi, ví, ngân sách và báo cáo; module Quotes cung cấp nội dung tĩnh và không tạo dữ liệu Firestore cho người dùng.
+Personal Hub đưa người dùng về một màn hình chung sau đăng nhập. Mỗi module chỉ khởi tạo dữ liệu khi được mở lần đầu. Module Expenses (MoneyCare) quản lý thu chi, ví, ngân sách và báo cáo; module Lặng mang đến trải nghiệm đọc quote tập trung và đồng bộ mục yêu thích theo tài khoản bằng Firestore.
 
 <p align="center">
   <img src="./public/ui/expenses-ui.png" alt="MoneyCare trên desktop" width="100%">
@@ -30,7 +30,7 @@ Personal Hub đưa người dùng về một màn hình chung sau đăng nhập.
 
 - Sau đăng nhập, người dùng được chuyển đến `/hub` để chọn module.
 - Expenses chỉ khởi tạo settings, ví và danh mục mặc định khi route `/expenses/*` được mở.
-- Quotes hoạt động độc lập và không ghi Firestore khi người dùng chỉ đọc nội dung.
+- Lặng hoạt động độc lập, hỗ trợ chủ đề, đồng bộ yêu thích qua Firestore, lưu theme trên trình duyệt và tạo preview ảnh quote.
 - Có thể thêm module mới mà không đưa bootstrap của module đó vào auth flow.
 
 ### Đăng nhập và thiết lập ban đầu
@@ -128,7 +128,7 @@ src/
 │   ├── pages/                     Các trang theo route
 │   ├── styles/expenses/           Sass theo màn hình và component
 │   └── utils/                     Tính toán, định dạng và xuất CSV
-├── modules/quotes/                Module Quotes không lưu dữ liệu người dùng
+├── modules/quotes/                Module Lặng, quote local và Firestore Favorites
 ├── routes/                        App routes và auth guard
 └── stores/                        Zustand stores
 ```
@@ -145,7 +145,10 @@ src/
 | `/expenses/budgets` | Ngân sách |
 | `/expenses/wallets` | Ví tiền |
 | `/expenses/settings` | Cài đặt |
-| `/quotes` | Quotes |
+| `/quotes` | Trang quote fullscreen của Lặng |
+| `/quotes/explore` | Khám phá quote theo chủ đề |
+| `/quotes/favorites` | Các quote đã lưu |
+| `/quotes/create` | Tạo preview ảnh quote |
 
 ## Mô hình dữ liệu
 
@@ -154,18 +157,20 @@ Dữ liệu của mỗi người dùng nằm dưới `users/{uid}`. Document pro
 ```text
 users/{uid}
 ├── displayName, email, photoURL, timestamps
-└── modules/expenses/
-    ├── settings/main
-    ├── wallets/{walletId}
-    ├── categories/{categoryId}
-    ├── transactions/{transactionId}
-    ├── budgets/{budgetId}
-    └── monthlyStats/{monthKey}
+├── modules/expenses/
+│   ├── settings/main
+│   ├── wallets/{walletId}
+│   ├── categories/{categoryId}
+│   ├── transactions/{transactionId}
+│   ├── budgets/{budgetId}
+│   └── monthlyStats/{monthKey}
+└── modules/quotes/
+    └── favorites/{quoteId}
 ```
 
 Firestore Security Rules giới hạn người dùng chỉ được truy cập dữ liệu thuộc tài khoản của mình, đồng thời kiểm tra schema và các bất biến tài chính trước khi chấp nhận ghi dữ liệu.
 
-Quotes hiện chỉ đọc nội dung đóng gói cùng frontend nên không có collection riêng trong Firestore.
+Lặng dùng dữ liệu và ảnh nền đóng gói cùng frontend. Favorites được lưu tại `users/{uid}/modules/quotes/favorites/{quoteId}` để đồng bộ theo tài khoản; theme vẫn được lưu trong localStorage vì chỉ là tùy chọn hiển thị trên thiết bị.
 
 ## Chạy dự án trên máy local
 

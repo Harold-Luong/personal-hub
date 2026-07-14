@@ -10,11 +10,11 @@ export const hubModules = [
     },
     {
         accent: "#8062a6",
-        description: "Dành một khoảng lặng cho những câu chữ đáng nhớ mỗi ngày.",
+        description: "Một câu nói, một khung cảnh và vài giây để lòng mình chậm lại.",
         eyebrow: "Cảm hứng",
         icon: "quotes",
         id: "quotes",
         path: "/quotes",
-        title: "Quotes",
+        title: "Lặng",
     },
 ];
