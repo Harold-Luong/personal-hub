@@ -488,6 +488,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                 <SettingsPage
                     categories={allCategories}
                     mode="mobile"
+                    onBackToHub={() => navigate("/hub")}
                     onLogout={handleLogout}
                     onManageBudget={() => navigateExpenseRoute("budgets")}
                     onManageCategories={() => navigateExpenseRoute("categories")}
@@ -686,6 +687,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                 <ExpenseSidebar
                     activeId={activeDesktopPage}
                     items={expenseNavItems}
+                    onBackToHub={() => navigate("/hub")}
                     onLogout={handleLogout}
                     onNavigate={handleDesktopNavigate}
                     onToggleTheme={handleToggleTheme}

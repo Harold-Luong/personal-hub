@@ -1,5 +1,5 @@
 export const authPageMessages = {
-    brand: 'MoneyCare',
+    brand: 'Personal Hub',
     divider: 'hoặc',
     emailLabel: 'Email',
     emailPlaceholder: 'you@example.com',
@@ -10,14 +10,14 @@ export const authPageMessages = {
     modes: {
         login: {
             alternateModeLabel: 'Chưa có tài khoản?',
-            intro: 'Đăng nhập để tiếp tục quản lý chi tiêu.',
+            intro: 'Đăng nhập để mở không gian cá nhân của bạn.',
             submitButton: 'Đăng nhập',
             switchButton: 'Đăng ký',
             title: 'Đăng nhập',
         },
         register: {
             alternateModeLabel: 'Đã có tài khoản?',
-            intro: 'Đăng ký để lưu dữ liệu chi tiêu theo tài khoản của bạn.',
+            intro: 'Tạo tài khoản để sử dụng các module trong Personal Hub.',
             submitButton: 'Đăng ký',
             switchButton: 'Đăng nhập',
             title: 'Tạo tài khoản',

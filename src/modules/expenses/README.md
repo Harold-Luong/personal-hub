@@ -857,22 +857,24 @@ Các helper dùng chung:
 ## 9. Flow khởi động ứng dụng
 
 1. Firebase Auth khôi phục session.
-2. Nếu chưa đăng nhập, hiển thị auth flow hoặc chế độ local theo phạm vi sản
-   phẩm.
-3. Đọc cached theme từ `localStorage` để render sớm.
-4. Subscribe `modules/expenses/settings/main`.
-5. Subscribe wallets và categories đang hoạt động.
-6. Đọc monthly stats của tháng đang chọn và tháng trước.
-7. Đọc budgets của tháng đang chọn.
-8. Subscribe các transaction gần nhất.
-9. Adapter dựng props hiện tại cho mobile và web views.
-10. Khi settings từ Firestore về, đồng bộ theme vào app và `localStorage`.
+2. App-level auth bootstrap đảm bảo profile `users/{uid}` tồn tại rồi chuyển user đến
+   `/hub`.
+3. Hub Home không đọc hoặc tạo dữ liệu Expenses.
+4. Khi user mở card Expenses hoặc truy cập trực tiếp `/expenses/*`,
+   `useEnsureExpenseModule()` gọi `ensureExpenseModuleInitialized(uid)`.
+5. Bootstrap Expenses idempotently tạo `modules/expenses`, `settings/main`, ví
+   mặc định và default categories nếu chưa tồn tại.
+6. Đọc cached theme từ `localStorage` để render sớm.
+7. Dashboard tải wallets, categories, monthly stats, budgets và transaction gần
+   nhất.
+8. Adapter dựng props hiện tại cho mobile và desktop views.
+9. Khi settings từ Firestore về, đồng bộ theme vào app và `localStorage`.
 
 Các request không phụ thuộc nên chạy song song.
 
-Triển khai hiện tại dùng `ensureUserDataInitialized()` để idempotently tạo:
+Hồ sơ user dùng chung do `modules/auth/api/userProfileRepository.js` sở hữu.
+Triển khai Expenses dùng `ensureExpenseModuleInitialized()` để idempotently tạo:
 
-- user profile
 - `modules/expenses`
 - `settings/main`
 - ví mặc định `wallet-cash`
@@ -1477,7 +1479,9 @@ src/
         │   ├── budgetsRepository.js
         │   └── monthlyStatsRepository.js
         ├── hooks/
-        │   └── useEnsureExpenseSettings.js
+        │   └── useEnsureExpenseModule.js
+        ├── routes/
+        │   └── ExpenseModuleRoute.jsx
         ├── pages/
         ├── utils/
         └── components/
@@ -1493,14 +1497,15 @@ Vai trò:
 - Repository hiện tại cũng chứa mutation client-side bằng Firestore
   `runTransaction`/batch.
 - `stores`: giữ auth snapshot, preferences, projections và mutation actions.
-- `hooks`: quản lý bootstrap settings/auth và lifecycle.
+- `hooks`: quản lý bootstrap module và lifecycle.
 - `utils`: tính toán, format, CSV và chuyển dữ liệu hiển thị.
 - `components`: chỉ render và phát user events.
 
 `SettingsContent` và `UserProfileCard` được dùng chung giữa desktop/mobile.
 Desktop dùng `ExpenseSidebar` cho tài khoản và điều hướng; `ExpenseHeader` chỉ
 giữ ngữ cảnh trang, filter và thao tác thêm giao dịch. Mobile Settings giữ link
-đến Budget, Wallet và Category vì ba trang này không nằm trong bottom nav.
+về Personal Hub cùng các link đến Budget, Wallet và Category vì các trang này
+không nằm trong bottom nav.
 
 Nhờ mapper, có thể giữ phần lớn component hiện tại trong giai đoạn migration.
 

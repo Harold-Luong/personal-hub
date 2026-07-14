@@ -252,7 +252,7 @@ const defaultExpenseSettings = {
     hiddenWalletIds: [],
 };
 
-const userDataInitializationRequests = new Map();
+const expenseModuleInitializationRequests = new Map();
 
 function isAlreadyExistsError(error) {
     return (
@@ -334,14 +334,6 @@ function validateExpenseSettings(settings, { allowEmpty = false } = {}) {
     return Object.fromEntries(entries);
 }
 
-function getUserProfile(user) {
-    return {
-        displayName: user?.displayName ?? null,
-        email: user?.email ?? null,
-        photoURL: user?.photoURL ?? null,
-    };
-}
-
 export async function getExpenseSettings(uid) {
     const snapshot = await getDocFromServer(
         getDocumentReference(uid, expenseCollections.SETTINGS, "main"),
@@ -358,14 +350,11 @@ export async function getExpenseSettings(uid) {
     };
 }
 
-async function initializeUserData(user, settings = {}) {
-    const uid = typeof user === "string" ? user : user?.uid;
-
+async function initializeExpenseModule(uid, settings = {}) {
     if (!uid) {
         throw new Error("A Firebase Authentication uid is required.");
     }
 
-    const userRef = doc(firestore, "users", uid);
     const expenseModuleRef = doc(firestore, "users", uid, "modules", "expenses");
     const settingsRef = getDocumentReference(
         uid,
@@ -385,14 +374,12 @@ async function initializeUserData(user, settings = {}) {
             category.id,
         ),
     }));
-    const profile = getUserProfile(user);
     const validatedSettings = validateExpenseSettings(settings, {
         allowEmpty: true,
     });
 
     try {
         await runTransaction(firestore, async (transaction) => {
-            const userSnapshot = await transaction.get(userRef);
             const expenseModuleSnapshot =
                 await transaction.get(expenseModuleRef);
             const settingsSnapshot = await transaction.get(settingsRef);
@@ -401,15 +388,6 @@ async function initializeUserData(user, settings = {}) {
                 categoryRefs.map(({ ref }) => transaction.get(ref)),
             );
             const timestamp = serverTimestamp();
-
-            if (!userSnapshot.exists()) {
-                transaction.set(userRef, {
-                    ...profile,
-                    createdAt: timestamp,
-                    initializedAt: timestamp,
-                    updatedAt: timestamp,
-                });
-            }
 
             if (!expenseModuleSnapshot.exists()) {
                 transaction.set(expenseModuleRef, {
@@ -478,26 +456,24 @@ async function initializeUserData(user, settings = {}) {
     return getExpenseSettings(uid);
 }
 
-export async function ensureUserDataInitialized(user, settings = {}) {
-    const uid = typeof user === "string" ? user : user?.uid;
-
+export async function ensureExpenseModuleInitialized(uid, settings = {}) {
     if (!uid) {
         throw new Error("A Firebase Authentication uid is required.");
     }
 
-    const existingRequest = userDataInitializationRequests.get(uid);
+    const existingRequest = expenseModuleInitializationRequests.get(uid);
 
     if (existingRequest) {
         return existingRequest;
     }
 
-    const request = initializeUserData(user, settings).finally(() => {
-        if (userDataInitializationRequests.get(uid) === request) {
-            userDataInitializationRequests.delete(uid);
+    const request = initializeExpenseModule(uid, settings).finally(() => {
+        if (expenseModuleInitializationRequests.get(uid) === request) {
+            expenseModuleInitializationRequests.delete(uid);
         }
     });
 
-    userDataInitializationRequests.set(uid, request);
+    expenseModuleInitializationRequests.set(uid, request);
 
     return request;
 }

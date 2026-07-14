@@ -33,6 +33,7 @@ export default function MobileSettingsSurface({
     isWorking,
     message,
     notificationsEnabled,
+    onBackToHub,
     onExport,
     onLogout,
     onManageBudget,
@@ -143,6 +144,14 @@ export default function MobileSettingsSurface({
                 </div>
 
                 <SectionCard actionLabel={null} as="div" className="mobile-settings-surface__management">
+                    <button onClick={onBackToHub} type="button">
+                        <ExpenseIcon icon="app" label="Personal Hub" />
+                        <span className="mobile-settings-surface__management-copy">
+                            <strong>Personal Hub</strong>
+                            <small>Chuyển sang Expenses, Quotes và các module khác</small>
+                        </span>
+                        <span aria-hidden="true">&gt;</span>
+                    </button>
                     <button onClick={onManageBudget} type="button">
                         <ExpenseIcon icon="income" label="Ngân sách" />
                         <span className="mobile-settings-surface__management-copy">

@@ -9,6 +9,7 @@ import ExpenseButton from "../shared/ExpenseButton";
 export default function ExpenseSidebar({
     activeId = "dashboard",
     items = [],
+    onBackToHub,
     onLogout,
     onNavigate,
     onToggleTheme,
@@ -35,10 +36,10 @@ export default function ExpenseSidebar({
 
     return (
         <aside className="expense-sidebar">
-            <div className="expense-sidebar__brand">
+            <button className="expense-sidebar__brand" onClick={onBackToHub} type="button">
                 <MoneyCareLogo className="expense-sidebar__logo" label={null} size={42} />
                 <strong>MoneyCare</strong>
-            </div>
+            </button>
 
             <nav>
                 {items.map((item) => (
