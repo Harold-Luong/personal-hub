@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { logout } from "../modules/auth/api/authRepository";
 import useEnsureUserProfile from "../modules/auth/hooks/useEnsureUserProfile";
@@ -5,6 +6,8 @@ import AuthPage from "../modules/auth/pages/AuthPage";
 import ExpenseModuleRoute from "../modules/expenses/routes/ExpenseModuleRoute";
 import HubHomePage from "../modules/hub/pages/HubHomePage";
 import QuotesRouter from "../modules/quotes/routes/QuotesRouter";
+
+const MediaCutterRouter = lazy(() => import("../modules/media-cutter/routes/MediaCutterRouter"));
 
 function AuthenticatedApplication({ user }) {
     const userProfile = useEnsureUserProfile(user);
@@ -40,6 +43,14 @@ function AuthenticatedApplication({ user }) {
             <Route path="/expenses" element={<Navigate replace to="/expenses/dashboard" />} />
             <Route path="/expenses/*" element={<ExpenseModuleRoute onLogout={logout} />} />
             <Route path="/quotes/*" element={<QuotesRouter />} />
+            <Route
+                path="/tools/media-cutter/*"
+                element={(
+                    <Suspense fallback={<div className="auth-loading">Đang mở Media Cutter...</div>}>
+                        <MediaCutterRouter />
+                    </Suspense>
+                )}
+            />
             <Route path="*" element={<Navigate replace to="/hub" />} />
         </Routes>
     );

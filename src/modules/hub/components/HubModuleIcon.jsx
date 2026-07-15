@@ -8,6 +8,16 @@ export default function HubModuleIcon({ icon }) {
         );
     }
 
+    if (icon === "media-cutter") {
+        return (
+            <svg aria-hidden="true" fill="none" viewBox="0 0 32 32">
+                <circle cx="9" cy="10" r="3.5" />
+                <circle cx="9" cy="22" r="3.5" />
+                <path d="m12 12 14 9M12 20l14-9M18.5 16 26 16" />
+            </svg>
+        );
+    }
+
     return (
         <svg aria-hidden="true" fill="none" viewBox="0 0 32 32">
             <path d="M5.5 10.5h21v14h-21z" />

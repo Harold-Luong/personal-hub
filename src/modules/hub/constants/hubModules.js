@@ -17,4 +17,13 @@ export const hubModules = [
         path: "/quotes",
         title: "Lặng",
     },
+    {
+        accent: "#2f7181",
+        description: "Cắt video hoặc tách âm thanh trực tiếp trên thiết bị.",
+        eyebrow: "Media",
+        icon: "media-cutter",
+        id: "media-cutter",
+        path: "/tools/media-cutter",
+        title: "Tách và cắt âm thanh",
+    },
 ];
