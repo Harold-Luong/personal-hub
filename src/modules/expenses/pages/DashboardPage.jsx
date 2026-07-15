@@ -503,6 +503,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                 budgets={budgets}
                 categorySpending={categorySpending}
                 monthLabel={currentMonthLabel}
+                onBackToHub={() => navigate("/hub")}
                 onManageBudget={() => navigateExpenseRoute("budgets")}
                 onToggleTheme={handleToggleTheme}
                 onViewCategorySpending={() => navigateExpenseRoute("categories")}
