@@ -115,6 +115,7 @@ src/
 ├── lib/firebase/                  Firebase app, auth, firestore và App Check
 ├── modules/auth/                  Đăng nhập, đăng ký và hồ sơ người dùng
 ├── modules/hub/                   Hub Home và metadata module
+├── modules/json-toolkit/          Format, validate, sort JSON và so sánh JSON/text trong browser
 ├── modules/expenses/
 │   ├── api/                       Firestore repositories và schema
 │   ├── components/
@@ -149,6 +150,8 @@ src/
 | `/quotes/explore` | Khám phá quote theo chủ đề |
 | `/quotes/favorites` | Các quote đã lưu |
 | `/quotes/create` | Tạo preview ảnh quote |
+| `/tools/media-cutter` | Media Cutter: cắt video, MP3 và tách âm thanh trực tiếp trong browser |
+| `/tools/json` | JSON Toolkit: format, validate, sort JSON và compare JSON/text |
 
 ## Mô hình dữ liệu
 
@@ -242,6 +245,7 @@ Hãy kiểm tra đúng Firebase project trước khi deploy. Thay đổi trong f
 ## Tài liệu kỹ thuật
 
 - [`src/modules/expenses/README.md`](./src/modules/expenses/README.md): mô hình dữ liệu và quy tắc nghiệp vụ của module Expenses.
+- [`src/modules/json-toolkit/README.md`](./src/modules/json-toolkit/README.md): tính năng, giới hạn và kiến trúc đồng bộ editor của JSON Toolkit.
 - [`FIREBASE_FIRESTORE_SETUP.md`](./FIREBASE_FIRESTORE_SETUP.md): cấu hình Firebase CLI, Firestore Rules và Indexes.
 - [`FIREBASE_HOSTING_DEPLOY.md`](./FIREBASE_HOSTING_DEPLOY.md): build, preview và deploy MoneyCare lên Firebase Hosting.
 - [`SECURITY.md`](./SECURITY.md): Authentication, App Check và checklist bảo mật.

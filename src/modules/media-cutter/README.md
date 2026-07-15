@@ -11,6 +11,8 @@ Media Cutter cho phép người dùng chọn video hoặc MP3, xem trước, ch�
 
 Route được lazy-load từ `AppRoutes.jsx`, vì vậy FFmpeg không làm nặng bundle khởi động của Personal Hub. Bản thân FFmpeg core chỉ được tải sau khi người dùng chọn media lần đầu.
 
+Route này là public và có thể mở khi chưa đăng nhập. Media Cutter không phụ thuộc UID, Firebase hoặc dữ liệu tài khoản; toàn bộ media chỉ tồn tại trong bộ nhớ của trình duyệt trong phiên sử dụng hiện tại.
+
 ## Dependencies
 
 - `@ffmpeg/ffmpeg` — API worker và filesystem của FFmpeg WASM.

@@ -8,6 +8,23 @@ import HubHomePage from "../modules/hub/pages/HubHomePage";
 const ExpenseModuleRoute = lazy(() => import("../modules/expenses/routes/ExpenseModuleRoute"));
 const QuotesRouter = lazy(() => import("../modules/quotes/routes/QuotesRouter"));
 const MediaCutterRouter = lazy(() => import("../modules/media-cutter/routes/MediaCutterRouter"));
+const JsonToolkitRouter = lazy(() => import("../modules/json-toolkit/routes/JsonToolkitRouter"));
+
+function MediaCutterRoute() {
+    return (
+        <Suspense fallback={<div className="auth-loading">Đang mở Media Cutter...</div>}>
+            <MediaCutterRouter />
+        </Suspense>
+    );
+}
+
+function JsonToolkitRoute() {
+    return (
+        <Suspense fallback={<div className="auth-loading">Đang mở JSON Toolkit...</div>}>
+            <JsonToolkitRouter />
+        </Suspense>
+    );
+}
 
 function AuthenticatedApplication({ user }) {
     const userProfile = useEnsureUserProfile(user);
@@ -57,14 +74,8 @@ function AuthenticatedApplication({ user }) {
                     </Suspense>
                 )}
             />
-            <Route
-                path="/tools/media-cutter/*"
-                element={(
-                    <Suspense fallback={<div className="auth-loading">Đang mở Media Cutter...</div>}>
-                        <MediaCutterRouter />
-                    </Suspense>
-                )}
-            />
+            <Route path="/tools/media-cutter/*" element={<MediaCutterRoute />} />
+            <Route path="/tools/json/*" element={<JsonToolkitRoute />} />
             <Route path="*" element={<Navigate replace to="/hub" />} />
         </Routes>
     );
@@ -78,6 +89,8 @@ export default function AppRoutes({ user }) {
             ) : (
                 <Routes>
                     <Route path="/auth" element={<AuthPage />} />
+                    <Route path="/tools/media-cutter/*" element={<MediaCutterRoute />} />
+                    <Route path="/tools/json/*" element={<JsonToolkitRoute />} />
                     <Route path="*" element={<Navigate replace to="/auth" />} />
                 </Routes>
             )}

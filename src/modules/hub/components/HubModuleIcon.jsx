@@ -18,6 +18,16 @@ export default function HubModuleIcon({ icon }) {
         );
     }
 
+    if (icon === "json-toolkit") {
+        return (
+            <svg aria-hidden="true" fill="none" viewBox="0 0 32 32">
+                <path d="M12 6.5H9.8A2.8 2.8 0 0 0 7 9.3v3.2c0 2-1 3.5-2.5 3.5C6 16 7 17.5 7 19.5v3.2a2.8 2.8 0 0 0 2.8 2.8H12" />
+                <path d="M20 6.5h2.2A2.8 2.8 0 0 1 25 9.3v3.2c0 2 1 3.5 2.5 3.5-1.5 0-2.5 1.5-2.5 3.5v3.2a2.8 2.8 0 0 1-2.8 2.8H20" />
+                <path d="M15.9 12v.1M15.9 19.9v.1" />
+            </svg>
+        );
+    }
+
     return (
         <svg aria-hidden="true" fill="none" viewBox="0 0 32 32">
             <path d="M5.5 10.5h21v14h-21z" />
