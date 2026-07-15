@@ -3,10 +3,10 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { logout } from "../modules/auth/api/authRepository";
 import useEnsureUserProfile from "../modules/auth/hooks/useEnsureUserProfile";
 import AuthPage from "../modules/auth/pages/AuthPage";
-import ExpenseModuleRoute from "../modules/expenses/routes/ExpenseModuleRoute";
 import HubHomePage from "../modules/hub/pages/HubHomePage";
-import QuotesRouter from "../modules/quotes/routes/QuotesRouter";
 
+const ExpenseModuleRoute = lazy(() => import("../modules/expenses/routes/ExpenseModuleRoute"));
+const QuotesRouter = lazy(() => import("../modules/quotes/routes/QuotesRouter"));
 const MediaCutterRouter = lazy(() => import("../modules/media-cutter/routes/MediaCutterRouter"));
 
 function AuthenticatedApplication({ user }) {
@@ -41,8 +41,22 @@ function AuthenticatedApplication({ user }) {
             <Route path="/auth" element={<Navigate replace to="/hub" />} />
             <Route path="/hub" element={<HubHomePage onLogout={logout} user={user} />} />
             <Route path="/expenses" element={<Navigate replace to="/expenses/dashboard" />} />
-            <Route path="/expenses/*" element={<ExpenseModuleRoute onLogout={logout} />} />
-            <Route path="/quotes/*" element={<QuotesRouter />} />
+            <Route
+                path="/expenses/*"
+                element={(
+                    <Suspense fallback={<div className="auth-loading">Đang mở Expenses...</div>}>
+                        <ExpenseModuleRoute onLogout={logout} />
+                    </Suspense>
+                )}
+            />
+            <Route
+                path="/quotes/*"
+                element={(
+                    <Suspense fallback={<div className="auth-loading">Đang mở Quotes...</div>}>
+                        <QuotesRouter />
+                    </Suspense>
+                )}
+            />
             <Route
                 path="/tools/media-cutter/*"
                 element={(
