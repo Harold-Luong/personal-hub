@@ -1,5 +1,9 @@
 # Media Cutter
 
+## Hướng dẫn dành cho AI agent
+
+Trước khi sửa module này, đọc [`AI_GUIDE.md`](../../../AI_GUIDE.md) và toàn bộ README này. Giữ nguyên boundary xử lý hoàn toàn trong trình duyệt, kiểm tra lifecycle của FFmpeg/MEMFS/Object URL và cập nhật tài liệu khi route, giới hạn file, codec hoặc hành vi xuất file thay đổi.
+
 Media Cutter cho phép người dùng chọn video hoặc MP3, xem trước, chọn khoảng thời gian, cắt nhạc MP3, tách âm thanh từ video hoặc cắt video MP4. Toàn bộ file được xử lý trong trình duyệt; module không có backend, không dùng Firebase Storage và không tải media lên máy chủ.
 
 ## Route và cách chạy

@@ -1,5 +1,9 @@
 # Expenses Module - Firestore Data Design
 
+## Hướng dẫn dành cho AI agent
+
+Trước khi sửa module này, đọc [`AI_GUIDE.md`](../../../AI_GUIDE.md) để nắm kiến trúc, boundary và quy trình chung của repository, sau đó đọc đầy đủ tài liệu này. Đối chiếu mọi thay đổi nghiệp vụ với source hiện tại, repository Firestore và `firestore.rules`; khi data contract hoặc hành vi thay đổi, cập nhật tài liệu này trong cùng thay đổi.
+
 ## 1. Mục tiêu
 
 Tài liệu này mô tả thiết kế dữ liệu và các luồng nghiệp vụ cho module

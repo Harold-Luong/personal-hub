@@ -1,5 +1,9 @@
 # JSON Toolkit
 
+## Hướng dẫn dành cho AI agent
+
+Trước khi sửa module này, đọc [`AI_GUIDE.md`](../../../AI_GUIDE.md) và toàn bộ README này. Giữ nguyên boundary xử lý dữ liệu trên thiết bị, đối chiếu thay đổi với các test formatter/diff/editor hiện có và cập nhật tài liệu khi route, giới hạn hoặc semantics xử lý thay đổi.
+
 JSON Toolkit là công cụ định dạng, kiểm tra, thu gọn, sắp xếp JSON, đồng thời so sánh JSON hoặc văn bản ngay trong trình duyệt. Module không có backend, không dùng Firebase và không gửi nội dung đầu vào ra khỏi thiết bị.
 
 ## Route và cách chạy

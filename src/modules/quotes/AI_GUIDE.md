@@ -1,10 +1,10 @@
 # Quotes AI Maintenance Guide
 
-This file applies to every file under `src/modules/quotes`. It is the canonical instruction source for AI agents modifying the Quotes module. Read the module `README.md` for user-visible behavior, then inspect the current implementation before editing.
+This file applies to every file under `src/modules/quotes`. It is the module-specific instruction source for AI agents modifying Quotes. Read the repository-level [`AI_GUIDE.md`](../../../AI_GUIDE.md) first, read the module `README.md` for user-visible behavior, then inspect the current implementation before editing.
 
 ## Required working order
 
-1. Read the repository-level `AGENTS.md` or `CLAUDE.md` when present. These files may be generated locally and ignored by Git; their absence is not a blocker.
+1. Read the repository-level `AI_GUIDE.md`. Tool-specific entrypoints may be generated locally and ignored by Git; their absence is not a blocker.
 2. Read this file and `src/modules/quotes/README.md` completely.
 3. Use the repository knowledge graph before Grep/Glob/Read when graph tools are available. Query the exact files or symbols involved in the request.
 4. Inspect the current source and tests. Documentation can become stale; code and tests are the runtime source of truth.

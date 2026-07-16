@@ -98,6 +98,7 @@ const rawQuotes = [
     { id: "healing-soft-heart", categoryId: "healing", backgroundId: "healing", author: "Lặng", text: "Giữ một trái tim mềm giữa những ngày khắc nghiệt cũng là một dạng mạnh mẽ." },
     { id: "healing-new-leaf", categoryId: "healing", backgroundId: "healing", author: "Lặng", text: "Bạn không cần trở lại như trước. Bạn có thể là một phiên bản mới, bình thản hơn và hiểu mình hơn." },
     { id: "healing-safe-place", categoryId: "healing", backgroundId: "healing", author: "Lặng", text: "Có lúc nơi trú ẩn dịu dàng nhất là cách ta thôi trách móc chính mình." },
+    { id: "healing-past-person", categoryId: "healing", backgroundId: "healing", author: "Khuyết danh", text: "Đừng có tìm lại một người ở quá khứ. Vì ngay cả khi họ đứng trước mặt bạn, thì cũng không phải là người bạn yêu sâu đậm năm nào nữa." },
 
     // ===== Cổ phong =====
     { id: "ancient-dream", categoryId: "ancient", backgroundId: "ancient", author: "Khuyết danh", text: "Một thân, một ngựa, một giang hồ. Một giấc mộng tan, một kiếp người." },
@@ -181,6 +182,7 @@ const rawQuotes = [
     { id: "lonely-walk-home", categoryId: "lonely", backgroundId: "lonely", author: "Lặng", text: "Có những tối đi một mình, tiếng bước chân cũng đủ nhắc rằng ta vẫn đang tiến về nhà." },
     { id: "lonely-name-feeling", categoryId: "lonely", backgroundId: "lonely", author: "Lặng", text: "Gọi đúng tên nỗi cô đơn là bước đầu tiên để nó không còn điều khiển mình." },
     { id: "lonely-dawn", categoryId: "lonely", backgroundId: "lonely", author: "Lặng", text: "Bình minh không hỏi đêm qua có ai bên cạnh. Nó vẫn đến và đặt ánh sáng lên mọi khung cửa." },
+    { id: "lonely-tired-wings", categoryId: "lonely", backgroundId: "lonely", author: "Khuyết danh", text: "Ta khác gì những cánh chim mệt mỏi, chẳng hiểu mình đang cất cánh hay rơi." },
 ];
 
 export const quotes = rawQuotes.map((quote) => ({

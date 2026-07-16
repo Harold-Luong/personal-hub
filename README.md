@@ -244,9 +244,11 @@ Hãy kiểm tra đúng Firebase project trước khi deploy. Thay đổi trong f
 
 ## Tài liệu kỹ thuật
 
+- [`AI_GUIDE.md`](./AI_GUIDE.md): hướng dẫn kiến trúc, boundary, quy trình và checklist dùng chung cho mọi AI agent/model làm việc trong repository.
 - [`src/modules/expenses/README.md`](./src/modules/expenses/README.md): mô hình dữ liệu và quy tắc nghiệp vụ của module Expenses.
 - [`src/modules/quotes/README.md`](./src/modules/quotes/README.md): hành vi, dữ liệu, Firestore Favorites và luồng tạo ảnh của module Quotes.
 - [`src/modules/quotes/AI_GUIDE.md`](./src/modules/quotes/AI_GUIDE.md): invariant, change map và checklist dùng chung cho mọi AI agent khi sửa Quotes.
+- [`src/modules/media-cutter/README.md`](./src/modules/media-cutter/README.md): kiến trúc FFmpeg WASM, giới hạn file và nguyên tắc xử lý media hoàn toàn trong trình duyệt.
 - [`src/modules/json-toolkit/README.md`](./src/modules/json-toolkit/README.md): tính năng, giới hạn và kiến trúc đồng bộ editor của JSON Toolkit.
 - [`FIREBASE_FIRESTORE_SETUP.md`](./FIREBASE_FIRESTORE_SETUP.md): cấu hình Firebase CLI, Firestore Rules và Indexes.
 - [`FIREBASE_HOSTING_DEPLOY.md`](./FIREBASE_HOSTING_DEPLOY.md): build, preview và deploy MoneyCare lên Firebase Hosting.

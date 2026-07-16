@@ -6,7 +6,7 @@ Module cần Firebase Authentication. `QuotesRouter` chỉ render các trang sau
 
 ## Hướng dẫn dành cho AI agent
 
-Trước khi sửa module này, mọi AI agent phải đọc [`AI_GUIDE.md`](./AI_GUIDE.md). Đây là nguồn hướng dẫn chung, không phụ thuộc Codex, Claude, Gemini, Copilot hay model cụ thể nào. File đó chứa invariant, boundary, bản đồ thay đổi và checklist xác minh. README này mô tả hành vi sản phẩm; khi hành vi hoặc data contract thay đổi, phải cập nhật đồng thời cả hai file.
+Trước khi sửa module này, mọi AI agent phải đọc hướng dẫn cấp repository tại [`../../../AI_GUIDE.md`](../../../AI_GUIDE.md), sau đó đọc [`AI_GUIDE.md`](./AI_GUIDE.md) của module. Các file này là nguồn hướng dẫn chung, không phụ thuộc Codex, Claude, Gemini, Copilot hay model cụ thể nào. README này mô tả hành vi sản phẩm; khi hành vi hoặc data contract thay đổi, phải cập nhật đồng thời tài liệu liên quan.
 
 ## Route
 
