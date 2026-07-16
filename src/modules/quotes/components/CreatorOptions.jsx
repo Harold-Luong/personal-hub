@@ -1,9 +1,10 @@
-import { AlignCenter, AlignLeft, AlignRight, Check, Download, LoaderCircle } from "lucide-react";
+import { AlignCenter, AlignLeft, AlignRight, Check, Download, ImagePlus, LoaderCircle } from "lucide-react";
 import {
     creatorAlignmentOptions,
     creatorFontOptions,
     creatorRatioOptions,
 } from "../constants/quoteMetadata";
+import { QUOTE_BACKGROUND_ACCEPT } from "../utils/quoteImageUpload";
 
 const alignmentIcons = {
     center: AlignCenter,
@@ -15,11 +16,13 @@ export default function CreatorOptions({
     alignment,
     backgroundId,
     backgroundOptions,
+    backgroundUploadError,
     color,
     fontId,
     fontScale,
     onAlignmentChange,
     onBackgroundChange,
+    onBackgroundUpload,
     onColorChange,
     onFontChange,
     onFontScaleChange,
@@ -32,6 +35,7 @@ export default function CreatorOptions({
     quotes,
     ratio,
     saveStatus,
+    uploadedBackgroundName,
 }) {
     const isSaving = saveStatus === "saving";
 
@@ -66,6 +70,25 @@ export default function CreatorOptions({
                         </button>
                     ))}
                 </div>
+                <label className="creator-background-upload">
+                    <input
+                        accept={QUOTE_BACKGROUND_ACCEPT}
+                        onChange={(event) => {
+                            const [file] = event.target.files;
+                            if (file) onBackgroundUpload(file);
+                            event.target.value = "";
+                        }}
+                        type="file"
+                    />
+                    <ImagePlus aria-hidden="true" size={18} />
+                    <span>
+                        <strong>{uploadedBackgroundName ? "Thay ảnh tải lên" : "Tải ảnh từ thiết bị"}</strong>
+                        <small>{uploadedBackgroundName ?? "JPG, PNG hoặc WebP · tối đa 10 MB"}</small>
+                    </span>
+                </label>
+                {backgroundUploadError && (
+                    <p className="creator-background-upload__error" role="alert">{backgroundUploadError}</p>
+                )}
             </fieldset>
 
             <div className="creator-options__row">

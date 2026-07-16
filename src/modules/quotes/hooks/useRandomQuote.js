@@ -1,17 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-
-function getRandomQuoteId(availableQuotes, excludedQuoteId) {
-    const candidates = availableQuotes.filter((quote) => quote.id !== excludedQuoteId);
-    const source = candidates.length > 0 ? candidates : availableQuotes;
-    return source[Math.floor(Math.random() * source.length)]?.id ?? null;
-}
+import {
+    createQuoteNavigationState,
+    getNextQuoteNavigationState,
+} from "../utils/quoteShuffle";
 
 export default function useRandomQuote(availableQuotes) {
-    const initialQuoteId = availableQuotes[0]?.id ?? null;
-    const [history, setHistory] = useState(() => initialQuoteId ? [initialQuoteId] : []);
-    const [historyPosition, setHistoryPosition] = useState(0);
+    const [navigationState, setNavigationState] = useState(() => createQuoteNavigationState(availableQuotes));
     const [transitionState, setTransitionState] = useState("idle");
     const timers = useRef([]);
+    const { history, historyPosition } = navigationState;
+    const initialQuoteId = history[0] ?? null;
     const currentQuoteId = history[historyPosition] ?? initialQuoteId;
     const currentQuote = availableQuotes.find((quote) => quote.id === currentQuoteId) ?? availableQuotes[0] ?? null;
 
@@ -38,28 +36,19 @@ export default function useRandomQuote(availableQuotes) {
 
     const showNext = useCallback(() => {
         runTransition(() => {
-            if (historyPosition < history.length - 1) {
-                setHistoryPosition((currentPosition) => currentPosition + 1);
-                return;
-            }
-
-            const nextQuoteId = getRandomQuoteId(availableQuotes, currentQuoteId);
-
-            if (!nextQuoteId) {
-                return;
-            }
-
-            setHistory((currentHistory) => [...currentHistory, nextQuoteId]);
-            setHistoryPosition((currentPosition) => currentPosition + 1);
+            setNavigationState((currentState) => getNextQuoteNavigationState(currentState, availableQuotes));
         });
-    }, [availableQuotes, currentQuoteId, history.length, historyPosition, runTransition]);
+    }, [availableQuotes, runTransition]);
 
     const showPrevious = useCallback(() => {
         if (historyPosition === 0) {
             return;
         }
 
-        runTransition(() => setHistoryPosition((currentPosition) => Math.max(0, currentPosition - 1)));
+        runTransition(() => setNavigationState((currentState) => ({
+            ...currentState,
+            historyPosition: Math.max(0, currentState.historyPosition - 1),
+        })));
     }, [historyPosition, runTransition]);
 
     return {

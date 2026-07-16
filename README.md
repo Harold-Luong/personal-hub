@@ -245,6 +245,8 @@ Hãy kiểm tra đúng Firebase project trước khi deploy. Thay đổi trong f
 ## Tài liệu kỹ thuật
 
 - [`src/modules/expenses/README.md`](./src/modules/expenses/README.md): mô hình dữ liệu và quy tắc nghiệp vụ của module Expenses.
+- [`src/modules/quotes/README.md`](./src/modules/quotes/README.md): hành vi, dữ liệu, Firestore Favorites và luồng tạo ảnh của module Quotes.
+- [`src/modules/quotes/AI_GUIDE.md`](./src/modules/quotes/AI_GUIDE.md): invariant, change map và checklist dùng chung cho mọi AI agent khi sửa Quotes.
 - [`src/modules/json-toolkit/README.md`](./src/modules/json-toolkit/README.md): tính năng, giới hạn và kiến trúc đồng bộ editor của JSON Toolkit.
 - [`FIREBASE_FIRESTORE_SETUP.md`](./FIREBASE_FIRESTORE_SETUP.md): cấu hình Firebase CLI, Firestore Rules và Indexes.
 - [`FIREBASE_HOSTING_DEPLOY.md`](./FIREBASE_HOSTING_DEPLOY.md): build, preview và deploy MoneyCare lên Firebase Hosting.
