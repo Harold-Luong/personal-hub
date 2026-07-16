@@ -4,6 +4,9 @@ import CreatorOptions from "../components/CreatorOptions";
 import QuoteCreatorPreview from "../components/QuoteCreatorPreview";
 import { creatorFontOptions } from "../constants/quoteMetadata";
 import { quoteBackgrounds, quotes } from "../data/quoteData";
+import { validateQuoteBackgroundFile } from "../utils/quoteImageUpload";
+
+const uploadedBackgroundId = "uploaded";
 
 const backgroundLabels = {
     ancient: "Núi cổ phong",
@@ -25,8 +28,11 @@ const backgroundOptions = Object.entries(quoteBackgrounds).map(([id, src]) => ({
 
 export default function CreatePage({ favoriteIds, onToggleTheme, theme }) {
     const previewRef = useRef(null);
+    const uploadRequestIdRef = useRef(0);
     const [quoteId, setQuoteId] = useState(quotes[0].id);
     const [backgroundId, setBackgroundId] = useState("healing");
+    const [uploadedBackground, setUploadedBackground] = useState(null);
+    const [backgroundUploadError, setBackgroundUploadError] = useState("");
     const [fontId, setFontId] = useState("cormorant");
     const [fontScale, setFontScale] = useState("100");
     const [color, setColor] = useState("#fffaf1");
@@ -34,8 +40,12 @@ export default function CreatePage({ favoriteIds, onToggleTheme, theme }) {
     const [alignment, setAlignment] = useState("center");
     const [ratio, setRatio] = useState("portrait");
     const [saveStatus, setSaveStatus] = useState("idle");
+    const availableBackgroundOptions = uploadedBackground
+        ? [...backgroundOptions, uploadedBackground]
+        : backgroundOptions;
     const selectedQuote = quotes.find((quote) => quote.id === quoteId) ?? quotes[0];
-    const selectedBackground = backgroundOptions.find((option) => option.id === backgroundId) ?? backgroundOptions[0];
+    const selectedBackground = availableBackgroundOptions.find((option) => option.id === backgroundId)
+        ?? backgroundOptions[0];
     const selectedFont = creatorFontOptions.find((option) => option.id === fontId) ?? creatorFontOptions[0];
 
     useEffect(() => {
@@ -44,6 +54,47 @@ export default function CreatePage({ favoriteIds, onToggleTheme, theme }) {
         const resetTimer = window.setTimeout(() => setSaveStatus("idle"), 1600);
         return () => window.clearTimeout(resetTimer);
     }, [saveStatus]);
+
+    useEffect(() => () => {
+        uploadRequestIdRef.current += 1;
+    }, []);
+
+    const handleBackgroundChange = (nextBackgroundId) => {
+        uploadRequestIdRef.current += 1;
+        setBackgroundId(nextBackgroundId);
+        setBackgroundUploadError("");
+    };
+
+    const handleBackgroundUpload = (file) => {
+        const requestId = uploadRequestIdRef.current + 1;
+        uploadRequestIdRef.current = requestId;
+        const validationError = validateQuoteBackgroundFile(file);
+
+        if (validationError) {
+            setBackgroundUploadError(validationError);
+            return;
+        }
+
+        const reader = new FileReader();
+
+        reader.addEventListener("load", () => {
+            if (uploadRequestIdRef.current !== requestId || typeof reader.result !== "string") return;
+
+            setUploadedBackground({
+                id: uploadedBackgroundId,
+                label: `Ảnh tải lên: ${file.name}`,
+                name: file.name,
+                src: reader.result,
+            });
+            setBackgroundId(uploadedBackgroundId);
+            setBackgroundUploadError("");
+        });
+        reader.addEventListener("error", () => {
+            if (uploadRequestIdRef.current !== requestId) return;
+            setBackgroundUploadError("Không thể đọc ảnh này. Vui lòng chọn ảnh khác.");
+        });
+        reader.readAsDataURL(file);
+    };
 
     const handleSave = async () => {
         if (!previewRef.current || saveStatus === "saving") return;
@@ -91,12 +142,14 @@ export default function CreatePage({ favoriteIds, onToggleTheme, theme }) {
                 <CreatorOptions
                     alignment={alignment}
                     backgroundId={backgroundId}
-                    backgroundOptions={backgroundOptions}
+                    backgroundOptions={availableBackgroundOptions}
+                    backgroundUploadError={backgroundUploadError}
                     color={color}
                     fontId={fontId}
                     fontScale={fontScale}
                     onAlignmentChange={setAlignment}
-                    onBackgroundChange={setBackgroundId}
+                    onBackgroundChange={handleBackgroundChange}
+                    onBackgroundUpload={handleBackgroundUpload}
                     onColorChange={setColor}
                     onFontChange={setFontId}
                     onFontScaleChange={setFontScale}
@@ -109,6 +162,7 @@ export default function CreatePage({ favoriteIds, onToggleTheme, theme }) {
                     quotes={quotes}
                     ratio={ratio}
                     saveStatus={saveStatus}
+                    uploadedBackgroundName={uploadedBackground?.name}
                 />
             </div>
         </main>
