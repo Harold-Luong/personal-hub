@@ -26,4 +26,13 @@ export const hubModules = [
         path: "/tools/media-cutter",
         title: "Tách và cắt âm thanh",
     },
+    {
+        accent: "#35498b",
+        description: "Định dạng, thu gọn, kiểm tra và so sánh JSON ngay trong trình duyệt.",
+        eyebrow: "Developer tools",
+        icon: "json-toolkit",
+        id: "json-toolkit",
+        path: "/tools/json",
+        title: "JSON Toolkit",
+    },
 ];
