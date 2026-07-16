@@ -12,6 +12,7 @@ export default function MobileDashboardSurface({
     budgets,
     categorySpending = [],
     monthLabel,
+    onBackToHub,
     onManageBudget,
     onToggleTheme,
     onViewCategorySpending,
@@ -36,14 +37,25 @@ export default function MobileDashboardSurface({
         <div className="mobile-dashboard-surface">
             <MobilePageHeader
                 actions={
-                    <button
-                        aria-label={`Đổi giao diện hiện tại: ${theme}`}
-                        className="mobile-dashboard-surface__theme-toggle"
-                        onClick={onToggleTheme}
-                        type="button"
-                    >
-                        <ExpenseIcon bare icon="theme" size={22} />
-                    </button>
+                    <>
+                        <button
+                            aria-label="Quay về Hub"
+                            className="mobile-dashboard-surface__hub-button"
+                            onClick={onBackToHub}
+                            type="button"
+                        >
+                            <ExpenseIcon appearance="base" bare icon="chevron-left" size={16} />
+                            <span>Hub</span>
+                        </button>
+                        <button
+                            aria-label={`Đổi giao diện hiện tại: ${theme}`}
+                            className="mobile-dashboard-surface__theme-toggle"
+                            onClick={onToggleTheme}
+                            type="button"
+                        >
+                            <ExpenseIcon bare icon="theme" size={22} />
+                        </button>
+                    </>
                 }
                 subtitle={formatDate(new Date())}
                 title={

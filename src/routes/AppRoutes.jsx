@@ -3,11 +3,28 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { logout } from "../modules/auth/api/authRepository";
 import useEnsureUserProfile from "../modules/auth/hooks/useEnsureUserProfile";
 import AuthPage from "../modules/auth/pages/AuthPage";
-import ExpenseModuleRoute from "../modules/expenses/routes/ExpenseModuleRoute";
 import HubHomePage from "../modules/hub/pages/HubHomePage";
-import QuotesRouter from "../modules/quotes/routes/QuotesRouter";
 
+const ExpenseModuleRoute = lazy(() => import("../modules/expenses/routes/ExpenseModuleRoute"));
+const QuotesRouter = lazy(() => import("../modules/quotes/routes/QuotesRouter"));
 const MediaCutterRouter = lazy(() => import("../modules/media-cutter/routes/MediaCutterRouter"));
+const JsonToolkitRouter = lazy(() => import("../modules/json-toolkit/routes/JsonToolkitRouter"));
+
+function MediaCutterRoute() {
+    return (
+        <Suspense fallback={<div className="auth-loading">Đang mở Media Cutter...</div>}>
+            <MediaCutterRouter />
+        </Suspense>
+    );
+}
+
+function JsonToolkitRoute() {
+    return (
+        <Suspense fallback={<div className="auth-loading">Đang mở JSON Toolkit...</div>}>
+            <JsonToolkitRouter />
+        </Suspense>
+    );
+}
 
 function AuthenticatedApplication({ user }) {
     const userProfile = useEnsureUserProfile(user);
@@ -41,16 +58,24 @@ function AuthenticatedApplication({ user }) {
             <Route path="/auth" element={<Navigate replace to="/hub" />} />
             <Route path="/hub" element={<HubHomePage onLogout={logout} user={user} />} />
             <Route path="/expenses" element={<Navigate replace to="/expenses/dashboard" />} />
-            <Route path="/expenses/*" element={<ExpenseModuleRoute onLogout={logout} />} />
-            <Route path="/quotes/*" element={<QuotesRouter />} />
             <Route
-                path="/tools/media-cutter/*"
+                path="/expenses/*"
                 element={(
-                    <Suspense fallback={<div className="auth-loading">Đang mở Media Cutter...</div>}>
-                        <MediaCutterRouter />
+                    <Suspense fallback={<div className="auth-loading">Đang mở Expenses...</div>}>
+                        <ExpenseModuleRoute onLogout={logout} />
                     </Suspense>
                 )}
             />
+            <Route
+                path="/quotes/*"
+                element={(
+                    <Suspense fallback={<div className="auth-loading">Đang mở Quotes...</div>}>
+                        <QuotesRouter />
+                    </Suspense>
+                )}
+            />
+            <Route path="/tools/media-cutter/*" element={<MediaCutterRoute />} />
+            <Route path="/tools/json/*" element={<JsonToolkitRoute />} />
             <Route path="*" element={<Navigate replace to="/hub" />} />
         </Routes>
     );
@@ -64,6 +89,8 @@ export default function AppRoutes({ user }) {
             ) : (
                 <Routes>
                     <Route path="/auth" element={<AuthPage />} />
+                    <Route path="/tools/media-cutter/*" element={<MediaCutterRoute />} />
+                    <Route path="/tools/json/*" element={<JsonToolkitRoute />} />
                     <Route path="*" element={<Navigate replace to="/auth" />} />
                 </Routes>
             )}

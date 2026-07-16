@@ -36,9 +36,20 @@ export default function ExpenseSidebar({
 
     return (
         <aside className="expense-sidebar">
-            <button className="expense-sidebar__brand" onClick={onBackToHub} type="button">
+            <button
+                aria-label="Quay về Hub"
+                className="expense-sidebar__brand"
+                onClick={onBackToHub}
+                type="button"
+            >
                 <MoneyCareLogo className="expense-sidebar__logo" label={null} size={42} />
-                <strong>MoneyCare</strong>
+                <span className="expense-sidebar__brand-copy">
+                    <strong>MoneyCare</strong>
+                    <small>
+                        <ExpenseIcon appearance="base" bare icon="chevron-left" size={12} />
+                        Về Hub
+                    </small>
+                </span>
             </button>
 
             <nav>
