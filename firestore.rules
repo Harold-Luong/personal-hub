@@ -916,6 +916,8 @@ service cloud.firestore {
         'lonely-walk-home',
         'lonely-name-feeling',
         'lonely-dawn',
+        'lonely-tired-wings',
+        'healing-past-person',
       ];
     }
 
