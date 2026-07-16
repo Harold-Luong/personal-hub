@@ -152,6 +152,7 @@ src/
 | `/quotes/create` | Tạo preview ảnh quote |
 | `/tools/media-cutter` | Media Cutter: cắt video, MP3 và tách âm thanh trực tiếp trong browser |
 | `/tools/json` | JSON Toolkit: format, validate, sort JSON và compare JSON/text |
+| `/tools/qr` | QR Code Toolkit: tạo, tùy chỉnh, tải xuống và quét QR trong browser |
 
 ## Mô hình dữ liệu
 
@@ -250,6 +251,7 @@ Hãy kiểm tra đúng Firebase project trước khi deploy. Thay đổi trong f
 - [`src/modules/quotes/AI_GUIDE.md`](./src/modules/quotes/AI_GUIDE.md): invariant, change map và checklist dùng chung cho mọi AI agent khi sửa Quotes.
 - [`src/modules/media-cutter/README.md`](./src/modules/media-cutter/README.md): kiến trúc FFmpeg WASM, giới hạn file và nguyên tắc xử lý media hoàn toàn trong trình duyệt.
 - [`src/modules/json-toolkit/README.md`](./src/modules/json-toolkit/README.md): tính năng, giới hạn và kiến trúc đồng bộ editor của JSON Toolkit.
+- [`src/modules/qr-toolkit/README.md`](./src/modules/qr-toolkit/README.md): payload, styling, scanner, quyền riêng tư và giới hạn QR Code Toolkit.
 - [`FIREBASE_FIRESTORE_SETUP.md`](./FIREBASE_FIRESTORE_SETUP.md): cấu hình Firebase CLI, Firestore Rules và Indexes.
 - [`FIREBASE_HOSTING_DEPLOY.md`](./FIREBASE_HOSTING_DEPLOY.md): build, preview và deploy MoneyCare lên Firebase Hosting.
 - [`SECURITY.md`](./SECURITY.md): Authentication, App Check và checklist bảo mật.

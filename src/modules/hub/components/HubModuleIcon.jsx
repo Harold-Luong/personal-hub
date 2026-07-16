@@ -28,6 +28,15 @@ export default function HubModuleIcon({ icon }) {
         );
     }
 
+    if (icon === "qr-toolkit") {
+        return (
+            <svg aria-hidden="true" fill="none" viewBox="0 0 32 32">
+                <path d="M6 6h8v8H6zM18 6h8v8h-8zM6 18h8v8H6z" />
+                <path d="M20 19h2v2h-2zM24 18h2v4h-2zM18 24h4v2h-4zM25 25h1v1h-1z" />
+            </svg>
+        );
+    }
+
     return (
         <svg aria-hidden="true" fill="none" viewBox="0 0 32 32">
             <path d="M5.5 10.5h21v14h-21z" />

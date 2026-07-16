@@ -42,6 +42,7 @@ src/
     quotes/            authenticated quote module; Firestore favorites
     media-cutter/      public, browser-only FFmpeg WASM tool
     json-toolkit/      public, browser-only JSON/text tool
+    qr-toolkit/        public, browser-only QR generator and scanner
 ```
 
 ### Current route and auth contract
@@ -54,6 +55,7 @@ src/
 | `/quotes/*` | Authenticated | Quotes module |
 | `/tools/media-cutter/*` | Public and authenticated | Media Cutter module |
 | `/tools/json/*` | Public and authenticated | JSON Toolkit module |
+| `/tools/qr/*` | Public and authenticated | QR Code Toolkit module |
 
 Do not move public tools behind authentication, expose account modules publicly or add module bootstrap work to the global auth flow unless the requested product behavior explicitly requires it. Shared user-profile initialization belongs to the authenticated application shell; Expenses initialization remains scoped to the Expenses route.
 
@@ -66,6 +68,7 @@ Do not move public tools behind authentication, expose account modules publicly 
 | Quotes | `src/modules/quotes/AI_GUIDE.md`, then `src/modules/quotes/README.md` | Quote data, shuffle behavior, favorites Rules and local-only image uploads have synchronized contracts. |
 | Media Cutter | `src/modules/media-cutter/README.md` | Processing is browser-only. Media must not be uploaded to Firebase Storage or another server. |
 | JSON Toolkit | `src/modules/json-toolkit/README.md` | Input remains on-device. Preserve size, editor synchronization and diff/formatter semantics. |
+| QR Code Toolkit | `src/modules/qr-toolkit/README.md` | Payloads, logos, camera frames and scan images remain on-device. Preserve camera/Object URL cleanup and safe scanned-link handling. |
 | Firebase | `FIREBASE_FIRESTORE_SETUP.md`, `FIREBASE_HOSTING_DEPLOY.md`, `SECURITY.md`, `firestore.rules` | Frontend deployment and Firestore deployment are separate operations. |
 
 ## Cross-project invariants
@@ -77,7 +80,7 @@ Do not move public tools behind authentication, expose account modules publicly 
 - The authenticated UID comes from the shared auth session. Never accept a client-supplied UID as authorization.
 - A Firestore schema, path or write change must be checked against `firestore.rules`, indexes, repositories, tests and documentation.
 - Never put service-account credentials, reCAPTCHA secrets or administrative Firebase credentials in frontend source or committed environment files.
-- Media Cutter, JSON Toolkit and uploaded Quotes background images are local browser data. Do not transmit or persist them externally without explicit authorization.
+- Media Cutter, JSON Toolkit, QR Code Toolkit and uploaded Quotes background images are local browser data. Do not transmit or persist them externally without explicit authorization.
 
 ### Architecture and scope
 
