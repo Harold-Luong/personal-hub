@@ -35,4 +35,13 @@ export const hubModules = [
         path: "/tools/json",
         title: "JSON Toolkit",
     },
+    {
+        accent: "#0f766e",
+        description: "Tạo, tùy chỉnh, tải xuống và quét QR Code hoàn toàn trên thiết bị.",
+        eyebrow: "Browser tools",
+        icon: "qr-toolkit",
+        id: "qr-toolkit",
+        path: "/tools/qr",
+        title: "QR Code Toolkit",
+    },
 ];

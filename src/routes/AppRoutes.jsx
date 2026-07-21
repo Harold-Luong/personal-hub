@@ -9,6 +9,7 @@ const ExpenseModuleRoute = lazy(() => import("../modules/expenses/routes/Expense
 const QuotesRouter = lazy(() => import("../modules/quotes/routes/QuotesRouter"));
 const MediaCutterRouter = lazy(() => import("../modules/media-cutter/routes/MediaCutterRouter"));
 const JsonToolkitRouter = lazy(() => import("../modules/json-toolkit/routes/JsonToolkitRouter"));
+const QRCodeToolkitRouter = lazy(() => import("../modules/qr-toolkit/routes/QRCodeToolkitRouter"));
 
 function MediaCutterRoute() {
     return (
@@ -22,6 +23,14 @@ function JsonToolkitRoute() {
     return (
         <Suspense fallback={<div className="auth-loading">Đang mở JSON Toolkit...</div>}>
             <JsonToolkitRouter />
+        </Suspense>
+    );
+}
+
+function QRCodeToolkitRoute() {
+    return (
+        <Suspense fallback={<div className="auth-loading">Đang mở QR Code Toolkit...</div>}>
+            <QRCodeToolkitRouter />
         </Suspense>
     );
 }
@@ -76,6 +85,7 @@ function AuthenticatedApplication({ user }) {
             />
             <Route path="/tools/media-cutter/*" element={<MediaCutterRoute />} />
             <Route path="/tools/json/*" element={<JsonToolkitRoute />} />
+            <Route path="/tools/qr/*" element={<QRCodeToolkitRoute />} />
             <Route path="*" element={<Navigate replace to="/hub" />} />
         </Routes>
     );
@@ -91,6 +101,7 @@ export default function AppRoutes({ user }) {
                     <Route path="/auth" element={<AuthPage />} />
                     <Route path="/tools/media-cutter/*" element={<MediaCutterRoute />} />
                     <Route path="/tools/json/*" element={<JsonToolkitRoute />} />
+                    <Route path="/tools/qr/*" element={<QRCodeToolkitRoute />} />
                     <Route path="*" element={<Navigate replace to="/auth" />} />
                 </Routes>
             )}
