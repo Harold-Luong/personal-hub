@@ -10,7 +10,7 @@
 
 ## Tổng quan
 
-Personal Hub đưa người dùng về một màn hình chung sau đăng nhập. Mỗi module chỉ khởi tạo dữ liệu khi được mở lần đầu. Module Expenses (MoneyCare) quản lý thu chi, ví, ngân sách và báo cáo; module Lặng mang đến trải nghiệm đọc quote tập trung và đồng bộ mục yêu thích theo tài khoản bằng Firestore.
+Personal Hub đưa người dùng về một màn hình chung sau đăng nhập. Mỗi module chỉ khởi tạo dữ liệu khi được mở lần đầu. Module Expenses (MoneyCare) quản lý thu chi, ví, ngân sách và báo cáo; module Lặng mang đến trải nghiệm đọc quote tập trung và đồng bộ mục yêu thích theo tài khoản bằng Firestore; CV Studio nhúng ứng dụng thiết kế CV đã triển khai trên Firebase Hosting.
 
 <p align="center">
   <img src="./public/ui/expenses-ui.png" alt="MoneyCare trên desktop" width="100%">
@@ -31,6 +31,7 @@ Personal Hub đưa người dùng về một màn hình chung sau đăng nhập.
 - Sau đăng nhập, người dùng được chuyển đến `/hub` để chọn module.
 - Expenses chỉ khởi tạo settings, ví và danh mục mặc định khi route `/expenses/*` được mở.
 - Lặng hoạt động độc lập, hỗ trợ chủ đề, đồng bộ yêu thích qua Firestore, lưu theme trên trình duyệt và tạo preview ảnh quote.
+- CV Studio mở ứng dụng tại `https://cv-studio-6a539.web.app/` trong route được bảo vệ và có lối mở sang tab mới.
 - Có thể thêm module mới mà không đưa bootstrap của module đó vào auth flow.
 
 ### Đăng nhập và thiết lập ban đầu
@@ -114,6 +115,7 @@ src/
 ├── components/brand/              Logo và nhận diện MoneyCare
 ├── lib/firebase/                  Firebase app, auth, firestore và App Check
 ├── modules/auth/                  Đăng nhập, đăng ký và hồ sơ người dùng
+├── modules/cv-studio/             Vỏ route nhúng ứng dụng CV Studio bên ngoài
 ├── modules/hub/                   Hub Home và metadata module
 ├── modules/json-toolkit/          Format, validate, sort JSON và so sánh JSON/text trong browser
 ├── modules/expenses/
@@ -150,6 +152,7 @@ src/
 | `/quotes/explore` | Khám phá quote theo chủ đề |
 | `/quotes/favorites` | Các quote đã lưu |
 | `/quotes/create` | Tạo preview ảnh quote |
+| `/cv-studio` | CV Studio: thiết kế, chỉnh sửa và xuất CV trong ứng dụng được nhúng |
 | `/tools/media-cutter` | Media Cutter: cắt video, MP3 và tách âm thanh trực tiếp trong browser |
 | `/tools/json` | JSON Toolkit: format, validate, sort JSON và compare JSON/text |
 | `/tools/qr` | QR Code Toolkit: tạo, tùy chỉnh, tải xuống và quét QR trong browser |
@@ -249,6 +252,7 @@ Hãy kiểm tra đúng Firebase project trước khi deploy. Thay đổi trong f
 - [`src/modules/expenses/README.md`](./src/modules/expenses/README.md): mô hình dữ liệu và quy tắc nghiệp vụ của module Expenses.
 - [`src/modules/quotes/README.md`](./src/modules/quotes/README.md): hành vi, dữ liệu, Firestore Favorites và luồng tạo ảnh của module Quotes.
 - [`src/modules/quotes/AI_GUIDE.md`](./src/modules/quotes/AI_GUIDE.md): invariant, change map và checklist dùng chung cho mọi AI agent khi sửa Quotes.
+- [`src/modules/cv-studio/README.md`](./src/modules/cv-studio/README.md): route, website nguồn và ranh giới tích hợp của CV Studio.
 - [`src/modules/media-cutter/README.md`](./src/modules/media-cutter/README.md): kiến trúc FFmpeg WASM, giới hạn file và nguyên tắc xử lý media hoàn toàn trong trình duyệt.
 - [`src/modules/json-toolkit/README.md`](./src/modules/json-toolkit/README.md): tính năng, giới hạn và kiến trúc đồng bộ editor của JSON Toolkit.
 - [`src/modules/qr-toolkit/README.md`](./src/modules/qr-toolkit/README.md): payload, styling, scanner, quyền riêng tư và giới hạn QR Code Toolkit.

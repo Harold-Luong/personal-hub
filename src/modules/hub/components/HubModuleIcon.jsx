@@ -37,6 +37,16 @@ export default function HubModuleIcon({ icon }) {
         );
     }
 
+    if (icon === "cv-studio") {
+        return (
+            <svg aria-hidden="true" fill="none" viewBox="0 0 32 32">
+                <path d="M8 4.5h11l5 5v18H8z" />
+                <path d="M19 4.5v5h5M12 16h8M12 20h8M12 24h5" />
+                <circle cx="13.5" cy="11" r="2.5" />
+            </svg>
+        );
+    }
+
     return (
         <svg aria-hidden="true" fill="none" viewBox="0 0 32 32">
             <path d="M5.5 10.5h21v14h-21z" />

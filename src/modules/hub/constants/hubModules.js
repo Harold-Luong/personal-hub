@@ -44,4 +44,13 @@ export const hubModules = [
         path: "/tools/qr",
         title: "QR Code Toolkit",
     },
+    {
+        accent: "#2563eb",
+        description: "Thiết kế, chỉnh sửa và xuất CV chuyên nghiệp ngay trong trình duyệt.",
+        eyebrow: "Sự nghiệp",
+        icon: "cv-studio",
+        id: "cv-studio",
+        path: "/cv-studio",
+        title: "CV Studio",
+    },
 ];
