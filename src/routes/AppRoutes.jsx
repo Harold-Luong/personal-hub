@@ -10,6 +10,7 @@ const QuotesRouter = lazy(() => import("../modules/quotes/routes/QuotesRouter"))
 const MediaCutterRouter = lazy(() => import("../modules/media-cutter/routes/MediaCutterRouter"));
 const JsonToolkitRouter = lazy(() => import("../modules/json-toolkit/routes/JsonToolkitRouter"));
 const QRCodeToolkitRouter = lazy(() => import("../modules/qr-toolkit/routes/QRCodeToolkitRouter"));
+const CVStudioRouter = lazy(() => import("../modules/cv-studio/routes/CVStudioRouter"));
 
 function MediaCutterRoute() {
     return (
@@ -86,6 +87,14 @@ function AuthenticatedApplication({ user }) {
             <Route path="/tools/media-cutter/*" element={<MediaCutterRoute />} />
             <Route path="/tools/json/*" element={<JsonToolkitRoute />} />
             <Route path="/tools/qr/*" element={<QRCodeToolkitRoute />} />
+            <Route
+                path="/cv-studio/*"
+                element={(
+                    <Suspense fallback={<div className="auth-loading">Đang mở CV Studio...</div>}>
+                        <CVStudioRouter />
+                    </Suspense>
+                )}
+            />
             <Route path="*" element={<Navigate replace to="/hub" />} />
         </Routes>
     );
