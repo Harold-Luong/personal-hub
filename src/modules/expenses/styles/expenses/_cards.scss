@@ -694,6 +694,44 @@
   margin: 0;
 }
 
+.budget-overview-card__savings {
+  align-items: center;
+  background: color-mix(in srgb, var(--expense-active-soft) 54%, var(--expense-surface-solid));
+  border: 1px solid color-mix(in srgb, var(--expense-active-strong) 14%, var(--expense-border));
+  border-radius: 8px;
+  display: grid;
+  gap: 2px 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 12px 14px;
+}
+
+.budget-overview-card__savings>span {
+  color: var(--expense-heading);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.budget-overview-card__savings>strong {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.budget-overview-card__savings>strong .amount-text {
+  color: var(--expense-active-strong);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.budget-overview-card__savings>small {
+  color: var(--expense-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.budget-overview-card__savings.is-negative>strong .amount-text {
+  color: var(--expense-danger);
+}
+
 .budget-item {
   background: transparent;
   border: 0;

@@ -5,7 +5,6 @@ import {
     getExpenseMonthOptionsCacheKey,
     selectExpenseCategories,
     selectExpenseMonthOptionsByYear,
-    selectExpenseMonthlyStatsByMonth,
     selectExpenseTransactionsRevision,
     selectExpenseWallets,
     useExpenseDataStore,
@@ -18,7 +17,6 @@ import {
     transactionPageSizeOptions,
     transactionPaginationWindowSize,
     transactionSearchDebounceMs,
-    transactionSummaryItems,
     transactionTypeMeta,
     transactionTypes,
 } from "../constants/expenseMetadata";
@@ -32,20 +30,12 @@ import AmountText from "../components/shared/AmountText";
 import ExpenseButton from "../components/shared/ExpenseButton";
 import ExpenseStateMessage from "../components/shared/ExpenseStateMessage";
 import ExpenseIcon from "../icon/ExpenseIcon";
-import SummaryCardList from "../components/shared/SummaryCardList";
 import DesktopTransactionDialog from "../components/desktop/DesktopTransactionDialog";
 import { getTransactionWalletLabel } from "../utils/transactionDisplayUtils";
 import {
     getTransactionsWithCurrentWalletDisplayNames,
     getWalletDisplayName,
 } from "../utils/walletUtils";
-
-const transactionSummaryIcons = {
-    count: "transactions",
-    [transactionTypes.EXPENSE]: "card",
-    [transactionTypes.INCOME]: "income",
-    [transactionTypes.TRANSFER]: "transfer",
-};
 
 const transactionPageCacheLimit = 20;
 const transactionPageCache = new Map();
@@ -109,6 +99,15 @@ function getMonthLabel(monthKey) {
     }
     const [year, month] = monthKey.split("-");
     return month && year ? `Tháng ${month}/${year}` : monthKey;
+}
+
+function getTransactionSummaryScopeLabel(monthKey, dateFilter) {
+    if (dateFilter) {
+        const [year, month, day] = dateFilter.split("-");
+        return day && month && year ? `Ngày ${day}/${month}/${year}` : dateFilter;
+    }
+
+    return getMonthLabel(monthKey);
 }
 
 function getCurrentMonthKey() {
@@ -264,49 +263,67 @@ function getDotColor(color) {
     return colorsFallback[Math.floor(Math.random() * colorsFallback.length)];
 }
 
-function TransactionSummary({ defaultExpenseTotal = null, transactions }) {
-    const defaultExpenseValue = Number.isFinite(defaultExpenseTotal) ? defaultExpenseTotal : null;
-    const summary = useMemo(
-        () => transactions.reduce(
-            (totals, transaction) => {
-                if (transaction.type === transactionTypes.INCOME) {
-                    totals.income += transaction.amountMinor ?? Math.abs(transaction.amount ?? 0);
-                } else if (transaction.type === transactionTypes.TRANSFER) {
-                    totals.transfer += transaction.amountMinor ?? Math.abs(transaction.amount ?? 0);
-                } else if (
-                    transaction.type === transactionTypes.EXPENSE &&
-                    defaultExpenseValue === null
-                ) {
-                    totals.expense += transaction.amountMinor ?? Math.abs(transaction.amount ?? 0);
-                }
-
-                totals.count += 1;
-                return totals;
-            },
-            { count: 0, expense: defaultExpenseValue ?? 0, income: 0, transfer: 0 },
-        ),
-        [defaultExpenseValue, transactions],
+function TransactionSummaryAmount({ amount, label, tone }) {
+    return (
+        <span className={`transactions-page__summary-value transactions-page__summary-value--${tone}`}>
+            <small>{label}</small>
+            <strong>{amount === null ? "—" : <AmountText amount={amount} />}</strong>
+        </span>
     );
+}
 
-    const summaryItems = transactionSummaryItems.map(({ id, label, tone, valueKey }) => ({
-        icon: transactionSummaryIcons[id],
-        id,
-        label:
-            valueKey === transactionTypes.EXPENSE && defaultExpenseValue !== null
-                ? label
-                : `${label} (trang hiện tại)`,
-        tone,
-        value: summary[valueKey],
-        valueType: valueKey === "count" ? "text" : "currency",
-    }));
+function TransactionSummarySecondary({ summary }) {
+    return (
+        <div className="transactions-page__summary-secondary">
+            <span className="transactions-page__summary-count">
+                <strong>{summary?.count ?? "—"}</strong>
+                <small>giao dịch</small>
+            </span>
+            <TransactionSummaryAmount
+                amount={summary?.[transactionTypes.TRANSFER] ?? null}
+                label="Chuyển khoản"
+                tone="transfer"
+            />
+        </div>
+    );
+}
+
+function TransactionSummary({ error, isLoading, scopeLabel, summary }) {
+    const statusLabel = isLoading
+        ? "Đang cập nhật..."
+        : error || "Toàn bộ kết quả đang lọc";
 
     return (
-        <SummaryCardList
-            ariaLabel="Tóm tắt giao dịch"
-            cardVariant="compact"
-            className="transactions-page__summary"
-            items={summaryItems}
-        />
+        <section
+            aria-busy={isLoading}
+            aria-label="Tóm tắt giao dịch"
+            className="transactions-page__summary section-card"
+        >
+            <div className="transactions-page__summary-heading">
+                <ExpenseIcon bare icon="transactions" size={19} />
+                <span>
+                    <strong>{scopeLabel}</strong>
+                    <small>{statusLabel}</small>
+                </span>
+            </div>
+            <div className="transactions-page__summary-primary">
+                <TransactionSummaryAmount
+                    amount={summary?.[transactionTypes.INCOME] ?? null}
+                    label="Thu"
+                    tone="income"
+                />
+                <TransactionSummaryAmount
+                    amount={summary?.[transactionTypes.EXPENSE] ?? null}
+                    label="Chi"
+                    tone="expense"
+                />
+            </div>
+            <TransactionSummarySecondary summary={summary} />
+            <details className="transactions-page__summary-details">
+                <summary>Thông tin khác</summary>
+                <TransactionSummarySecondary summary={summary} />
+            </details>
+        </section>
     );
 }
 
@@ -317,7 +334,10 @@ function TransactionRow({ onDelete, onEdit, transaction }) {
     const { dateLabel, dateTime, timeLabel } = getTransactionDateParts(transaction);
     const canEdit =
         transaction.type !== transactionTypes.ADJUSTMENT &&
-        transaction.type !== transactionTypes.CREDIT_PAYMENT;
+        transaction.type !== transactionTypes.CREDIT_PAYMENT &&
+        !transaction.budgetSavingsMonthKey &&
+        !transaction.savingsTransferKind &&
+        !(transaction.type === transactionTypes.TRANSFER && transaction.involvesSavingWallet);
 
     return (
         <article className="transactions-page__row" role="row">
@@ -401,7 +421,6 @@ function TransactionsSurface({
     const storeCategories = useExpenseDataStore(selectExpenseCategories);
     const storeWallets = useExpenseDataStore(selectExpenseWallets);
     const monthOptionsByYear = useExpenseDataStore(selectExpenseMonthOptionsByYear);
-    const monthlyStatsByMonth = useExpenseDataStore(selectExpenseMonthlyStatsByMonth);
     const transactionsRevision = useExpenseDataStore(selectExpenseTransactionsRevision);
     const loadExpenseMonthOptions = useExpenseDataStore((state) => state.loadExpenseMonthOptions);
     const createExpenseTransactionAction = useExpenseDataStore((state) => state.createExpenseTransaction);
@@ -427,6 +446,9 @@ function TransactionsSurface({
     const [hasNextPage, setHasNextPage] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [loadError, setLoadError] = useState("");
+    const [transactionSummary, setTransactionSummary] = useState(null);
+    const [isSummaryLoading, setIsSummaryLoading] = useState(false);
+    const [summaryError, setSummaryError] = useState("");
     const [refreshRevision, setRefreshRevision] = useState(0);
     const [editingTransaction, setEditingTransaction] = useState(null);
     const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -482,23 +504,11 @@ function TransactionsSurface({
             : getCurrentMonthKey();
     const dayFilterOptions = getMonthDayOptions(dayFilterMonthKey);
     const dateFilter = dayFilter ? `${dayFilterMonthKey}-${dayFilter}` : "";
-    const isDefaultSummaryState =
-        activeFilter === expenseFilterValues.ALL &&
-        categoryFilter === expenseFilterValues.ALL &&
-        walletFilter === expenseFilterValues.ALL &&
-        monthFilter === currentMonthKey &&
-        !dayFilter &&
-        !querySearchTerm.trim();
-    const defaultExpenseTotal = isDefaultSummaryState
-        ? (monthlyStatsByMonth[currentMonthKey]?.expenseMinor ?? 0)
-        : null;
-    const transactionQueryOptions = useMemo(
+    const transactionFilterOptions = useMemo(
         () => ({
             categoryId: categoryFilter,
-            cursor: queryCursor,
             date: dateFilter,
             monthKey: monthFilter,
-            pageSize,
             searchTerm: querySearchTerm.trim(),
             type: activeFilter,
             walletId: walletFilter,
@@ -508,12 +518,19 @@ function TransactionsSurface({
             categoryFilter,
             dateFilter,
             monthFilter,
-            pageSize,
-            queryCursor,
             querySearchTerm,
             walletFilter,
         ],
     );
+    const transactionQueryOptions = useMemo(
+        () => ({
+            ...transactionFilterOptions,
+            cursor: queryCursor,
+            pageSize,
+        }),
+        [pageSize, queryCursor, transactionFilterOptions],
+    );
+    const transactionSummaryScopeLabel = getTransactionSummaryScopeLabel(monthFilter, dateFilter);
     const transactionPageCacheKey = useMemo(
         () => getTransactionPageCacheKey(
             uid,
@@ -711,6 +728,55 @@ function TransactionsSurface({
         };
     }, [currentPage, transactionPageCacheKey, transactionQueryOptions, uid]);
 
+    useEffect(() => {
+        let isCancelled = false;
+
+        if (!uid) {
+            Promise.resolve().then(() => {
+                if (!isCancelled) {
+                    setTransactionSummary(null);
+                    setSummaryError("");
+                    setIsSummaryLoading(false);
+                }
+            });
+
+            return () => {
+                isCancelled = true;
+            };
+        }
+
+        Promise.resolve().then(async () => {
+            if (isCancelled) {
+                return;
+            }
+
+            setTransactionSummary(null);
+            setSummaryError("");
+            setIsSummaryLoading(true);
+
+            try {
+                const { getExpenseTransactionsSummary } = await import("../api/transactionsRepository");
+                const nextSummary = await getExpenseTransactionsSummary(uid, transactionFilterOptions);
+
+                if (!isCancelled) {
+                    setTransactionSummary(nextSummary);
+                }
+            } catch {
+                if (!isCancelled) {
+                    setSummaryError("Không thể tải tóm tắt");
+                }
+            } finally {
+                if (!isCancelled) {
+                    setIsSummaryLoading(false);
+                }
+            }
+        });
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [refreshRevision, transactionFilterOptions, transactionsRevision, uid]);
+
     const openCreateEditor = () => {
         setEditingTransaction(null);
         setIsEditorOpen(true);
@@ -784,8 +850,10 @@ function TransactionsSurface({
             ) : null}
 
             <TransactionSummary
-                defaultExpenseTotal={defaultExpenseTotal}
-                transactions={pageTransactions}
+                error={summaryError}
+                isLoading={isSummaryLoading}
+                scopeLabel={transactionSummaryScopeLabel}
+                summary={transactionSummary}
             />
 
             <section

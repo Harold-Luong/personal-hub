@@ -39,7 +39,9 @@ export default function SettingsPage({
     onLogout,
     onManageBudget,
     onManageCategories,
+    onManageSavings,
     onManageWallet,
+    onSeedTestData,
     wallets = [],
 }) {
     const uid = useAuthSessionStore(selectAuthUid);
@@ -65,8 +67,11 @@ export default function SettingsPage({
         setIsWorking(true);
         setMessage(null);
         try {
-            await task();
-            setMessage({ text: successText, tone: "success" });
+            const result = await task();
+            setMessage({
+                text: typeof successText === "function" ? successText(result) : successText,
+                tone: "success",
+            });
         } catch (error) {
             setMessage({
                 text: error instanceof Error ? error.message : "Không thể hoàn tất thao tác.",
@@ -105,6 +110,13 @@ export default function SettingsPage({
         downloadExpenseCsv(createExpenseCsv(transactions), `expense-transactions-${date}.csv`);
     }, "Đã xuất dữ liệu CSV.");
 
+    const handleSeedTestData = onSeedTestData
+        ? () => runTask(
+            onSeedTestData,
+            (result) => `Đã tạo ${result.createdTransactionCount} giao dịch, giữ lại ${result.skippedTransactionCount} giao dịch đã seed và cập nhật ${result.budgetCount} ngân sách.`,
+        )
+        : undefined;
+
     const contentProps = {
         categories,
         isWorking,
@@ -114,6 +126,7 @@ export default function SettingsPage({
         onMoveWallet: handleMoveWallet,
         onSetDefaultCategory: (categoryId) => handleSettingChange("defaultCategoryId", categoryId),
         onSetDefaultWallet: handleSetDefaultWallet,
+        onSeedTestData: handleSeedTestData,
         onSettingChange: handleSettingChange,
         onToggleCategory: (categoryId) => handleSettingChange(
             "hiddenCategoryIds",
@@ -145,6 +158,7 @@ export default function SettingsPage({
             onLogout={onLogout}
             onManageBudget={onManageBudget}
             onManageCategories={onManageCategories}
+            onManageSavings={onManageSavings}
             onManageWallet={onManageWallet}
             onThemeChange={(theme) => handleSettingChange("theme", theme)}
             onUpdateDisplayName={handleUpdateDisplayName}

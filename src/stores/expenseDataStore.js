@@ -3,6 +3,7 @@ import { getVisibleMonthOptions } from "../modules/expenses/utils/monthUtils";
 
 const defaultExpenseDataState = {
     budgetLimitsByMonth: {},
+    budgetSavingsTransfersByMonth: {},
     categories: [],
     monthOptionsByYear: {},
     monthlyStatsByMonth: {},
@@ -52,6 +53,31 @@ function sortTransactionList(transactions) {
  */
 function getMonthOptionsCacheKey(uid, year) {
     return `${uid ?? "anonymous"}:${year}`;
+}
+
+function getTransactionMonthKey(transaction) {
+    const monthKey = String(transaction?.date ?? "").slice(0, 7);
+
+    return /^\d{4}-(0[1-9]|1[0-2])$/.test(monthKey) ? monthKey : "";
+}
+
+export function mergeExpenseMonthOption(monthOptionsByYear, uid, monthKey) {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(monthKey ?? ""))) {
+        return monthOptionsByYear;
+    }
+
+    const year = monthKey.slice(0, 4);
+    const cacheKey = getMonthOptionsCacheKey(uid, year);
+    const currentOptions = monthOptionsByYear[cacheKey] ?? [];
+
+    if (currentOptions.includes(monthKey)) {
+        return monthOptionsByYear;
+    }
+
+    return {
+        ...monthOptionsByYear,
+        [cacheKey]: [...currentOptions, monthKey].sort((first, second) => second.localeCompare(first)),
+    };
 }
 
 /**
@@ -254,6 +280,31 @@ export const useExpenseDataStore = create((set, get) => ({
         }
     },
 
+    loadExpenseBudgetSavingsTransfers: async (uid, sourceMonthKey) => {
+        if (!uid || !sourceMonthKey) {
+            return [];
+        }
+
+        try {
+            const { getExpenseBudgetSavingsTransfers } = await import(
+                "../modules/expenses/api/transactionsRepository"
+            );
+            const transfers = await getExpenseBudgetSavingsTransfers(uid, sourceMonthKey);
+
+            set((state) => ({
+                budgetSavingsTransfersByMonth: {
+                    ...state.budgetSavingsTransfersByMonth,
+                    [sourceMonthKey]: transfers,
+                },
+            }));
+
+            return transfers;
+        } catch (error) {
+            console.error("Failed to load budget savings transfers:", error);
+            return [];
+        }
+    },
+
     // Tải danh sách giao dịch gần đây
     loadExpenseRecentTransactions: async (uid, maxTransactions = 10) => {
         if (!uid) {
@@ -274,11 +325,11 @@ export const useExpenseDataStore = create((set, get) => ({
     },
 
     // Tải các tùy chọn tháng theo năm
-    loadExpenseMonthOptions: async (uid, year, currentMonthKey) => {
+    loadExpenseMonthOptions: async (uid, year, currentMonthKey, { force = false } = {}) => {
         const cacheKey = getMonthOptionsCacheKey(uid, year);
         const cachedOptions = get().monthOptionsByYear[cacheKey];
 
-        if (cachedOptions?.includes(currentMonthKey)) {
+        if (!force && cachedOptions?.includes(currentMonthKey)) {
             return cachedOptions;
         }
 
@@ -332,6 +383,8 @@ export const useExpenseDataStore = create((set, get) => ({
             get().loadExpenseMonthlyStats(uid, currentMonthKey).catch(() => null),
             get().loadExpenseMonthlyStats(uid, previousMonthKey).catch(() => null),
             get().loadExpenseBudgets(uid, currentMonthKey),
+            get().loadExpenseBudgets(uid, previousMonthKey),
+            get().loadExpenseBudgetSavingsTransfers(uid, previousMonthKey),
             get().loadExpenseRecentTransactions(uid, 10),
         ]);
     },
@@ -343,12 +396,18 @@ export const useExpenseDataStore = create((set, get) => ({
 
         set((state) => {
             const monthlyStatsUpdates = {};
+            const transactionMonthKey = getTransactionMonthKey(result.transaction);
 
             if (result.monthlyStats?.monthKey) {
                 monthlyStatsUpdates[result.monthlyStats.monthKey] = result.monthlyStats;
             }
 
             return {
+                monthOptionsByYear: mergeExpenseMonthOption(
+                    state.monthOptionsByYear,
+                    uid,
+                    transactionMonthKey,
+                ),
                 monthlyStatsByMonth: mergeMonthlyStatsUpdates(state.monthlyStatsByMonth, monthlyStatsUpdates),
                 recentTransactions: sortTransactionList([result.transaction, ...state.recentTransactions]).slice(
                     0,
@@ -376,16 +435,25 @@ export const useExpenseDataStore = create((set, get) => ({
         const { updateExpenseTransaction } = await import("../modules/expenses/api/transactionsRepository");
         const result = await updateExpenseTransaction(uid, transactionId, transaction);
 
-        set((state) => ({
-            monthlyStatsByMonth: mergeMonthlyStatsUpdates(state.monthlyStatsByMonth, result.monthlyStatsUpdates),
-            recentTransactions: sortTransactionList(
-                state.recentTransactions.map((currentTransaction) =>
-                    currentTransaction.id === result.transaction.id ? result.transaction : currentTransaction,
+        set((state) => {
+            const transactionMonthKey = getTransactionMonthKey(result.transaction);
+
+            return {
+                monthOptionsByYear: mergeExpenseMonthOption(
+                    state.monthOptionsByYear,
+                    uid,
+                    transactionMonthKey,
                 ),
-            ),
-            transactionsRevision: state.transactionsRevision + 1,
-            wallets: applyWalletBalanceUpdates(state.wallets, result.walletBalanceUpdates),
-        }));
+                monthlyStatsByMonth: mergeMonthlyStatsUpdates(state.monthlyStatsByMonth, result.monthlyStatsUpdates),
+                recentTransactions: sortTransactionList(
+                    state.recentTransactions.map((currentTransaction) =>
+                        currentTransaction.id === result.transaction.id ? result.transaction : currentTransaction,
+                    ),
+                ),
+                transactionsRevision: state.transactionsRevision + 1,
+                wallets: applyWalletBalanceUpdates(state.wallets, result.walletBalanceUpdates),
+            };
+        });
 
         return result;
     },
@@ -395,14 +463,27 @@ export const useExpenseDataStore = create((set, get) => ({
         const { voidExpenseTransaction } = await import("../modules/expenses/api/transactionsRepository");
         const result = await voidExpenseTransaction(uid, transactionId);
 
-        set((state) => ({
-            monthlyStatsByMonth: mergeMonthlyStatsUpdates(state.monthlyStatsByMonth, result.monthlyStatsUpdates),
-            recentTransactions: state.recentTransactions.filter(
-                (currentTransaction) => currentTransaction.id !== transactionId,
-            ),
-            transactionsRevision: state.transactionsRevision + 1,
-            wallets: applyWalletBalanceUpdates(state.wallets, result.walletBalanceUpdates),
-        }));
+        set((state) => {
+            const nextBudgetSavingsTransfersByMonth = { ...state.budgetSavingsTransfersByMonth };
+
+            if (result.budgetSavingsMonthKey && result.budgetSavingsCategoryId) {
+                nextBudgetSavingsTransfersByMonth[result.budgetSavingsMonthKey] = (
+                    nextBudgetSavingsTransfersByMonth[result.budgetSavingsMonthKey] ?? []
+                ).filter(
+                    (transaction) => transaction.budgetSavingsCategoryId !== result.budgetSavingsCategoryId,
+                );
+            }
+
+            return {
+                budgetSavingsTransfersByMonth: nextBudgetSavingsTransfersByMonth,
+                monthlyStatsByMonth: mergeMonthlyStatsUpdates(state.monthlyStatsByMonth, result.monthlyStatsUpdates),
+                recentTransactions: state.recentTransactions.filter(
+                    (currentTransaction) => currentTransaction.id !== transactionId,
+                ),
+                transactionsRevision: state.transactionsRevision + 1,
+                wallets: applyWalletBalanceUpdates(state.wallets, result.walletBalanceUpdates),
+            };
+        });
 
         return result;
     },
@@ -529,6 +610,7 @@ export const selectExpenseWalletsOwnerUid = (state) => state.walletsOwnerUid;
 export const selectExpenseRecentTransactions = (state) => state.recentTransactions;
 export const selectExpenseTransactionsRevision = (state) => state.transactionsRevision;
 export const selectExpenseBudgetLimitsByMonth = (state) => state.budgetLimitsByMonth;
+export const selectExpenseBudgetSavingsTransfersByMonth = (state) => state.budgetSavingsTransfersByMonth;
 export const selectExpenseMonthlyStatsByMonth = (state) => state.monthlyStatsByMonth;
 export const selectExpenseMonthOptionsByYear = (state) => state.monthOptionsByYear;
 export const getExpenseMonthOptionsCacheKey = getMonthOptionsCacheKey;

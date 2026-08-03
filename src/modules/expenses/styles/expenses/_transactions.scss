@@ -92,6 +92,93 @@
     font-size: 13px;
 }
 
+.transactions-page__summary {
+    align-items: center;
+    display: grid;
+    gap: 18px;
+    grid-template-columns: minmax(190px, 0.8fr) minmax(300px, 1.35fr) minmax(245px, 0.95fr);
+    min-width: 0;
+    padding: 14px 18px;
+}
+
+.transactions-page__summary-heading {
+    align-items: center;
+    color: var(--expense-active-strong);
+    display: flex;
+    gap: 10px;
+    min-width: 0;
+}
+
+.transactions-page__summary-heading>span {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.transactions-page__summary-heading strong {
+    color: var(--expense-heading);
+    font-size: 13px;
+    line-height: 1.2;
+}
+
+.transactions-page__summary-heading small,
+.transactions-page__summary-value small,
+.transactions-page__summary-count small {
+    color: var(--expense-muted);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.transactions-page__summary-primary,
+.transactions-page__summary-secondary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-width: 0;
+}
+
+.transactions-page__summary-value,
+.transactions-page__summary-count {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+    padding: 2px 18px;
+}
+
+.transactions-page__summary-value+.transactions-page__summary-value,
+.transactions-page__summary-secondary>*+* {
+    border-left: 1px solid var(--expense-border-strong);
+}
+
+.transactions-page__summary-value strong,
+.transactions-page__summary-count strong {
+    color: var(--expense-heading);
+    font-size: 15px;
+    font-weight: 850;
+    line-height: 1.2;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.transactions-page__summary-value--income strong,
+.transactions-page__summary-value--income .amount-text {
+    color: var(--expense-active-strong);
+}
+
+.transactions-page__summary-value--expense strong,
+.transactions-page__summary-value--expense .amount-text {
+    color: var(--expense-danger);
+}
+
+.transactions-page__summary-value--transfer strong,
+.transactions-page__summary-value--transfer .amount-text {
+    color: var(--expense-heading);
+}
+
+.transactions-page__summary-details {
+    display: none;
+}
+
 .transactions-page__toolbar {
     align-items: center;
     display: grid;
@@ -608,6 +695,17 @@
         grid-template-columns: minmax(0, 1fr);
     }
 
+    .transactions-page__summary {
+        gap: 10px;
+        grid-template-columns: minmax(150px, 0.7fr) minmax(280px, 1.35fr) minmax(220px, 0.95fr);
+        padding-inline: 14px;
+    }
+
+    .transactions-page__summary-value,
+    .transactions-page__summary-count {
+        padding-inline: 12px;
+    }
+
     .transactions-page__search,
     .transactions-page__filters-panel {
         grid-column: 1;
@@ -663,6 +761,62 @@
         display: block;
         font-size: 14px;
         font-weight: 800;
+    }
+
+    .transactions-page__summary {
+        background: var(--expense-surface);
+        border-radius: 12px;
+        gap: 12px;
+        grid-template-columns: minmax(0, 1fr);
+        padding: 14px;
+    }
+
+    .transactions-page__summary-heading {
+        border-bottom: 1px solid var(--expense-border);
+        padding-bottom: 10px;
+    }
+
+    .transactions-page__summary-primary {
+        gap: 10px;
+    }
+
+    .transactions-page__summary-value,
+    .transactions-page__summary-count {
+        background: color-mix(in srgb, var(--expense-surface-solid) 80%, transparent);
+        border: 1px solid var(--expense-border);
+        border-radius: 9px;
+        padding: 10px;
+    }
+
+    .transactions-page__summary-value+.transactions-page__summary-value,
+    .transactions-page__summary-secondary>*+* {
+        border-left: 1px solid var(--expense-border);
+    }
+
+    .transactions-page__summary-value strong,
+    .transactions-page__summary-count strong {
+        font-size: 14px;
+    }
+
+    .transactions-page__summary>.transactions-page__summary-secondary {
+        display: none;
+    }
+
+    .transactions-page__summary-details {
+        display: block;
+    }
+
+    .transactions-page__summary-details summary {
+        color: var(--expense-active-strong);
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 800;
+        list-style-position: inside;
+    }
+
+    .transactions-page__summary-details .transactions-page__summary-secondary {
+        gap: 10px;
+        margin-top: 10px;
     }
 
     .transactions-page__toolbar {

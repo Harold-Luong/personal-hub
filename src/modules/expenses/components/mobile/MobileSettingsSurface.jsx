@@ -38,6 +38,7 @@ export default function MobileSettingsSurface({
     onLogout,
     onManageBudget,
     onManageCategories,
+    onManageSavings,
     onManageWallet,
     onMoveCategory,
     onMoveWallet,
@@ -157,6 +158,14 @@ export default function MobileSettingsSurface({
                         <span className="mobile-settings-surface__management-copy">
                             <strong>Ngân sách tháng</strong>
                             <small>Thiết lập hạn mức theo danh mục</small>
+                        </span>
+                        <span aria-hidden="true">&gt;</span>
+                    </button>
+                    <button onClick={onManageSavings} type="button">
+                        <ExpenseIcon icon="saving" label="Tiết kiệm" />
+                        <span className="mobile-settings-surface__management-copy">
+                            <strong>Tiết kiệm</strong>
+                            <small>Chuyển khoản dư ngân sách tháng trước</small>
                         </span>
                         <span aria-hidden="true">&gt;</span>
                     </button>

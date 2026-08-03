@@ -49,6 +49,12 @@ Chức năng chính:
 * Wallet, category, transaction, budget và monthly stats phải đúng schema,
   ownership và invariant được khai báo trong rules. Các mutation tài chính của
   client đi qua repository và Firestore transaction/batch.
+* Transfer chạm wallet type `saving` phải lưu `savingsTransferKind` là `deposit`
+  hoặc `withdrawal`; Rules khóa đúng chiều ví và không cho transfer thường dùng
+  ví tiết kiệm. Transfer từ phần dư ngân sách lưu thêm `budgetSavingsMonthKey`,
+  `budgetSavingsCategoryId` và bắt buộc là `deposit`.
+* Wallet `saving` không được dùng cho expense, adjustment hoặc credit payment;
+  income trực tiếp chỉ hợp lệ với category `interest`.
 
 Rules này được Firebase server tự động áp dụng mỗi khi app React gọi Firestore.
 React code không import file này.

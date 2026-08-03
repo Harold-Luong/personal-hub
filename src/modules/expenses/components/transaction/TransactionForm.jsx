@@ -9,6 +9,7 @@ import {
 import { expenseUiText } from "../../constants/expenseUiMetadata";
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from "../../utils/formatCurrency";
 import { getSignedTransactionAmount } from "../../utils/expenseCalculations";
+import { isSavingWallet } from "../../utils/savingsUtils";
 import { getLocalDateValue, getLocalTimeValue } from "../../utils/transactionFormUtils";
 import {
     getWalletDisplayName,
@@ -33,10 +34,15 @@ function getCategoryOptions(type, categories) {
     return typedCategories.length > 0 ? typedCategories : [];
 }
 
-function getWalletOptions(type, wallets, defaultWalletId) {
-    const eligibleWallets = type === transactionTypes.EXPENSE
-        ? wallets
-        : wallets.filter((wallet) => !isCreditCardWallet(wallet));
+function getWalletOptions(type, wallets, defaultWalletId, categoryId = null) {
+    const allowsSavingsInterest = type === transactionTypes.INCOME && categoryId === "interest";
+    const eligibleWallets = wallets.filter((wallet) => {
+        if (isSavingWallet(wallet)) {
+            return allowsSavingsInterest;
+        }
+
+        return type === transactionTypes.EXPENSE || !isCreditCardWallet(wallet);
+    });
 
     return getWalletsDefaultFirst(
         getWalletsWithResolvedDefault(eligibleWallets, defaultWalletId),
@@ -67,9 +73,20 @@ export default function TransactionForm({
 }) {
     const preferences = useExpensePreferencesStore(selectExpensePreferences);
     const initialType = initialTransaction?.type ?? transactionTypes.EXPENSE;
-    const initialWalletOptions = getWalletOptions(initialType, wallets, preferences.defaultWalletId);
-    const defaultCategory = getCategoryOptions(initialType, categories).find(
+    const initialCategoryOptions = getCategoryOptions(initialType, categories);
+    const defaultCategory = initialCategoryOptions.find(
         (category) => category.id === preferences.defaultCategoryId,
+    );
+    const initialCategoryId = initialTransaction?.categoryId
+        ?? initialTransaction?.category
+        ?? defaultCategory?.id
+        ?? initialCategoryOptions[0]?.id
+        ?? "";
+    const initialWalletOptions = getWalletOptions(
+        initialType,
+        wallets,
+        preferences.defaultWalletId,
+        initialCategoryId,
     );
     const defaultWallet = initialWalletOptions.find((wallet) => wallet.id === preferences.defaultWalletId);
     const [type, setType] = useState(initialType);
@@ -78,7 +95,7 @@ export default function TransactionForm({
     );
     const [title, setTitle] = useState(initialTransaction?.title ?? "");
     const [categoryId, setCategoryId] = useState(
-        () => initialTransaction?.categoryId ?? initialTransaction?.category ?? defaultCategory?.id ?? getCategoryOptions(initialType, categories)[0]?.id ?? "",
+        () => initialCategoryId,
     );
     const [walletId, setWalletId] = useState(initialTransaction?.walletId ?? initialTransaction?.fromWalletId ?? defaultWallet?.id ?? initialWalletOptions[0]?.id ?? "");
     const [toWalletId, setToWalletId] = useState(initialTransaction?.toWalletId ?? initialWalletOptions[1]?.id ?? "");
@@ -90,11 +107,16 @@ export default function TransactionForm({
     const [submitError, setSubmitError] = useState("");
 
     const categoryOptions = getCategoryOptions(type, categories);
-    const walletOptions = getWalletOptions(type, wallets, preferences.defaultWalletId);
     const isTransfer = type === transactionTypes.TRANSFER;
     const selectedCategoryId = categoryOptions.some((category) => category.id === categoryId)
         ? categoryId
         : (categoryOptions.find((category) => category.id === preferences.defaultCategoryId)?.id ?? categoryOptions[0]?.id ?? "");
+    const walletOptions = getWalletOptions(
+        type,
+        wallets,
+        preferences.defaultWalletId,
+        selectedCategoryId,
+    );
     const canKeepSelectedWallet = walletOptions.some((wallet) => wallet.id === walletId)
         && (Boolean(initialTransaction) || hasSelectedWallet);
     const selectedWalletId = canKeepSelectedWallet

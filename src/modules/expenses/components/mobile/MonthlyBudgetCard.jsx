@@ -6,7 +6,7 @@ import { formatCurrency } from "../../utils/formatCurrency";
 import { calculateMonthlyBudgetTotals, getBudgetUsageStatus } from "../../utils/expenseCalculations";
 
 export default function MonthlyBudgetCard({ budgets = [], monthLabel, onManageBudget }) {
-    const { spent, limit, percentage } = calculateMonthlyBudgetTotals(budgets);
+    const { spent, limit, percentage, savingsVsPlan } = calculateMonthlyBudgetTotals(budgets);
     const status = getBudgetUsageStatus({ amount: spent, limit });
     const statusColor = budgetStatusColors[status];
 
@@ -30,6 +30,13 @@ export default function MonthlyBudgetCard({ budgets = [], monthLabel, onManageBu
             </div>
 
             <ProgressBar color={statusColor} max={limit} value={spent} />
+
+            {budgets.length ? (
+                <div className={`monthly-budget-card__savings${savingsVsPlan < 0 ? " is-negative" : ""}`}>
+                    <span>Tiết kiệm so với kế hoạch</span>
+                    <strong>{formatCurrency(savingsVsPlan)}</strong>
+                </div>
+            ) : null}
         </section>
     );
 }

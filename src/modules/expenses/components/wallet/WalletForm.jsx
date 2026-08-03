@@ -4,6 +4,7 @@ import {
     expenseCurrencyLabels,
     expenseCurrencySymbolByLabel,
     expenseDefaultCurrency,
+    savingWalletTypeId,
     walletTypeOptions,
 } from "../../constants/expenseMetadata";
 import {
@@ -86,11 +87,16 @@ export default function WalletForm({ initialWalletId, isInitialSetup = false, on
     const [submitError, setSubmitError] = useState("");
     const isEditing = Boolean(selectedWallet);
     const isCreditCard = formState.type === creditCardWalletTypeId;
+    const isSaving = formState.type === savingWalletTypeId;
     const selectedWalletIsCreditCard = selectedWallet?.type === creditCardWalletTypeId;
+    const selectedWalletIsSaving = selectedWallet?.type === savingWalletTypeId;
     const isOpeningBalanceSetup = Boolean(
         selectedWallet && !selectedWalletIsCreditCard && !selectedWallet.isBalanceInitialized,
     );
-    const usesSignedBalanceInput = isEditing && !isCreditCard && !isOpeningBalanceSetup;
+    const isProtectedSavingBalance = Boolean(
+        isEditing && selectedWalletIsSaving && selectedWallet.isBalanceInitialized,
+    );
+    const usesSignedBalanceInput = isEditing && !isCreditCard && !isOpeningBalanceSetup && !isProtectedSavingBalance;
     const isWorking = isSubmitting || isDeleting;
     const hasBalance = selectedWalletIsCreditCard
         ? (selectedWallet?.outstandingDebt ?? 0) !== 0
@@ -121,6 +127,7 @@ export default function WalletForm({ initialWalletId, isInitialSetup = false, on
         updateFormState({
             color: nextType.color,
             icon: nextType.icon,
+            ...(nextType.id === savingWalletTypeId ? { setAsDefault: false } : {}),
             type: nextType.id,
         });
     };
@@ -140,8 +147,14 @@ export default function WalletForm({ initialWalletId, isInitialSetup = false, on
             return;
         }
 
-        if (selectedWallet && selectedWalletIsCreditCard !== isCreditCard) {
-            setSubmitError("Không thể đổi qua lại giữa ví thường và thẻ tín dụng. Vui lòng tạo ví mới.");
+        if (
+            selectedWallet
+            && (
+                selectedWalletIsCreditCard !== isCreditCard
+                || selectedWalletIsSaving !== isSaving
+            )
+        ) {
+            setSubmitError("Không thể đổi qua lại giữa ví chi tiêu, ví Tiết kiệm và thẻ tín dụng. Vui lòng tạo ví mới.");
             return;
         }
 
@@ -158,7 +171,7 @@ export default function WalletForm({ initialWalletId, isInitialSetup = false, on
             icon: formState.icon,
             id: selectedWallet?.id,
             name: name,
-            setAsDefault: selectedWallet?.isDefaultWallet || formState.setAsDefault,
+            setAsDefault: !isSaving && (selectedWallet?.isDefaultWallet || formState.setAsDefault),
             type: formState.type,
         };
 
@@ -166,7 +179,7 @@ export default function WalletForm({ initialWalletId, isInitialSetup = false, on
             wallet.balance = 0;
             wallet.creditLimit = creditLimit;
             wallet.initialBalance = 0;
-        } else {
+        } else if (!isProtectedSavingBalance) {
             const balance = usesSignedBalanceInput
                 ? parseSignedCurrencyInput(formState.balance)
                 : parseCurrencyInput(formState.balance);
@@ -261,6 +274,17 @@ export default function WalletForm({ initialWalletId, isInitialSetup = false, on
                         <select disabled={isWorking} name="type" onChange={handleTypeChange} value={formState.type}>
                             {walletTypeOptions
                                 .filter((walletType) => !isInitialSetup || walletType.id !== creditCardWalletTypeId)
+                                .filter((walletType) => (
+                                    !isEditing
+                                    || (
+                                        selectedWalletIsSaving
+                                            ? walletType.id === savingWalletTypeId
+                                            : selectedWalletIsCreditCard
+                                              ? walletType.id === creditCardWalletTypeId
+                                              : walletType.id !== savingWalletTypeId
+                                                && walletType.id !== creditCardWalletTypeId
+                                    )
+                                ))
                                 .map((walletType) => (
                                 <option key={walletType.id} value={walletType.id}>
                                     {walletType.label}
@@ -290,6 +314,8 @@ export default function WalletForm({ initialWalletId, isInitialSetup = false, on
                     label={
                         isCreditCard
                             ? "Hạn mức thẻ"
+                            : isProtectedSavingBalance
+                              ? "Số dư được bảo vệ"
                             : isOpeningBalanceSetup || !isEditing
                               ? "Số dư ban đầu"
                               : "Số dư thực tế hiện tại"
@@ -297,7 +323,7 @@ export default function WalletForm({ initialWalletId, isInitialSetup = false, on
                 >
                     <span className="wallet-form__amount-control">
                         <input
-                            disabled={isWorking}
+                            disabled={isWorking || isProtectedSavingBalance}
                             inputMode={usesSignedBalanceInput ? "text" : "numeric"}
                             name={isCreditCard ? "creditLimit" : "balance"}
                             onChange={(event) =>
@@ -331,6 +357,12 @@ export default function WalletForm({ initialWalletId, isInitialSetup = false, on
                     </p>
                 ) : null}
 
+                {isProtectedSavingBalance ? (
+                    <p className="wallet-form__hint">
+                        Hãy dùng Nạp tiền hoặc Rút tiền trên trang Tiết kiệm để thay đổi số dư và giữ lịch sử đầy đủ.
+                    </p>
+                ) : null}
+
                 <ExpenseField className="wallet-form__field" label="Màu ví">
                     <input
                         disabled={isWorking}
@@ -344,7 +376,7 @@ export default function WalletForm({ initialWalletId, isInitialSetup = false, on
                 <label className="wallet-form__checkbox">
                     <input
                         checked={selectedWallet?.isDefaultWallet || formState.setAsDefault}
-                        disabled={isWorking || selectedWallet?.isDefaultWallet}
+                        disabled={isWorking || isSaving || selectedWallet?.isDefaultWallet}
                         onChange={(event) => updateFormState({ setAsDefault: event.target.checked })}
                         type="checkbox"
                     />
@@ -354,6 +386,8 @@ export default function WalletForm({ initialWalletId, isInitialSetup = false, on
                 <p className="wallet-form__hint">
                     {isCreditCard
                         ? "Chi tiêu bằng thẻ tín dụng sẽ tăng dư nợ và giảm hạn mức còn lại, không trừ tiền ngân hàng ngay."
+                        : isSaving
+                        ? "Ví Tiết kiệm không dùng để chi tiêu hoặc chuyển khoản thường; số dư được quản lý qua luồng Nạp/Rút riêng."
                         : isOpeningBalanceSetup
                         ? "Sau khi lưu, số dư hiện tại sẽ bằng số dư ban đầu cộng các giao dịch đã ghi."
                         : isEditing

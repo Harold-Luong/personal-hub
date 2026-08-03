@@ -175,9 +175,14 @@ service cloud.firestore {
 
     function isValidDefaultWalletReference(data, uid) {
       return data.defaultWalletId == null
-        || getAfter(
-          /databases/$(database)/documents/users/$(uid)/modules/expenses/wallets/$(data.defaultWalletId)
-        ).data.isArchived == false;
+        || (
+          getAfter(
+            /databases/$(database)/documents/users/$(uid)/modules/expenses/wallets/$(data.defaultWalletId)
+          ).data.isArchived == false
+          && getAfter(
+            /databases/$(database)/documents/users/$(uid)/modules/expenses/wallets/$(data.defaultWalletId)
+          ).data.type != 'saving'
+        );
     }
 
     function isValidExpenseSettings(data, uid) {
@@ -389,6 +394,10 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(allowedLegacyWalletKeys())
         && isValidString(request.resource.data.name)
         && isValidWalletType(request.resource.data.type)
+        && (
+          (resource.data.type == 'saving' && request.resource.data.type == 'saving')
+          || (resource.data.type != 'saving' && request.resource.data.type != 'saving')
+        )
         && isValidString(request.resource.data.icon)
         && isValidString(request.resource.data.color)
         && request.resource.data.balance is number
@@ -489,6 +498,9 @@ service cloud.firestore {
       return [
         'type',
         'adjustmentDirection',
+        'budgetSavingsMonthKey',
+        'budgetSavingsCategoryId',
+        'savingsTransferKind',
         'amountMinor',
         'currency',
         'title',
@@ -580,6 +592,60 @@ service cloud.firestore {
         );
     }
 
+    function isValidBudgetSavingsMetadata(data) {
+      let hasMetadata = data.keys().hasAny([
+        'budgetSavingsMonthKey',
+        'budgetSavingsCategoryId',
+      ]);
+
+      return !hasMetadata
+        || (
+          data.type == 'transfer'
+          && data.keys().hasAll([
+            'budgetSavingsMonthKey',
+            'budgetSavingsCategoryId',
+          ])
+          && isValidString(data.budgetSavingsMonthKey)
+          && isValidString(data.budgetSavingsCategoryId)
+          && data.savingsTransferKind == 'deposit'
+          && data.fromWalletSnapshot.type != 'credit-card'
+          && data.fromWalletSnapshot.type != 'saving'
+          && data.toWalletSnapshot.type == 'saving'
+        );
+    }
+
+    function isValidSavingsTransferMetadata(data) {
+      let hasKind = data.keys().hasAny(['savingsTransferKind']);
+
+      return data.type != 'transfer'
+        ? !hasKind
+        : (
+          (
+            !hasKind
+            && data.fromWalletSnapshot.type != 'saving'
+            && data.toWalletSnapshot.type != 'saving'
+          )
+          || (
+            hasKind
+            && data.savingsTransferKind in ['deposit', 'withdrawal']
+            && (
+              (
+                data.savingsTransferKind == 'deposit'
+                && data.fromWalletSnapshot.type != 'credit-card'
+                && data.fromWalletSnapshot.type != 'saving'
+                && data.toWalletSnapshot.type == 'saving'
+              )
+              || (
+                data.savingsTransferKind == 'withdrawal'
+                && data.fromWalletSnapshot.type == 'saving'
+                && data.toWalletSnapshot.type != 'credit-card'
+                && data.toWalletSnapshot.type != 'saving'
+              )
+            )
+          )
+        );
+    }
+
     function isValidExpenseOrIncomeTransaction(data) {
       return data.type in [
           'expense',
@@ -594,6 +660,10 @@ service cloud.firestore {
         && data.walletIds[0] == data.walletId
         && isValidSnapshot(data.categorySnapshot)
         && isValidSnapshot(data.walletSnapshot)
+        && (
+          data.walletSnapshot.type != 'saving'
+          || (data.type == 'income' && data.categoryId == 'interest')
+        )
         && data.fromWalletSnapshot == null
         && data.toWalletSnapshot == null
         && !data.keys().hasAny(['adjustmentDirection']);
@@ -633,6 +703,7 @@ service cloud.firestore {
         && isValidSnapshot(data.fromWalletSnapshot)
         && isValidSnapshot(data.toWalletSnapshot)
         && data.fromWalletSnapshot.type != 'credit-card'
+        && data.fromWalletSnapshot.type != 'saving'
         && data.toWalletSnapshot.type == 'credit-card'
         && !data.keys().hasAny(['adjustmentDirection']);
     }
@@ -652,6 +723,7 @@ service cloud.firestore {
         && data.walletIds[0] == data.walletId
         && data.categorySnapshot == null
         && isValidSnapshot(data.walletSnapshot)
+        && data.walletSnapshot.type != 'saving'
         && data.fromWalletSnapshot == null
         && data.toWalletSnapshot == null;
     }
@@ -675,6 +747,8 @@ service cloud.firestore {
         && data.createdAt == request.time
         && data.updatedAt == request.time
         && data.voidedAt == null
+        && isValidBudgetSavingsMetadata(data)
+        && isValidSavingsTransferMetadata(data)
         && (
           isValidExpenseOrIncomeTransaction(data)
           || isValidTransferTransaction(data)
@@ -704,6 +778,21 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.updatedAt == request.time
         && request.resource.data.voidedAt == null
+        && isValidSavingsTransferMetadata(resource.data)
+        && isValidBudgetSavingsMetadata(request.resource.data)
+        && isValidSavingsTransferMetadata(request.resource.data)
+        && (
+          !resource.data.keys().hasAny([
+            'budgetSavingsMonthKey',
+            'budgetSavingsCategoryId',
+            'savingsTransferKind',
+          ])
+          && !request.resource.data.keys().hasAny([
+            'budgetSavingsMonthKey',
+            'budgetSavingsCategoryId',
+            'savingsTransferKind',
+          ])
+        )
         && (
           isValidExpenseOrIncomeTransaction(request.resource.data)
           || isValidTransferTransaction(request.resource.data)

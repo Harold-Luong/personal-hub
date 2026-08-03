@@ -23,6 +23,7 @@ import {
     expenseDefaultWalletTypeId,
     expenseDefaultWalletTypeMeta,
     expenseMaxSearchTokens,
+    savingWalletTypeId,
     transactionTypes,
     walletTypeIds,
     walletTypeMeta,
@@ -423,9 +424,10 @@ function normalizeWalletInput(input = {}, { existingWallet, includeBalance = tru
 
 function assertWalletTypeChangeAllowed(existingWallet, wallet) {
     const isCreditCardBoundaryChange = isCreditCardWallet(existingWallet) !== isCreditCardWallet(wallet)
+    const isSavingsBoundaryChange = (existingWallet.type === savingWalletTypeId) !== (wallet.type === savingWalletTypeId)
 
-    if (isCreditCardBoundaryChange) {
-        throw new Error('Không thể đổi qua lại giữa ví thường và thẻ tín dụng. Vui lòng tạo ví mới.')
+    if (isCreditCardBoundaryChange || isSavingsBoundaryChange) {
+        throw new Error('Không thể đổi qua lại giữa ví chi tiêu, ví Tiết kiệm và thẻ tín dụng. Vui lòng tạo ví mới.')
     }
 }
 
@@ -481,6 +483,14 @@ export async function updateExpenseWallet(uid, input) {
 
     if (!existingWallet) {
         throw new Error('Wallet not found.')
+    }
+
+    if (
+        existingWallet.type === savingWalletTypeId
+        && existingWallet.isBalanceInitialized
+        && hasTargetBalance
+    ) {
+        throw new Error('Số dư ví Tiết kiệm chỉ có thể thay đổi qua luồng Nạp hoặc Rút tiền tiết kiệm.')
     }
 
     const wallet = {

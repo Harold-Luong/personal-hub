@@ -4,6 +4,7 @@ import { selectAuthUid, useAuthSessionStore } from "../../../stores/authSessionS
 import {
     getExpenseMonthOptionsCacheKey,
     selectExpenseBudgetLimitsByMonth,
+    selectExpenseBudgetSavingsTransfersByMonth,
     selectExpenseCategories,
     selectExpenseMonthOptionsByYear,
     selectExpenseMonthlyStatsByMonth,
@@ -26,6 +27,7 @@ import AddTransactionPage from "./AddTransactionPage";
 import BudgetPage from "./BudgetPage";
 import CategorySpendingPage from "./CategorySpendingPage";
 import ReportPage from "./ReportPage";
+import SavingsPage from "./SavingsPage";
 import SettingsPage from "./SettingsPage";
 import TransactionsPage from "./TransactionsPage";
 import WalletPage from "./WalletPage";
@@ -36,10 +38,14 @@ import {
     expenseRoutePaths,
     expenseSummaryItems,
     expenseThemeIds,
+    savingsTransferKinds,
+    transactionTypes,
 } from "../constants/expenseMetadata";
 import { expenseSortKeys } from "../constants/expenseUiMetadata";
 import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { calculateTrend, getEmptyMonthlyStats, getPreviousMonthKey } from "../utils/monthlyStatsUtils";
+import { getSpendableWallets } from "../utils/savingsUtils";
+import { getLocalDateValue, getLocalTimeValue } from "../utils/transactionFormUtils";
 import {
     getCompactMonthLabel,
     getCurrentMonthKey,
@@ -59,10 +65,32 @@ function getExpenseRoutePage(pathname) {
     return Object.entries(expenseRoutePaths).find(([, path]) => path === normalizedPathname)?.[0] ?? "dashboard";
 }
 
+function getBudgetViewModels(budgetLimits, categoriesById, monthlyStats) {
+    const categorySpendingById = monthlyStats.categoryExpenseMinor ?? {};
+
+    return budgetLimits
+        .map((budget) => {
+            const category = categoriesById.get(budget.categoryId);
+
+            return {
+                id: budget.id,
+                categoryId: budget.categoryId,
+                category: category?.name ?? budget.categoryId,
+                amount: categorySpendingById[budget.categoryId] ?? 0,
+                limit: budget.limitMinor,
+                alertThreshold: budget.alertThreshold,
+                color: category?.color ?? "#b8bec8",
+                icon: category?.icon ?? "more",
+            };
+        })
+        .filter((budget) => budget.limit > 0);
+}
+
 const desktopSurfaceClassByPageId = {
     budgets: "desktop-budget-surface",
     categories: "desktop-category-spending-surface",
     report: "desktop-report-surface",
+    savings: "desktop-savings-surface",
     settings: "desktop-settings-surface",
     transactions: "desktop-transactions-surface",
     wallets: "desktop-wallet-surface",
@@ -72,6 +100,7 @@ const desktopMainClassByPageId = {
     budgets: "desktop-budget-surface__main",
     categories: "desktop-category-spending-surface__main",
     report: "desktop-report-surface__main",
+    savings: "desktop-savings-surface__main",
     settings: "desktop-settings-surface__main",
     transactions: "desktop-transactions-surface__main",
     wallets: "desktop-wallet-surface__main",
@@ -95,10 +124,12 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     const walletsOwnerUid = useExpenseDataStore(selectExpenseWalletsOwnerUid);
     const transactions = useExpenseDataStore(selectExpenseRecentTransactions);
     const budgetLimitsByMonth = useExpenseDataStore(selectExpenseBudgetLimitsByMonth);
+    const budgetSavingsTransfersByMonth = useExpenseDataStore(selectExpenseBudgetSavingsTransfersByMonth);
     const monthlyStatsByMonth = useExpenseDataStore(selectExpenseMonthlyStatsByMonth);
     const monthOptionsByYear = useExpenseDataStore(selectExpenseMonthOptionsByYear);
     const loadExpenseDashboardData = useExpenseDataStore((state) => state.loadExpenseDashboardData);
     const loadExpenseMonthOptions = useExpenseDataStore((state) => state.loadExpenseMonthOptions);
+    const loadExpenseBudgetSavingsTransfers = useExpenseDataStore((state) => state.loadExpenseBudgetSavingsTransfers);
     const createExpenseTransactionAction = useExpenseDataStore((state) => state.createExpenseTransaction);
     const upsertExpenseBudgetAction = useExpenseDataStore((state) => state.upsertExpenseBudget);
     const deleteExpenseBudgetAction = useExpenseDataStore((state) => state.deleteExpenseBudget);
@@ -120,6 +151,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     const currentMonthKey = getCurrentMonthKey();
     const previousMonthKey = getPreviousMonthKey(currentMonthKey);
     const currentMonthLabel = getCompactMonthLabel(currentMonthKey);
+    const previousMonthLabel = getCompactMonthLabel(previousMonthKey);
     const currentYear = getCurrentYear();
     const monthOptionsCacheKey = getExpenseMonthOptionsCacheKey(uid, currentYear);
     const [categoryMonth, setCategoryMonth] = useState(currentMonthKey);
@@ -156,17 +188,16 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     const monthlyStats = monthlyStatsByMonth[currentMonthKey] ?? getEmptyMonthlyStats(currentMonthKey);
     const previousMonthlyStats = monthlyStatsByMonth[previousMonthKey] ?? getEmptyMonthlyStats(previousMonthKey);
     const budgetLimits = budgetLimitsByMonth[currentMonthKey] ?? [];
-    const monthOptions = useMemo(
-        () => monthOptionsByYear[monthOptionsCacheKey] ?? [currentMonthKey],
-        [currentMonthKey, monthOptionsByYear, monthOptionsCacheKey],
+    const previousBudgetLimits = budgetLimitsByMonth[previousMonthKey] ?? [];
+    const previousBudgetSavingsTransfers = budgetSavingsTransfersByMonth[previousMonthKey] ?? [];
+    const monthOptions = monthOptionsByYear[monthOptionsCacheKey] ?? [currentMonthKey];
+    const categoryDisplayedMonthOptions = getVisibleMonthOptions(
+        [...monthOptions, categoryMonth],
+        currentMonthKey,
     );
-    const categoryDisplayedMonthOptions = useMemo(
-        () => getVisibleMonthOptions([...monthOptions, categoryMonth], currentMonthKey),
-        [categoryMonth, currentMonthKey, monthOptions],
-    );
-    const reportDisplayedMonthOptions = useMemo(
-        () => getVisibleMonthOptions([...monthOptions, reportMonth], currentMonthKey),
-        [currentMonthKey, monthOptions, reportMonth],
+    const reportDisplayedMonthOptions = getVisibleMonthOptions(
+        [...monthOptions, reportMonth],
+        currentMonthKey,
     );
 
     useEffect(() => {
@@ -212,30 +243,18 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     const previousMonthlyIncome = previousMonthlyStats.incomeMinor ?? 0;
     const previousMonthlyExpense = previousMonthlyStats.expenseMinor ?? 0;
     const previousMonthlySaving = previousMonthlyStats.netMinor ?? previousMonthlyIncome - previousMonthlyExpense;
-    const categorySpendingById = monthlyStats.categoryExpenseMinor ?? {};
     const categoriesById = new Map(categories.map((category) => [category.id, category]));
     const categorySpending = getCategorySpendingByMonth({
         categories,
         monthKey: currentMonthKey,
         monthlyStats,
     });
-    const budgets = budgetLimits
-        .map((budget) => {
-            const category = categoriesById.get(budget.categoryId);
-
-            return {
-                id: budget.id,
-                categoryId: budget.categoryId,
-                category: category?.name ?? budget.categoryId,
-                amount: categorySpendingById[budget.categoryId] ?? 0,
-                limit: budget.limitMinor,
-                alertThreshold: budget.alertThreshold,
-                color: category?.color ?? "#b8bec8",
-                icon: category?.icon ?? "more",
-            };
-        })
-        .filter((budget) => budget.limit > 0);
-    const totalWalletBalance = wallets.reduce((total, wallet) => total + wallet.balance, 0);
+    const budgets = getBudgetViewModels(budgetLimits, categoriesById, monthlyStats);
+    const previousBudgets = getBudgetViewModels(previousBudgetLimits, categoriesById, previousMonthlyStats);
+    const totalWalletBalance = resolvedAllWallets.reduce(
+        (total, wallet) => total + (wallet.balance ?? 0),
+        0,
+    );
     const summary = expenseSummaryItems.map((item) => {
         if (item.id === "balance") {
             return {
@@ -354,7 +373,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     };
 
     const getCreditPaymentSourceWallets = (creditWallet) =>
-        wallets.filter((wallet) => wallet.id !== creditWallet?.id && wallet.type !== creditCardWalletTypeId);
+        getSpendableWallets(wallets).filter((wallet) => wallet.id !== creditWallet?.id);
 
     const getDefaultCreditPaymentSourceWallet = (creditWallet) =>
         getCreditPaymentSourceWallets(creditWallet).find((wallet) => wallet.isDefaultWallet) ??
@@ -407,6 +426,49 @@ export default function DashboardPage({ initialSettings, onLogout }) {
         return deleteExpenseBudgetAction(uid, budget, monthKey);
     };
 
+    const handleSaveBudgetSavings = async ({ candidate, fromWalletId, toWalletId }) => {
+        const result = await handleAddTransaction({
+            amount: candidate.savingsAmount,
+            budgetSavingsCategoryId: candidate.categoryId,
+            budgetSavingsMonthKey: previousMonthKey,
+            date: getLocalDateValue(),
+            fromWalletId,
+            note: `Phần dư ngân sách ${candidate.category} của ${previousMonthLabel}.`,
+            savingsTransferKind: savingsTransferKinds.DEPOSIT,
+            time: getLocalTimeValue(),
+            title: `Tiết kiệm từ ngân sách ${candidate.category}`,
+            toWalletId,
+            type: transactionTypes.TRANSFER,
+            walletId: null,
+        });
+
+        await loadExpenseBudgetSavingsTransfers(uid, previousMonthKey);
+        return result;
+    };
+
+    const handleSaveSavingsTransfer = async ({
+        amount,
+        date,
+        fromWalletId,
+        note,
+        savingsTransferKind,
+        time,
+        toWalletId,
+    }) => handleAddTransaction({
+        amount,
+        date,
+        fromWalletId,
+        note,
+        savingsTransferKind,
+        time,
+        title: savingsTransferKind === savingsTransferKinds.WITHDRAWAL
+            ? "Rút tiền tiết kiệm"
+            : "Nạp tiền tiết kiệm",
+        toWalletId,
+        type: transactionTypes.TRANSFER,
+        walletId: null,
+    });
+
     const handleSaveWallet = async (wallet) => {
         const result = await upsertExpenseWalletAction(uid, wallet);
         const savedWallet = result.wallet ?? result;
@@ -421,6 +483,31 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     const handleDeleteWallet = async (wallet) => {
         await deleteExpenseWalletAction(uid, wallet);
     };
+
+    const handleSeedSavingsTestData = import.meta.env.DEV
+        ? async () => {
+            const { savingsSeedMonthKeys, seedExpenseSavingsTestData } = await import(
+                "../dev/seedSavingsTestData"
+            );
+            const result = await seedExpenseSavingsTestData(uid);
+            const seedYear = Number(savingsSeedMonthKeys.july.slice(0, 4));
+
+            await Promise.all([
+                loadExpenseDashboardData(uid, {
+                    currentMonthKey: savingsSeedMonthKeys.august,
+                    previousMonthKey: savingsSeedMonthKeys.july,
+                }),
+                loadExpenseMonthOptions(
+                    uid,
+                    seedYear,
+                    savingsSeedMonthKeys.august,
+                    { force: true },
+                ),
+            ]);
+
+            return result;
+        }
+        : undefined;
 
     const renderMobilePage = () => {
         if (activeMobilePage === "add") {
@@ -471,6 +558,23 @@ export default function DashboardPage({ initialSettings, onLogout }) {
             );
         }
 
+        if (activeMobilePage === "savings") {
+            return (
+                <SavingsPage
+                    budgets={previousBudgets}
+                    mode="mobile"
+                    monthLabel={previousMonthLabel}
+                    onBack={() => navigateExpenseRoute("settings")}
+                    onManageWallet={() => navigateExpenseRoute("wallets")}
+                    onSave={handleSaveBudgetSavings}
+                    onSaveTransfer={handleSaveSavingsTransfer}
+                    transactions={transactions}
+                    transfers={previousBudgetSavingsTransfers}
+                    wallets={resolvedAllWallets}
+                />
+            );
+        }
+
         if (activeMobilePage === "wallets") {
             return (
                 <WalletPage
@@ -492,7 +596,9 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                     onLogout={handleLogout}
                     onManageBudget={() => navigateExpenseRoute("budgets")}
                     onManageCategories={() => navigateExpenseRoute("categories")}
+                    onManageSavings={() => navigateExpenseRoute("savings")}
                     onManageWallet={() => navigateExpenseRoute("wallets")}
+                    onSeedTestData={handleSeedSavingsTestData}
                     wallets={resolvedAllWallets}
                 />
             );
@@ -568,6 +674,22 @@ export default function DashboardPage({ initialSettings, onLogout }) {
             );
         }
 
+        if (activeDesktopPage === "savings") {
+            return (
+                <SavingsPage
+                    budgets={previousBudgets}
+                    mode="desktop"
+                    monthLabel={previousMonthLabel}
+                    onManageWallet={() => navigateExpenseRoute("wallets")}
+                    onSave={handleSaveBudgetSavings}
+                    onSaveTransfer={handleSaveSavingsTransfer}
+                    transactions={transactions}
+                    transfers={previousBudgetSavingsTransfers}
+                    wallets={resolvedAllWallets}
+                />
+            );
+        }
+
         if (activeDesktopPage === "wallets") {
             return (
                 <WalletPage
@@ -581,7 +703,14 @@ export default function DashboardPage({ initialSettings, onLogout }) {
         }
 
         if (activeDesktopPage === "settings") {
-            return <SettingsPage categories={allCategories} mode="desktop" wallets={resolvedAllWallets} />;
+            return (
+                <SettingsPage
+                    categories={allCategories}
+                    mode="desktop"
+                    onSeedTestData={handleSeedSavingsTestData}
+                    wallets={resolvedAllWallets}
+                />
+            );
         }
 
         return (
@@ -623,6 +752,11 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                 eyebrow: "Báo cáo",
                 subtitle: "Theo dõi xu hướng thu chi và dự báo",
                 title: "Báo cáo chi tiêu",
+            },
+            savings: {
+                eyebrow: "Kế hoạch",
+                subtitle: `Đưa phần dư ngân sách ${previousMonthLabel} vào ví tiết kiệm`,
+                title: "Tiết kiệm",
             },
             settings: {
                 eyebrow: "Cá nhân hóa",

@@ -246,6 +246,12 @@
     opacity: 0.58;
 }
 
+.settings-content__data-actions .settings-content__seed-button {
+    background: color-mix(in srgb, var(--expense-warning) 14%, var(--expense-surface-solid));
+    border-color: color-mix(in srgb, var(--expense-warning) 42%, var(--expense-border));
+    color: var(--expense-warning);
+}
+
 .settings-content__manager {
     display: grid;
     gap: 14px;

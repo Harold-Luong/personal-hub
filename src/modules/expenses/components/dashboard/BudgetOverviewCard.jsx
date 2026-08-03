@@ -4,9 +4,15 @@ import ProgressBar from "../shared/ProgressBar";
 import SectionCard from "../shared/SectionCard";
 import { budgetStatusColors } from "../../constants/expenseMetadata";
 import { expenseUiText } from "../../constants/expenseUiMetadata";
-import { calculateBudgetUsagePercentage, getBudgetUsageStatus } from "../../utils/expenseCalculations";
+import {
+    calculateBudgetUsagePercentage,
+    calculateMonthlyBudgetTotals,
+    getBudgetUsageStatus,
+} from "../../utils/expenseCalculations";
 
 export default function BudgetOverviewCard({ budgets = [], monthLabel, onManageBudget, onSelectBudget }) {
+    const { savingsVsPlan } = calculateMonthlyBudgetTotals(budgets);
+
     return (
         <SectionCard
             actionLabel={budgets.length ? expenseUiText.actions.MANAGE : expenseUiText.actions.CREATE_BUDGET}
@@ -16,43 +22,56 @@ export default function BudgetOverviewCard({ budgets = [], monthLabel, onManageB
             title="Ngân sách của bạn"
         >
             {budgets.length ? (
-                budgets.map((budget) => {
-                    const status = getBudgetUsageStatus(budget);
-                    const statusColor = budgetStatusColors[status] ?? budget.color;
+                <>
+                    <div className={`budget-overview-card__savings${savingsVsPlan < 0 ? " is-negative" : ""}`}>
+                        <span>Tiết kiệm so với kế hoạch</span>
+                        <strong>
+                            <AmountText amount={savingsVsPlan} />
+                        </strong>
+                        <small>
+                            {savingsVsPlan >= 0
+                                ? "Chi thấp hơn tổng hạn mức đã đặt"
+                                : "Chi cao hơn tổng hạn mức đã đặt"}
+                        </small>
+                    </div>
+                    {budgets.map((budget) => {
+                        const status = getBudgetUsageStatus(budget);
+                        const statusColor = budgetStatusColors[status] ?? budget.color;
 
-                    return (
-                        <button
-                            className={`budget-item budget-item--${status}`}
-                            key={budget.id ?? budget.category}
-                            onClick={() => onSelectBudget?.(budget.categoryId)}
-                            type="button"
-                        >
-                            <ExpenseIcon
-                                color={budget.color}
-                                icon={budget.icon}
-                                label={budget.category}
-                            />
-                            <div className="budget-item__body">
-                                <div className="budget-item__copy">
-                                    <strong>{budget.category}</strong>
-                                    <p className="budget-item__amounts">
-                                        <span className="budget-item__spent">
-                                            <AmountText amount={budget.amount} />
-                                        </span>
-                                        <span aria-hidden="true" className="budget-item__separator">
-                                            /
-                                        </span>
-                                        <span className="budget-item__limit">
-                                            <AmountText amount={budget.limit} />
-                                        </span>
-                                    </p>
+                        return (
+                            <button
+                                className={`budget-item budget-item--${status}`}
+                                key={budget.id ?? budget.category}
+                                onClick={() => onSelectBudget?.(budget.categoryId)}
+                                type="button"
+                            >
+                                <ExpenseIcon
+                                    color={budget.color}
+                                    icon={budget.icon}
+                                    label={budget.category}
+                                />
+                                <div className="budget-item__body">
+                                    <div className="budget-item__copy">
+                                        <strong>{budget.category}</strong>
+                                        <p className="budget-item__amounts">
+                                            <span className="budget-item__spent">
+                                                <AmountText amount={budget.amount} />
+                                            </span>
+                                            <span aria-hidden="true" className="budget-item__separator">
+                                                /
+                                            </span>
+                                            <span className="budget-item__limit">
+                                                <AmountText amount={budget.limit} />
+                                            </span>
+                                        </p>
+                                    </div>
+                                    <ProgressBar color={statusColor} max={budget.limit} value={budget.amount} />
                                 </div>
-                                <ProgressBar color={statusColor} max={budget.limit} value={budget.amount} />
-                            </div>
-                            <span className="budget-item__percentage">{calculateBudgetUsagePercentage(budget)}%</span>
-                        </button>
-                    );
-                })
+                                <span className="budget-item__percentage">{calculateBudgetUsagePercentage(budget)}%</span>
+                            </button>
+                        );
+                    })}
+                </>
             ) : (
                 <p className="budget-overview-card__empty">Chưa tạo ngân sách cho tháng này.</p>
             )}
