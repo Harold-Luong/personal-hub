@@ -3,6 +3,7 @@ import {
     expenseAmountFormatOptions,
     expenseCurrencyLabels,
     expenseDateFormatOptions,
+    savingWalletTypeId,
 } from "../../constants/expenseMetadata";
 import ExpenseIcon from "../../icon/ExpenseIcon";
 import { expenseIconSetOptions } from "../../icon/iconSets";
@@ -42,7 +43,9 @@ function EntityRow({
     onToggleHidden,
     type,
 }) {
-    const canSetDefault = type === "wallet" || entity.type === "expense";
+    const canSetDefault = type === "wallet"
+        ? entity.type !== savingWalletTypeId
+        : entity.type === "expense";
     const entityDisplayName = type === "wallet"
         ? getWalletNameWithDefaultLabel(entity)
         : entity.name;
@@ -66,7 +69,7 @@ function EntityRow({
                 <button aria-label={`${isHidden ? "Hiện" : "Ẩn"} ${entityDisplayName}`} disabled={isDefault} onClick={onToggleHidden} title={isDefault ? "Không thể ẩn mục mặc định" : isHidden ? "Hiện" : "Ẩn"} type="button">
                     <ExpenseIcon bare icon="visibility" size={20} />
                 </button>
-                <button aria-label={`Chọn ${entityDisplayName} làm mặc định`} className={isDefault ? "is-active" : ""} disabled={!canSetDefault || isHidden} onClick={onSetDefault} title={canSetDefault ? "Chọn mặc định" : "Chỉ áp dụng cho danh mục chi tiêu"} type="button">
+                <button aria-label={`Chọn ${entityDisplayName} làm mặc định`} className={isDefault ? "is-active" : ""} disabled={!canSetDefault || isHidden} onClick={onSetDefault} title={canSetDefault ? "Chọn mặc định" : type === "wallet" ? "Ví Tiết kiệm không thể là ví chi tiêu mặc định" : "Chỉ áp dụng cho danh mục chi tiêu"} type="button">
                     <ExpenseIcon bare icon="favorite" size={20} />
                 </button>
             </span>
@@ -121,7 +124,7 @@ function EntityManager({ categories, onMoveCategory, onMoveWallet, onSetDefaultC
     );
 }
 
-export default function SettingsContent({ categories = [], isWorking, message, onExport, onMoveCategory, onMoveWallet, onSetDefaultCategory, onSetDefaultWallet, onSettingChange, onToggleCategory, onToggleWallet, settings, wallets = [] }) {
+export default function SettingsContent({ categories = [], isWorking, message, onExport, onMoveCategory, onMoveWallet, onSeedTestData, onSetDefaultCategory, onSetDefaultWallet, onSettingChange, onToggleCategory, onToggleWallet, settings, wallets = [] }) {
     return (
         <div className="settings-content">
             {message ? <p className={`settings-content__message ${message.tone === "error" ? "is-error" : "is-success"}`} role="status">{message.text}</p> : null}
@@ -133,12 +136,17 @@ export default function SettingsContent({ categories = [], isWorking, message, o
                     <PreferenceSelect description="Áp dụng cho danh mục, ví và điều hướng" label="Bộ biểu tượng" onChange={(value) => onSettingChange("iconSet", value)} options={expenseIconSetOptions} value={settings.iconSet} />
                 </SectionCard>
 
-                <SectionCard actionLabel={null} className="settings-content__data" title="Dữ liệu CSV">
-                    <p>Xuất toàn bộ giao dịch thành tệp CSV để lưu trữ hoặc sử dụng bên ngoài ứng dụng.</p>
+                <SectionCard actionLabel={null} className="settings-content__data" title="Dữ liệu">
+                    <p>Xuất giao dịch ra CSV hoặc tạo dữ liệu development cho luồng tiết kiệm.</p>
                     <div className="settings-content__data-actions">
                         <button disabled={isWorking} onClick={onExport} type="button"><ExpenseIcon bare icon="download" size={20} /> Xuất CSV</button>
+                        {onSeedTestData ? (
+                            <button className="settings-content__seed-button" disabled={isWorking} onClick={onSeedTestData} type="button">
+                                <ExpenseIcon bare icon="saving" size={20} /> Tạo data 07–08/2026
+                            </button>
+                        ) : null}
                     </div>
-                    <small>{isWorking ? "Đang xuất dữ liệu..." : "Tệp CSV bao gồm toàn bộ lịch sử giao dịch hiện có."}</small>
+                    <small>{isWorking ? "Đang xử lý dữ liệu..." : onSeedTestData ? "Seed có kiểm tra chống trùng và chỉ xuất hiện khi chạy development." : "Tệp CSV bao gồm toàn bộ lịch sử giao dịch hiện có."}</small>
                 </SectionCard>
             </div>
 

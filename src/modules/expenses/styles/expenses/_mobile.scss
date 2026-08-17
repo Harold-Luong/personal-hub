@@ -233,3 +233,28 @@
   background: var(--expense-active-strong);
   border-radius: inherit;
 }
+
+.monthly-budget-card__savings {
+  align-items: center;
+  border-top: 1px solid var(--expense-border);
+  display: flex;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
+.monthly-budget-card__savings span {
+  color: var(--expense-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.monthly-budget-card__savings strong {
+  color: var(--expense-active-strong);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.monthly-budget-card__savings.is-negative strong {
+  color: var(--expense-danger);
+}

@@ -69,6 +69,8 @@ Quan hệ nghiệp vụ quan trọng:
   category qua `categoryId`.
 - Một transfer transaction tham chiếu hai wallet qua `fromWalletId` và
   `toWalletId`.
+- Transfer chạm wallet `saving` phải có `savingsTransferKind` là `deposit` hoặc
+  `withdrawal`; transfer thường không được dùng wallet `saving`.
 - Một `creditPayment` transaction cũng tham chiếu hai wallet qua `fromWalletId`
   và `toWalletId`, nhưng `toWalletId` phải là wallet `credit-card`.
 - Một adjustment transaction tham chiếu một wallet qua `walletId`, có
@@ -351,6 +353,9 @@ Quy tắc:
 - Trạng thái mặc định được suy ra bằng `wallet.id === settings.defaultWalletId`.
   Ví này luôn đứng đầu mọi danh sách/dropdown và tên hiển thị luôn kèm hậu tố
   `(mặc định)`; trạng thái và hậu tố không được ghi vào wallet document.
+- Wallet `saving` là ví được bảo vệ: không được chọn làm ví chi tiêu mặc định,
+  không xuất hiện trong transfer thường và không cho sửa balance trực tiếp sau
+  khi đã khởi tạo.
 - `isBalanceInitialized` đánh dấu số dư ví thường đã được user neo theo số dư
   thực tế. Ví mặc định auto-init có thể bắt đầu bằng `false` và `balance = 0`.
 - Tên wallet đang hoạt động phải là duy nhất theo user; `type` wallet được phép trùng.
@@ -380,6 +385,9 @@ projection này qua các flow nghiệp vụ có kiểm soát:
   `initialBalance` và `balance`; đây là bước thiết lập số dư ban đầu.
 - Sửa balance của wallet đã có active transaction: tạo transaction
   `adjustment` với `adjustmentDirection`, rồi cập nhật `balance`.
+- Riêng wallet `saving`: sau bước tạo/khởi tạo, balance chỉ thay đổi qua
+  `deposit`, `withdrawal`, thu nhập category `interest` hoặc void các giao dịch
+  đó; không tạo adjustment thủ công.
 - Expense/income/transfer/creditPayment/void transaction: cập nhật balance hoặc
   credit-card projection bằng delta.
 
@@ -550,6 +558,22 @@ Tác động:
   fromWalletId: "wallet-bank",
   toWalletId: "wallet-cash",
   walletIds: ["wallet-bank", "wallet-cash"]
+}
+```
+
+Field `savingsTransferKind` chỉ xuất hiện trên transfer có liên quan đến ví
+`saving`: `deposit` chuyển từ ví chi tiêu sang ví tiết kiệm, `withdrawal` chuyển
+theo chiều ngược lại. Transfer thông thường không được tham chiếu ví `saving`.
+
+Hai field `budgetSavingsMonthKey` và `budgetSavingsCategoryId` chỉ xuất hiện khi
+transfer `deposit` được tạo từ phần dư ngân sách tháng trước:
+
+```js
+{
+  type: "transfer",
+  savingsTransferKind: "deposit",
+  budgetSavingsMonthKey: "2026-07",
+  budgetSavingsCategoryId: "food"
 }
 ```
 
@@ -834,13 +858,22 @@ Công thức:
 
 ```text
 balance = tổng balance của các wallet được tính vào tổng tài sản
+spendable balance = tổng balance của wallet không phải saving/credit-card
+protected saving balance = tổng balance của wallet saving
 income = monthlyStats.incomeMinor
 expense = monthlyStats.expenseMinor
-saving = income - expense
+saving thực tế = income - expense
+tiết kiệm so với kế hoạch = tổng budget limit - tổng chi của các category đã đặt budget
 category percentage = category expense / total expense * 100
 budget percentage = category expense / budget limit * 100
 trend = (current - previous) / abs(previous) * 100
 ```
+
+`Tiết kiệm so với kế hoạch` là chỉ số dẫn xuất của ngân sách, tách biệt với
+`saving thực tế`. Chỉ số này có thể âm khi tổng chi của các category đã đặt
+budget vượt tổng hạn mức. Expense ở category chưa có budget không tham gia phép
+tính. Tạo, sửa hoặc xóa budget không thay đổi wallet balance hay transaction;
+chỉ giao dịch tài chính mới cập nhật ví.
 
 Nếu tháng trước chưa có document `monthlyStats`, giá trị tháng trước không hợp lệ
 hoặc bằng `0`, UI trả `trend = 0` thay vì chia cho `0`.
@@ -926,7 +959,7 @@ Quy tắc merge đề xuất:
 - Sắp xếp wallet ghi lại `order` theo bước 10 bằng write batch; ví mặc định được khóa ở
   đầu danh sách, các ví còn lại mới tham gia đổi thứ tự.
 - Chọn ví mặc định chỉ cập nhật `settings.defaultWalletId`; wallet document không
-  chứa cờ mặc định.
+  chứa cờ mặc định. Wallet `saving` không thể được chọn làm ví mặc định mới.
 - Chọn category mặc định cập nhật `settings.defaultCategoryId`.
 - Ẩn/hiện chỉ cập nhật mảng ID trong settings; không dùng `isArchived`.
 - Dashboard truyền danh sách đã lọc xuống transaction, report, budget và
@@ -1015,6 +1048,16 @@ Atomic transaction:
 
 Không mô hình transfer thành expense và income độc lập vì dễ bị đếm sai trong
 báo cáo.
+
+Transfer phần dư ngân sách là biến thể có kiểm soát của flow này. Repository đọc
+budget và `monthlyStats` của tháng nguồn, xác nhận
+`amountMinor = limitMinor - categoryExpenseMinor[categoryId]`, kiểm tra chưa có
+transfer active cho cùng tháng/category, rồi chuyển đúng khoản dư từ ví thường
+sang wallet type `saving`. Giao dịch lưu `budgetSavingsMonthKey` và
+`budgetSavingsCategoryId`, đồng thời lưu `savingsTransferKind = "deposit"` để UI
+đánh dấu “Đã chuyển”. Nó không thay đổi income,
+expense, net hoặc budget spent. Giao dịch này không được sửa; user có thể void để
+đảo chuyển khoản rồi thực hiện lại.
 
 ## 13. Flow thanh toán thẻ tín dụng
 
@@ -1214,6 +1257,30 @@ Runtime hiện tại đọc budget bằng `budgetsRepository`, query theo `month
 `orderBy categoryId`. `DashboardPage` ghép budget document với category metadata
 và `monthlyStats.categoryExpenseMinor` để tạo view model cho mobile/desktop.
 
+Dashboard và trang Budget hiển thị thêm chỉ số tạm tính:
+
+```text
+tiết kiệm so với kế hoạch = tổng limitMinor - tổng spentMinor
+```
+
+Phép tính chỉ bao gồm các category đã có budget trong tháng đang xem. Giá trị
+dương nghĩa là chi tiêu thấp hơn kế hoạch; giá trị âm nghĩa là tổng chi đã vượt
+kế hoạch. Chỉ số của tháng hiện tại là dữ liệu tạm tính và không tự giữ chỗ tiền
+trong wallet.
+
+Trang `/expenses/savings` hiển thị tổng tiền tiết kiệm, số dư có thể chi, danh
+sách ví `saving`, hoạt động gần đây và hai action riêng “Nạp thêm”/“Rút tiền”.
+Luồng nạp/rút yêu cầu hai ví cùng currency và ví nguồn đủ số dư; giao dịch đã tạo
+không được sửa nhưng có thể void rồi tạo lại.
+
+Trang cũng có mục “Khoản dư có thể đưa vào tiết kiệm” cho tháng trước. Mỗi
+category có `limitMinor - spentMinor > 0` được hiển thị riêng. User chọn ví nguồn
+và wallet type `saving`; app tạo transfer đúng bằng khoản dư.
+Category đã có transfer active được đánh dấu “Đã chuyển” để tránh ghi trùng. Nếu
+transfer bị void, khoản đó xuất hiện lại để user có thể thực hiện lại. Desktop
+truy cập trang này từ mục “Tiết kiệm” trên sidebar; mobile truy cập từ
+`Cài đặt > Quản lý nhanh > Tiết kiệm`.
+
 Web dashboard cho tạo/cập nhật/xóa budget ngay trong modal từ
 `BudgetOverviewCard`. Form chỉ cho chọn expense category đang active, lưu
 `limitMinor` và `alertThreshold` qua `upsertExpenseBudget()`. Nếu category đã có
@@ -1313,6 +1380,16 @@ startAfter(lastVisibleDocument)
 ```
 
 Không dùng offset vì các document bị bỏ qua vẫn làm tăng chi phí và latency.
+
+### Tóm tắt danh sách giao dịch
+
+Trang Giao dịch tính trên toàn bộ phạm vi bộ lọc hiện tại, không tính từ các
+document của trang phân trang đang mở. Với bộ lọc tháng/ngày thông thường,
+repository chạy một `count()` cho tổng số giao dịch và `sum(amountMinor)` riêng
+cho `income`, `expense`, `transfer`. Trong lúc composite index chưa sẵn sàng hoặc
+khi có category/wallet/search filter phức tạp, repository đọc tuần tự các trang
+khớp bộ lọc để giữ kết quả chính xác. Chuyển trang UI không làm thay đổi các tổng;
+transfer được trình bày độc lập và không cộng vào Thu hoặc Chi.
 
 ## 20. Search
 
@@ -1508,8 +1585,8 @@ Vai trò:
 `SettingsContent` và `UserProfileCard` được dùng chung giữa desktop/mobile.
 Desktop dùng `ExpenseSidebar` cho tài khoản và điều hướng; `ExpenseHeader` chỉ
 giữ ngữ cảnh trang, filter và thao tác thêm giao dịch. Mobile Settings giữ link
-về Personal Hub cùng các link đến Budget, Wallet và Category vì các trang này
-không nằm trong bottom nav.
+về Personal Hub cùng các link đến Budget, Savings, Wallet và Category vì các
+trang này không nằm trong bottom nav.
 
 Nhờ mapper, có thể giữ phần lớn component hiện tại trong giai đoạn migration.
 
@@ -1764,6 +1841,16 @@ Có thể thêm scheduled reconciliation để phát hiện chênh lệch mà kh
 - Transaction active có đúng field theo type.
 - Expense/income có một wallet và một category hợp lệ.
 - Transfer có hai wallet khác nhau và không có category.
+- Transfer thường không được tham chiếu wallet `saving`. Transfer tiết kiệm phải
+  có `savingsTransferKind`: `deposit` đi từ ví chi tiêu sang `saving`, còn
+  `withdrawal` đi từ `saving` sang ví chi tiêu; hai ví cùng currency và ví nguồn
+  đủ số dư.
+- Wallet `saving` không nhận expense, adjustment hoặc credit payment; chỉ nhận
+  income trực tiếp khi category là `interest`.
+- Transfer phần dư ngân sách phải có `budgetSavingsMonthKey` và
+  `budgetSavingsCategoryId`, số tiền khớp phần dư hiện tại, ví nguồn là ví thường,
+  ví đích có type `saving`, cùng currency và chưa có transfer active cho cùng
+  tháng/category.
 - Credit payment có ví nguồn không phải credit-card, ví đích là credit-card và
   không có category.
 - Adjustment có một wallet, `adjustmentDirection` hợp lệ và không có category.
@@ -1835,6 +1922,24 @@ Có thể thêm scheduled reconciliation để phát hiện chênh lệch mà kh
 - Đổi displayName cập nhật Auth, Firestore và auth store; lỗi Firestore rollback
   Auth.
 - CSV mở trong Excel đúng cột và đúng tiếng Việt.
+
+### Dữ liệu development cho Saving
+
+Khi chạy `npm run dev`, Settings hiển thị action `Tạo data 07–08/2026`. Action
+chỉ chạy với UID đang đăng nhập, tạo một ví `saving`, các giao dịch mẫu tháng
+07/2026 và 08/2026, rồi cập nhật budget theo số chi thực tế. Budget tháng 7 luôn
+có ba tình huống còn dư, một tình huống dùng hết và một tình huống vượt hạn mức
+để kiểm tra `/expenses/savings`. Mỗi transaction có marker riêng nên chạy lại sẽ
+bỏ qua giao dịch đã seed; budget được upsert để có thể chạy lại an toàn.
+Sau khi seed thành công, dashboard data và danh sách tháng được force-refresh từ
+Firestore, vì vậy `07/2026` và `08/2026` xuất hiện ngay trong các bộ chọn tháng
+mà không cần tải lại trang.
+
+Việc đồng bộ tháng không chỉ áp dụng cho seed. Sau khi tạo giao dịch hoặc sửa
+giao dịch sang một tháng lịch sử chưa có trong cache, `expenseDataStore` chèn
+`monthKey` tương ứng vào `monthOptionsByYear` của đúng user/năm. Các dropdown
+Report, Giao dịch và Chi tiêu theo danh mục vì vậy cập nhật ngay; lần tải lại sau
+vẫn đối chiếu danh sách tháng từ `monthlyStats` trên Firestore.
 
 ## 34. Acceptance criteria cho lần triển khai đầu
 
@@ -1917,6 +2022,7 @@ Implementation: Active
 Mock data removal: Financial dashboard mock data removed from runtime
 Firebase integration: Settings/categories/wallets/budgets/transactions/monthlyStats active
 Budget UI: Web budget create/update/delete modal active
+Savings UI: Dedicated `/expenses/savings` route for previous-month budget surplus transfers
 Wallet balance flow: Initial setup plus adjustment transactions active
 Credit payment flow: creditPayment transactions active
 Wallet archive rules: Default/non-zero/last-active wallet protected

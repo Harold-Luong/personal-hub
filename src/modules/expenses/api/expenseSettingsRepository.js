@@ -20,6 +20,7 @@ import {
     expenseDefaultWalletTypeId,
     expenseDefaultWalletTypeMeta,
     expenseThemeIds,
+    savingWalletTypeId,
 } from "../constants/expenseMetadata";
 import { expenseDefaultIconSet, expenseIconSetIdValues } from "../icon/iconSets";
 
@@ -552,8 +553,12 @@ export async function updateExpenseSettings(uid, settings) {
                 ),
             );
 
-            if (!walletSnapshot.exists() || walletSnapshot.data().isArchived) {
-                throw new Error("Default wallet must reference an active wallet.");
+            if (
+                !walletSnapshot.exists()
+                || walletSnapshot.data().isArchived
+                || walletSnapshot.data().type === savingWalletTypeId
+            ) {
+                throw new Error("Ví mặc định phải là ví chi tiêu đang hoạt động.");
             }
         }
 

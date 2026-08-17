@@ -35,6 +35,12 @@ export const expensePageMeta = {
         path: "/expenses/budgets",
         isRouted: true,
     },
+    savings: {
+        label: "Tiết kiệm",
+        icon: "saving",
+        path: "/expenses/savings",
+        isRouted: true,
+    },
     wallets: {
         label: "Ví tiền",
         icon: "wallet",
@@ -126,13 +132,21 @@ export const expenseThemeIds = expenseThemeOptions.map((themeOption) => themeOpt
 export const expenseDefaultTheme = expenseThemeOptions[0].id;
 
 export const creditCardWalletTypeId = "credit-card";
+export const savingWalletTypeId = "saving";
+
+export const savingsTransferKinds = Object.freeze({
+    DEPOSIT: "deposit",
+    WITHDRAWAL: "withdrawal",
+});
+
+export const savingsTransferKindIds = Object.values(savingsTransferKinds);
 
 export const walletTypeOptions = [
     { id: "cash", label: "Tiền mặt", icon: "cash", color: "#56b879" },
     { id: "bank", label: "Ngân hàng", icon: "bank", color: "#4f93d7" },
     { id: "eWallet", label: "Ví điện tử", icon: "digital-wallet", color: "#d77fa1" },
     { id: creditCardWalletTypeId, label: "Thẻ tín dụng", icon: "card", color: "#9b7bd8" },
-    { id: "saving", label: "Tiết kiệm", icon: "saving", color: "#d9a441" },
+    { id: savingWalletTypeId, label: "Tiết kiệm", icon: "saving", color: "#d9a441" },
     { id: "other", label: "Khác", icon: "more", color: "#b8bec8" },
 ];
 
@@ -245,7 +259,7 @@ export const expenseSummaryItems = [
     },
     {
         id: "saving",
-        label: "Tiết kiệm",
+        label: "Tiết kiệm thực tế",
         tone: "warning",
         icon: "saving",
     },

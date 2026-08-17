@@ -63,7 +63,24 @@ export function calculateMonthlyBudgetTotals(budgets = []) {
     return {
         ...totals,
         percentage: calculatePercentage(totals.spent, totals.limit),
+        savingsVsPlan: totals.limit - totals.spent,
     };
+}
+
+// Lay cac danh muc cua thang truoc con du ngan sach de nguoi dung can nhac dua vao tiet kiem.
+export function getBudgetSavingsCandidates(budgets = []) {
+    return budgets
+        .map((budget) => {
+            const limit = Math.max(toSafeNumber(budget?.limit), 0);
+            const spent = Math.max(toSafeNumber(budget?.amount), 0);
+
+            return {
+                ...budget,
+                savingsAmount: limit - spent,
+            };
+        })
+        .filter((budget) => budget.savingsAmount > 0)
+        .sort((firstBudget, secondBudget) => secondBudget.savingsAmount - firstBudget.savingsAmount);
 }
 
 // Chuan hoa so tien giao dich: thu nhap la so duong, chi tieu/chuyen khoan la so am.

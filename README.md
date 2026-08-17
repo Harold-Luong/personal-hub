@@ -55,6 +55,8 @@ Personal Hub đưa người dùng về một màn hình chung sau đăng nhập.
 
 - Thiết lập ngân sách cho từng danh mục theo tháng.
 - Theo dõi số đã chi, số còn lại và trạng thái cảnh báo hoặc vượt ngân sách.
+- Quản lý ví tiết kiệm được bảo vệ bằng luồng Nạp/Rút riêng, lịch sử gần đây và
+  chuyển phần dư ngân sách tháng trước vào tiết kiệm.
 - Xem tỷ trọng chi tiêu bằng donut chart và mở danh sách giao dịch của từng danh mục.
 - Sắp xếp, ẩn/hiện và chọn danh mục mặc định.
 
@@ -146,6 +148,7 @@ src/
 | `/expenses/category-spending` | Chi tiêu theo danh mục |
 | `/expenses/report` | Báo cáo |
 | `/expenses/budgets` | Ngân sách |
+| `/expenses/savings` | Tổng quan ví tiết kiệm, Nạp/Rút và phần dư ngân sách |
 | `/expenses/wallets` | Ví tiền |
 | `/expenses/settings` | Cài đặt |
 | `/quotes` | Trang quote fullscreen của Lặng |

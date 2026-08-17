@@ -4,7 +4,7 @@ import { expenseCollections } from "./expenseFirestoreSchema";
 import { getCollectionReference, getDocumentReference } from "./getReference";
 import { toPositiveInteger } from "../utils/formatNumber";
 
-function getBudgetDocumentId(monthKey, categoryId) {
+export function getBudgetDocumentId(monthKey, categoryId) {
     if (!monthKey) {
         throw new Error("A month key is required.");
     }

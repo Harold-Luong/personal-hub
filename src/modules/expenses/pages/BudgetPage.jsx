@@ -25,11 +25,14 @@ function getFirstEditableCategoryId(categories, budgets) {
     return categoryWithoutBudget?.id ?? budgets[0]?.categoryId ?? categories[0]?.id ?? "";
 }
 
-function getBudgetRowMeta(budget, selectedCategoryId) {
+function getBudgetRowMeta(budget, selectedCategoryId, spendingDays) {
     const status = getBudgetUsageStatus(budget);
+    const remaining = budget.limit - budget.amount;
 
     return {
+        dailyBudget: remaining > 0 && spendingDays > 0 ? Math.floor(remaining / spendingDays) : 0,
         isSelected: selectedCategoryId === budget.categoryId,
+        remaining,
         status,
         statusColor: budgetStatusColors[status] ?? budget.color ?? DEFAULT_BUDGET_COLOR,
         usagePercentage: calculateBudgetUsagePercentage(budget),
@@ -49,7 +52,7 @@ function getSummaryMeta(totals) {
     return {
         hasBudgetLimit: totals.limit > 0,
         progress: `${Math.min(Math.max(totals.percentage, 0), 100)}%`,
-        remaining: totals.limit - totals.spent,
+        savingsVsPlan: totals.savingsVsPlan,
         status,
         statusColor: budgetStatusColors[status] ?? DEFAULT_BUDGET_COLOR,
     };
@@ -68,10 +71,11 @@ function getMonthTiming(monthKey) {
     const remainingDays = isCurrentMonth
         ? Math.max(daysInMonth - now.getDate(), 0)
         : monthDate > currentMonthDate
-          ? daysInMonth
-          : 0;
+            ? daysInMonth
+            : 0;
+    const spendingDays = isCurrentMonth ? remainingDays + 1 : remainingDays;
 
-    return { remainingDays };
+    return { remainingDays, spendingDays };
 }
 
 function BudgetMobileHeader({ monthKey, monthLabel, onBack }) {
@@ -90,7 +94,7 @@ function BudgetMobileHeader({ monthKey, monthLabel, onBack }) {
 }
 
 function BudgetSummary({ budgetCount, totals }) {
-    const { hasBudgetLimit, progress, remaining, status, statusColor } = getSummaryMeta(totals);
+    const { hasBudgetLimit, progress, savingsVsPlan, status, statusColor } = getSummaryMeta(totals);
 
     return (
         <section
@@ -100,7 +104,7 @@ function BudgetSummary({ budgetCount, totals }) {
             <div className="budget-page__summary-top">
                 <div>
                     <span>Ngân sách tháng <strong>{budgetStatusLabels[status]}</strong></span>
-                    
+
                 </div>
                 <span className="budget-page__summary-badge">{budgetCount} danh mục</span>
             </div>
@@ -110,11 +114,15 @@ function BudgetSummary({ budgetCount, totals }) {
                     <span>{totals.percentage}%</span>
                 </div>
                 <div className="budget-page__summary-copy">
-                    <span>{remaining >= 0 ? "Còn có thể chi" : "Đã vượt"}</span>
+                    <span>Tiết kiệm so với kế hoạch</span>
                     <strong>
-                        <AmountText amount={Math.abs(remaining)} />
+                        <AmountText amount={savingsVsPlan} />
                     </strong>
-                    <small>{hasBudgetLimit ? "Theo hạn mức đã đặt cho tháng này" : "Chưa có hạn mức để theo dõi"}</small>
+                    <small>
+                        {hasBudgetLimit
+                            ? "Tạm tính trên các danh mục đã đặt ngân sách"
+                            : "Chưa có hạn mức để theo dõi"}
+                    </small>
                 </div>
             </div>
 
@@ -138,10 +146,8 @@ function BudgetSummary({ budgetCount, totals }) {
     );
 }
 
-function DesktopBudgetSummary({ monthKey, totals }) {
-    const { progress, remaining, status } = getSummaryMeta(totals);
-    const { remainingDays } = getMonthTiming(monthKey);
-    const dailyBudget = remaining > 0 && remainingDays > 0 ? Math.floor(remaining / remainingDays) : 0;
+function DesktopBudgetSummary({ remainingDays, totals }) {
+    const { progress, savingsVsPlan, status } = getSummaryMeta(totals);
 
     return (
         <section
@@ -164,16 +170,19 @@ function DesktopBudgetSummary({ monthKey, totals }) {
                 <span>đã sử dụng</span>
             </div>
             <div className="budget-page__summary-remaining">
-                <span>{remaining >= 0 ? "Còn lại" : "Đã vượt"}</span>
-                <strong><AmountText amount={Math.abs(remaining)} /></strong>
-                <p>{remaining >= 0 ? "Bạn còn có thể chi trong tháng này" : "Ngân sách tháng đã vượt hạn mức"}</p>
+                <span>Tiết kiệm so với kế hoạch</span>
+                <strong><AmountText amount={savingsVsPlan} /></strong>
+                <p>
+                    {savingsVsPlan >= 0
+                        ? "Chi tiêu đang thấp hơn tổng hạn mức đã đặt"
+                        : "Chi tiêu đang cao hơn tổng hạn mức đã đặt"}
+                </p>
                 <div className="budget-page__daily-budget">
                     <ExpenseIcon bare icon="calendar" label="Thời gian còn lại" size={20} />
                     <span>
                         <strong>Còn {remainingDays} ngày nữa trong tháng</strong>
-                        <small>Chi tiêu bình quân mỗi ngày</small>
+                        <small>Mức có thể chi mỗi ngày được tính riêng theo từng danh mục</small>
                     </span>
-                    <b><AmountText amount={dailyBudget} /></b>
                 </div>
             </div>
         </section>
@@ -231,8 +240,23 @@ function BudgetRowIcon({ budget }) {
     return <ExpenseIcon color={budget.color} icon={budget.icon} label={budget.category} />;
 }
 
-function DesktopBudgetRow({ budget, isSelected, onSelect, status, statusColor, usagePercentage }) {
-    const remaining = budget.limit - budget.amount;
+function BudgetDailyAllowance({ dailyBudget, remaining, spendingDays }) {
+    if (spendingDays <= 0) {
+        return <small className="budget-item-row__daily">Tháng đã kết thúc</small>;
+    }
+
+    if (remaining <= 0) {
+        return <small className="budget-item-row__daily">Không còn mức chi</small>;
+    }
+
+    return (
+        <small className="budget-item-row__daily">
+            Có thể chi <AmountText amount={dailyBudget} />/ngày
+        </small>
+    );
+}
+
+function DesktopBudgetRow({ budget, dailyBudget, isSelected, onSelect, remaining, spendingDays, status, statusColor, usagePercentage }) {
 
     return (
         <button
@@ -264,6 +288,7 @@ function DesktopBudgetRow({ budget, isSelected, onSelect, status, statusColor, u
             <span className="budget-item-row__remaining">
                 <small>{remaining >= 0 ? "Còn lại" : "Đã vượt"}</small>
                 <strong><AmountText amount={Math.abs(remaining)} /></strong>
+                <BudgetDailyAllowance dailyBudget={dailyBudget} remaining={remaining} spendingDays={spendingDays} />
             </span>
             <span className="budget-item-row__chevron" aria-hidden="true">
                 <ExpenseIcon bare icon="chevron-right" size={20} />
@@ -272,10 +297,9 @@ function DesktopBudgetRow({ budget, isSelected, onSelect, status, statusColor, u
     );
 }
 
-function MobileBudgetRow({ budget, isSelected, onSelect, status, statusColor, usagePercentage }) {
-    const rowClassName = `budget-item-row budget-item-row--compact budget-item-row--${status}${
-        isSelected ? " is-selected" : ""
-    }`;
+function MobileBudgetRow({ budget, dailyBudget, isSelected, onSelect, remaining, spendingDays, status, statusColor, usagePercentage }) {
+    const rowClassName = `budget-item-row budget-item-row--compact budget-item-row--${status}${isSelected ? " is-selected" : ""
+        }`;
 
     return (
         <button
@@ -295,6 +319,7 @@ function MobileBudgetRow({ budget, isSelected, onSelect, status, statusColor, us
                         <small> / </small>
                         <AmountText amount={budget.limit} />
                     </span>
+                    <BudgetDailyAllowance dailyBudget={dailyBudget} remaining={remaining} spendingDays={spendingDays} />
                 </span>
                 <ProgressBar color={statusColor} max={budget.limit} value={budget.amount} />
             </span>
@@ -303,11 +328,11 @@ function MobileBudgetRow({ budget, isSelected, onSelect, status, statusColor, us
     );
 }
 
-function BudgetRow({ budget, isDesktopMode, onSelect, selectedCategoryId }) {
-    const rowMeta = getBudgetRowMeta(budget, selectedCategoryId);
+function BudgetRow({ budget, isDesktopMode, onSelect, selectedCategoryId, spendingDays }) {
+    const rowMeta = getBudgetRowMeta(budget, selectedCategoryId, spendingDays);
     const RowComponent = isDesktopMode ? DesktopBudgetRow : MobileBudgetRow;
 
-    return <RowComponent budget={budget} onSelect={onSelect} {...rowMeta} />;
+    return <RowComponent budget={budget} onSelect={onSelect} spendingDays={spendingDays} {...rowMeta} />;
 }
 
 function BudgetEmptyState({ onCreate }) {
@@ -322,7 +347,7 @@ function BudgetEmptyState({ onCreate }) {
     );
 }
 
-function BudgetList({ budgets, isDesktopMode, onCreate, onSelect, selectedCategoryId }) {
+function BudgetList({ budgets, isDesktopMode, onCreate, onSelect, selectedCategoryId, spendingDays }) {
     if (!budgets.length) {
         return <BudgetEmptyState onCreate={onCreate} />;
     }
@@ -336,6 +361,7 @@ function BudgetList({ budgets, isDesktopMode, onCreate, onSelect, selectedCatego
                     key={budget.id ?? budget.categoryId}
                     onSelect={onSelect}
                     selectedCategoryId={selectedCategoryId}
+                    spendingDays={spendingDays}
                 />
             ))}
         </div>
@@ -409,6 +435,7 @@ export default function BudgetPage({
             ? "budget-page__workspace budget-page__workspace--with-editor"
             : "budget-page__workspace";
     const totals = calculateMonthlyBudgetTotals(budgets);
+    const { remainingDays, spendingDays } = getMonthTiming(monthKey);
     const hasCategoryWithoutBudget = expenseCategories.some(
         (category) => !budgets.some((budget) => budget.categoryId === category.id),
     );
@@ -446,7 +473,7 @@ export default function BudgetPage({
 
             {isDesktopMode ? (
                 <>
-                    <DesktopBudgetSummary monthKey={monthKey} totals={totals} />
+                    <DesktopBudgetSummary remainingDays={remainingDays} totals={totals} />
                     <BudgetStatusOverview budgets={budgets} />
                 </>
             ) : (
@@ -467,6 +494,7 @@ export default function BudgetPage({
                         onCreate={openCreateForm}
                         onSelect={openEditForm}
                         selectedCategoryId={selectedCategoryId}
+                        spendingDays={spendingDays}
                     />
                 </section>
 
@@ -495,6 +523,7 @@ export default function BudgetPage({
                     onSubmit={handleSaveBudget}
                 />
             ) : null}
+
         </PageElement>
     );
 }

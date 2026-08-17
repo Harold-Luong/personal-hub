@@ -1,6 +1,8 @@
 import {
     Timestamp,
+    count,
     doc,
+    getAggregateFromServer,
     getDocsFromCache,
     getDocsFromServer,
     limit,
@@ -10,22 +12,31 @@ import {
     runTransaction,
     serverTimestamp,
     startAfter,
+    sum,
     where,
 } from "firebase/firestore";
 import { firestore } from "../../../lib/firebase/firestore";
 import { expenseCollections } from "./expenseFirestoreSchema";
+import { getBudgetDocumentId } from "./budgetsRepository";
 import { getCollectionReference, getDocumentReference } from "./getReference";
 import {
     expenseDefaultCurrency,
     expenseDefaultLocale,
     expenseDefaultTimezone,
     expenseMaxSearchTokens,
+    savingsTransferKindIds,
+    savingsTransferKinds,
     transactionDefaultPageSize,
     transactionMaxPageSize,
+    transactionSummaryTypeIds,
     transactionTypeIds,
     transactionTypes,
 } from "../constants/expenseMetadata";
 import { expenseFilterValues } from "../constants/expenseUiMetadata";
+import {
+    getSavingsTransferValidationError,
+    isSavingWallet,
+} from "../utils/savingsUtils";
 import { getWalletDisplayName, isCreditCardWallet } from "../utils/walletUtils";
 
 function normalizeText(value) {
@@ -153,7 +164,15 @@ function getWalletProjectionUpdate(wallet, balanceDelta) {
     };
 }
 
-function assertWalletSupportsTransactionType(wallet, transactionType, label = "Wallet") {
+function assertWalletSupportsTransactionType(wallet, transactionType, label = "Wallet", categoryId = null) {
+    if (isSavingWallet(wallet)) {
+        if (transactionType === transactionTypes.INCOME && categoryId === "interest") {
+            return;
+        }
+
+        throw new Error(`${label} là ví Tiết kiệm. Ví này chỉ nhận lãi hoặc dùng qua luồng Nạp/Rút tiền tiết kiệm.`);
+    }
+
     if (!isCreditCardWallet(wallet)) {
         return;
     }
@@ -166,12 +185,28 @@ function assertWalletSupportsTransactionType(wallet, transactionType, label = "W
 }
 
 function assertCreditPaymentWallets(fromWallet, toWallet) {
-    if (isCreditCardWallet(fromWallet)) {
-        throw new Error("Ví thanh toán không được là thẻ tín dụng.");
+    if (isCreditCardWallet(fromWallet) || isSavingWallet(fromWallet)) {
+        throw new Error("Ví thanh toán phải là ví chi tiêu, không phải thẻ tín dụng hoặc ví Tiết kiệm.");
     }
 
     if (!isCreditCardWallet(toWallet)) {
         throw new Error("Ví nhận thanh toán phải là thẻ tín dụng.");
+    }
+}
+
+function assertSavingsTransferWallets(fromWallet, toWallet, savingsTransferKind, amountMinor) {
+    const validationError = getSavingsTransferValidationError({
+        fromWallet,
+        kind: savingsTransferKind,
+        toWallet,
+    });
+
+    if (validationError) {
+        throw new Error(validationError);
+    }
+
+    if (savingsTransferKind && (fromWallet.balance ?? 0) < amountMinor) {
+        throw new Error("Số dư ví nguồn không đủ để thực hiện giao dịch tiết kiệm.");
     }
 }
 
@@ -224,6 +259,64 @@ function isAdjustmentIncrease(data) {
     return data.adjustmentDirection === "increase";
 }
 
+function getBudgetSavingsMetadata(input) {
+    const hasMetadata = Boolean(
+        input
+        && (
+            Object.hasOwn(input, "budgetSavingsMonthKey")
+            || Object.hasOwn(input, "budgetSavingsCategoryId")
+        ),
+    );
+    const sourceMonthKey = typeof input?.budgetSavingsMonthKey === "string"
+        ? input.budgetSavingsMonthKey.trim()
+        : "";
+    const categoryId = typeof input?.budgetSavingsCategoryId === "string"
+        ? input.budgetSavingsCategoryId.trim()
+        : "";
+
+    if (!hasMetadata) {
+        return {};
+    }
+
+    if (input.type !== transactionTypes.TRANSFER || !sourceMonthKey || !categoryId) {
+        throw new Error("Budget savings metadata requires a transfer, source month, and category.");
+    }
+
+    return {
+        budgetSavingsMonthKey: sourceMonthKey,
+        budgetSavingsCategoryId: categoryId,
+    };
+}
+
+function getSavingsTransferMetadata(input, budgetSavingsMetadata = getBudgetSavingsMetadata(input)) {
+    const hasMetadata = Boolean(input && Object.hasOwn(input, "savingsTransferKind"));
+    const kind = typeof input?.savingsTransferKind === "string"
+        ? input.savingsTransferKind.trim()
+        : "";
+
+    if (budgetSavingsMetadata.budgetSavingsMonthKey) {
+        if (hasMetadata && kind !== savingsTransferKinds.DEPOSIT) {
+            throw new Error("Khoản dư ngân sách chỉ có thể là giao dịch nạp tiền tiết kiệm.");
+        }
+
+        return {
+            savingsTransferKind: savingsTransferKinds.DEPOSIT,
+        };
+    }
+
+    if (!hasMetadata) {
+        return {};
+    }
+
+    if (input.type !== transactionTypes.TRANSFER || !savingsTransferKindIds.includes(kind)) {
+        throw new Error("Savings transfer metadata requires a valid transfer kind.");
+    }
+
+    return {
+        savingsTransferKind: kind,
+    };
+}
+
 function getSignedAmount(data) {
     if (data.type === transactionTypes.INCOME) {
         return data.amountMinor;
@@ -266,6 +359,9 @@ function mapTransactionData(id, data) {
         amount: getSignedAmount(data),
         amountMinor: data.amountMinor,
         adjustmentDirection: data.adjustmentDirection,
+        budgetSavingsCategoryId: data.budgetSavingsCategoryId,
+        budgetSavingsMonthKey: data.budgetSavingsMonthKey,
+        savingsTransferKind: data.savingsTransferKind,
         category: data.categoryId ?? data.type,
         categoryId: data.categoryId,
         categoryColor: data.categorySnapshot?.color ?? data.walletSnapshot?.color ?? "",
@@ -287,9 +383,15 @@ function mapTransactionData(id, data) {
         time: time,
         wallet: walletIcon,
         walletId: data.walletId,
+        walletIds: data.walletIds ?? [],
         walletName: walletName,
         fromWalletId: data.fromWalletId,
         fromWalletName: fromWalletName,
+        involvesSavingWallet: Boolean(
+            isSavingWallet(data.walletSnapshot)
+            || isSavingWallet(data.fromWalletSnapshot)
+            || isSavingWallet(data.toWalletSnapshot)
+        ),
         toWalletId: data.toWalletId,
         toWalletName: toWalletName,
         note: data.note ?? "",
@@ -453,6 +555,8 @@ function createTransactionDataFromInput({
     const note = input.note?.trim() ?? "";
     const occurredAt = getOccurrence(input.date, input.time);
     const monthKey = input.date.slice(0, 7);
+    const budgetSavingsMetadata = getBudgetSavingsMetadata(input);
+    const savingsTransferMetadata = getSavingsTransferMetadata(input, budgetSavingsMetadata);
 
     if (!title) {
         throw new Error("Transaction title is required.");
@@ -497,8 +601,12 @@ function createTransactionDataFromInput({
         if (input.fromWalletId === input.toWalletId) {
             throw new Error("Transfer wallets must be different.");
         }
-        assertWalletSupportsTransactionType(fromWallet, input.type, "Source wallet");
-        assertWalletSupportsTransactionType(toWallet, input.type, "Destination wallet");
+        assertSavingsTransferWallets(
+            fromWallet,
+            toWallet,
+            savingsTransferMetadata.savingsTransferKind,
+            amountMinor,
+        );
 
         return {
             type: input.type,
@@ -523,6 +631,8 @@ function createTransactionDataFromInput({
             walletSnapshot: null,
             fromWalletSnapshot: getWalletSnapshot(fromWallet),
             toWalletSnapshot: getWalletSnapshot(toWallet),
+            ...budgetSavingsMetadata,
+            ...savingsTransferMetadata,
             status: "active",
             createdAt,
             updatedAt: timestamp,
@@ -569,7 +679,7 @@ function createTransactionDataFromInput({
     if ((category.type ?? transactionTypes.EXPENSE) !== input.type) {
         throw new Error("Transaction category does not match its type.");
     }
-    assertWalletSupportsTransactionType(wallet, input.type);
+    assertWalletSupportsTransactionType(wallet, input.type, "Wallet", input.categoryId);
 
     return {
         type: input.type,
@@ -601,18 +711,15 @@ function createTransactionDataFromInput({
     };
 }
 
-function createExpenseTransactionsPageQuery(uid, options = {}) {
+function createExpenseTransactionFilterConstraints(options = {}) {
     const {
         categoryId = expenseFilterValues.ALL,
-        cursor = null,
         date = "",
         monthKey = expenseFilterValues.ALL,
-        pageSize = transactionDefaultPageSize,
         searchTerm = "",
         type = expenseFilterValues.ALL,
         walletId = expenseFilterValues.ALL,
     } = options;
-    const normalizedPageSize = getPageSize(pageSize);
     const searchToken = getSearchQueryToken(searchTerm);
     const queryConstraints = [
         where("status", "==", "active"),
@@ -650,6 +757,17 @@ function createExpenseTransactionsPageQuery(uid, options = {}) {
     if (hasSearchTerm) {
         queryConstraints.push(where("searchTokens", "array-contains", searchToken));
     }
+
+    return queryConstraints;
+}
+
+function createExpenseTransactionsPageQuery(uid, options = {}) {
+    const {
+        cursor = null,
+        pageSize = transactionDefaultPageSize,
+    } = options;
+    const normalizedPageSize = getPageSize(pageSize);
+    const queryConstraints = createExpenseTransactionFilterConstraints(options);
 
     queryConstraints.push(orderBy("occurredAt", "desc"));
 
@@ -693,6 +811,95 @@ export async function getExpenseTransactionsPage(uid, options = {}) {
     return readExpenseTransactionsPage(uid, options, getDocsFromServer);
 }
 
+function getEmptyTransactionSummary() {
+    return {
+        count: 0,
+        [transactionTypes.EXPENSE]: 0,
+        [transactionTypes.INCOME]: 0,
+        [transactionTypes.TRANSFER]: 0,
+    };
+}
+
+async function getExpenseTransactionsSummaryFromPages(uid, options) {
+    const summary = getEmptyTransactionSummary();
+    let cursor = null;
+    let hasNextPage = true;
+
+    while (hasNextPage) {
+        const page = await getExpenseTransactionsPage(uid, {
+            ...options,
+            cursor,
+            pageSize: transactionMaxPageSize,
+        });
+
+        page.transactions.forEach((transaction) => {
+            summary.count += 1;
+
+            if (transactionSummaryTypeIds.includes(transaction.type)) {
+                summary[transaction.type] += transaction.amountMinor ?? Math.abs(transaction.amount ?? 0);
+            }
+        });
+        cursor = page.cursor;
+        hasNextPage = page.hasNextPage;
+    }
+
+    return summary;
+}
+
+async function getExpenseTransactionsAggregateSummary(uid, options) {
+    const selectedType = options.type ?? expenseFilterValues.ALL;
+    const countQuery = query(
+        getCollectionReference(uid, expenseCollections.TRANSACTIONS),
+        ...createExpenseTransactionFilterConstraints(options),
+    );
+    const includedTypes = transactionSummaryTypeIds.filter(
+        (type) => selectedType === expenseFilterValues.ALL || selectedType === type,
+    );
+    const [countSnapshot, typeTotals] = await Promise.all([
+        getAggregateFromServer(countQuery, { value: count() }),
+        Promise.all(
+            includedTypes.map(async (type) => {
+                const typeQuery = query(
+                    getCollectionReference(uid, expenseCollections.TRANSACTIONS),
+                    ...createExpenseTransactionFilterConstraints({ ...options, type }),
+                );
+                const snapshot = await getAggregateFromServer(typeQuery, {
+                    amountMinor: sum("amountMinor"),
+                });
+
+                return [type, snapshot.data().amountMinor ?? 0];
+            }),
+        ),
+    ]);
+
+    return {
+        ...getEmptyTransactionSummary(),
+        count: countSnapshot.data().value ?? 0,
+        ...Object.fromEntries(typeTotals),
+    };
+}
+
+export async function getExpenseTransactionsSummary(uid, options = {}) {
+    const hasComplexFilter =
+        isActiveFilterValue(options.categoryId)
+        || isActiveFilterValue(options.walletId)
+        || Boolean(getSearchQueryToken(options.searchTerm));
+
+    if (hasComplexFilter) {
+        return getExpenseTransactionsSummaryFromPages(uid, options);
+    }
+
+    try {
+        return await getExpenseTransactionsAggregateSummary(uid, options);
+    } catch (error) {
+        if (error?.code === "failed-precondition") {
+            return getExpenseTransactionsSummaryFromPages(uid, options);
+        }
+
+        throw error;
+    }
+}
+
 export async function getExpenseTransactions(uid, maxTransactions = 50) {
     const { transactions } = await getExpenseTransactionsPage(uid, {
         pageSize: getPageSize(maxTransactions),
@@ -719,9 +926,43 @@ export async function getAllExpenseTransactions(uid) {
     return transactions;
 }
 
+export async function getExpenseBudgetSavingsTransfers(uid, sourceMonthKey) {
+    if (!sourceMonthKey) {
+        return [];
+    }
+
+    const transfersQuery = query(
+        getCollectionReference(uid, expenseCollections.TRANSACTIONS),
+        where("budgetSavingsMonthKey", "==", sourceMonthKey),
+    );
+    const snapshot = await getDocsFromServer(transfersQuery);
+
+    return snapshot.docs
+        .map(mapTransactionSnapshot)
+        .filter((transaction) => transaction.status === "active");
+}
+
 export async function createExpenseTransaction(uid, input) {
     if (!transactionTypeIds.includes(input?.type)) {
         throw new Error("Unsupported transaction type.");
+    }
+
+    const budgetSavingsMetadata = getBudgetSavingsMetadata(input);
+    const savingsTransferMetadata = getSavingsTransferMetadata(input, budgetSavingsMetadata);
+
+    if (budgetSavingsMetadata.budgetSavingsMonthKey) {
+        const existingTransfers = await getExpenseBudgetSavingsTransfers(
+            uid,
+            budgetSavingsMetadata.budgetSavingsMonthKey,
+        );
+        const hasExistingTransfer = existingTransfers.some(
+            (transaction) =>
+                transaction.budgetSavingsCategoryId === budgetSavingsMetadata.budgetSavingsCategoryId,
+        );
+
+        if (hasExistingTransfer) {
+            throw new Error("Khoản dư của danh mục này đã được đưa vào tiết kiệm.");
+        }
     }
 
     const transactionRef = doc(
@@ -745,6 +986,45 @@ export async function createExpenseTransaction(uid, input) {
             expenseCollections.MONTHLY_STATS,
             monthKey,
         );
+        if (budgetSavingsMetadata.budgetSavingsMonthKey) {
+            const sourceBudgetRef = getDocumentReference(
+                uid,
+                expenseCollections.BUDGETS,
+                getBudgetDocumentId(
+                    budgetSavingsMetadata.budgetSavingsMonthKey,
+                    budgetSavingsMetadata.budgetSavingsCategoryId,
+                ),
+            );
+            const sourceMonthlyStatsRef = getDocumentReference(
+                uid,
+                expenseCollections.MONTHLY_STATS,
+                budgetSavingsMetadata.budgetSavingsMonthKey,
+            );
+            const [sourceBudgetSnapshot, sourceMonthlyStatsSnapshot] = await Promise.all([
+                firestoreTransaction.get(sourceBudgetRef),
+                firestoreTransaction.get(sourceMonthlyStatsRef),
+            ]);
+
+            if (!sourceBudgetSnapshot.exists()) {
+                throw new Error("Ngân sách nguồn không còn tồn tại.");
+            }
+
+            const sourceBudget = sourceBudgetSnapshot.data();
+            const sourceMonthlyStats = sourceMonthlyStatsSnapshot.data() ?? {};
+            const sourceLimit = Number(sourceBudget.limitMinor ?? sourceBudget.limit ?? 0);
+            const sourceSpent = Number(
+                sourceMonthlyStats.categoryExpenseMinor?.[budgetSavingsMetadata.budgetSavingsCategoryId] ?? 0,
+            );
+            const expectedSavingsAmount = sourceLimit - sourceSpent;
+
+            if (
+                !Number.isSafeInteger(expectedSavingsAmount)
+                || expectedSavingsAmount <= 0
+                || amountMinor !== expectedSavingsAmount
+            ) {
+                throw new Error("Khoản dư ngân sách đã thay đổi. Vui lòng tải lại trang.");
+            }
+        }
         let nextMonthlyStats;
         let transactionData;
 
@@ -838,8 +1118,12 @@ export async function createExpenseTransaction(uid, input) {
             if (input.type === transactionTypes.CREDIT_PAYMENT) {
                 assertCreditPaymentWallets(fromWallet, toWallet);
             } else {
-                assertWalletSupportsTransactionType(fromWallet, input.type, "Source wallet");
-                assertWalletSupportsTransactionType(toWallet, input.type, "Destination wallet");
+                assertSavingsTransferWallets(
+                    fromWallet,
+                    toWallet,
+                    savingsTransferMetadata.savingsTransferKind,
+                    amountMinor,
+                );
             }
             const fromWalletProjectionUpdate = getWalletProjectionUpdate(fromWallet, -amountMinor);
             const toWalletProjectionUpdate = getWalletProjectionUpdate(toWallet, amountMinor);
@@ -865,6 +1149,8 @@ export async function createExpenseTransaction(uid, input) {
                 walletSnapshot: null,
                 fromWalletSnapshot: getWalletSnapshot(fromWallet),
                 toWalletSnapshot: getWalletSnapshot(toWallet),
+                ...budgetSavingsMetadata,
+                ...savingsTransferMetadata,
                 status: "active",
                 createdAt: timestamp,
                 updatedAt: timestamp,
@@ -922,7 +1208,7 @@ export async function createExpenseTransaction(uid, input) {
 
             const balanceDelta =
                 input.type === transactionTypes.INCOME ? amountMinor : -amountMinor;
-            assertWalletSupportsTransactionType(wallet, input.type);
+            assertWalletSupportsTransactionType(wallet, input.type, "Wallet", input.categoryId);
             const walletProjectionUpdate = getWalletProjectionUpdate(wallet, balanceDelta);
 
             transactionData = {
@@ -987,6 +1273,19 @@ export async function updateExpenseTransaction(uid, transactionId, input) {
         throw new Error("Unsupported transaction type.");
     }
 
+    const inputBudgetSavingsMetadata = getBudgetSavingsMetadata(input);
+    const inputSavingsTransferMetadata = getSavingsTransferMetadata(
+        input,
+        inputBudgetSavingsMetadata,
+    );
+
+    if (
+        inputBudgetSavingsMetadata.budgetSavingsMonthKey
+        || inputSavingsTransferMetadata.savingsTransferKind
+    ) {
+        throw new Error("Giao dịch Nạp/Rút tiền tiết kiệm không thể chỉnh sửa. Hãy hủy giao dịch và tạo lại.");
+    }
+
     const transactionRef = getDocumentReference(
         uid,
         expenseCollections.TRANSACTIONS,
@@ -1005,6 +1304,14 @@ export async function updateExpenseTransaction(uid, transactionId, input) {
 
         if (currentTransactionData.status !== "active") {
             throw new Error("Only active transactions can be updated.");
+        }
+        if (
+            currentTransactionData.budgetSavingsMonthKey
+            || currentTransactionData.savingsTransferKind
+            || isSavingWallet(currentTransactionData.fromWalletSnapshot)
+            || isSavingWallet(currentTransactionData.toWalletSnapshot)
+        ) {
+            throw new Error("Giao dịch Nạp/Rút tiền tiết kiệm không thể chỉnh sửa. Hãy hủy giao dịch và tạo lại.");
         }
 
         let wallet;
@@ -1071,6 +1378,7 @@ export async function updateExpenseTransaction(uid, transactionId, input) {
             fromWallet,
             toWallet,
         });
+
         const affectedMonthKeys = [
             ...new Set([
                 transactionAffectsMonthlyStats(currentTransactionData) ? currentTransactionData.monthKey : null,
@@ -1264,6 +1572,8 @@ export async function voidExpenseTransaction(uid, transactionId) {
                 }
                 : {},
             transactionId,
+            budgetSavingsCategoryId: transactionData.budgetSavingsCategoryId,
+            budgetSavingsMonthKey: transactionData.budgetSavingsMonthKey,
             walletBalanceUpdates,
         };
     });
