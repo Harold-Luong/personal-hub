@@ -1,5 +1,6 @@
 import { useState } from "react";
 import BudgetForm from "../components/budget/BudgetForm";
+import CopyBudgetsForm from "../components/budget/CopyBudgetsForm";
 import MobileBudgetFormSheet from "../components/budget/MobileBudgetFormSheet";
 import MobilePageHeader from "../components/mobile/MobilePageHeader";
 import AmountText from "../components/shared/AmountText";
@@ -216,22 +217,25 @@ function BudgetStatusOverview({ budgets }) {
     );
 }
 
-function BudgetSectionHeading({ budgetCount, hasCategoryWithoutBudget, isDesktopMode, onCreate }) {
+function BudgetSectionHeading({ budgetCount, hasCategoryWithoutBudget, isDesktopMode, onCopy, onCreate }) {
     return (
         <div className="budget-page__section-heading">
             <div>
                 <h2>Danh mục ngân sách</h2>
                 <p>{budgetCount} hạn mức trong tháng này</p>
             </div>
-            <button onClick={onCreate} type="button">
-                {isDesktopMode ? <ExpenseIcon bare icon="add" size={18} /> : null}
-                {hasCategoryWithoutBudget ? "Tạo ngân sách" : "Sửa ngân sách"}
-            </button>
-            {isDesktopMode ? (
-                <button className="budget-page__filter" type="button" aria-label="Lọc danh mục ngân sách">
-                    <ExpenseIcon bare icon="filter" size={18} />
+            <span className="budget-page__section-actions">
+                {onCopy ? <button aria-haspopup="dialog" onClick={onCopy} type="button">Sao chép ngân sách</button> : null}
+                <button onClick={onCreate} type="button">
+                    {isDesktopMode ? <ExpenseIcon bare icon="add" size={18} /> : null}
+                    {budgetCount === 0 || hasCategoryWithoutBudget ? "Tạo ngân sách" : "Sửa ngân sách"}
                 </button>
-            ) : null}
+                {isDesktopMode ? (
+                    <button className="budget-page__filter" type="button" aria-label="Lọc danh mục ngân sách">
+                        <ExpenseIcon bare icon="filter" size={18} />
+                    </button>
+                ) : null}
+            </span>
         </div>
     );
 }
@@ -335,21 +339,18 @@ function BudgetRow({ budget, isDesktopMode, onSelect, selectedCategoryId, spendi
     return <RowComponent budget={budget} onSelect={onSelect} spendingDays={spendingDays} {...rowMeta} />;
 }
 
-function BudgetEmptyState({ onCreate }) {
+function BudgetEmptyState() {
     return (
         <div className="budget-page__empty section-card">
             <strong>Chưa có ngân sách</strong>
             <p>Đặt hạn mức cho từng danh mục để theo dõi mức chi trong tháng.</p>
-            <button onClick={onCreate} type="button">
-                Tạo ngân sách
-            </button>
         </div>
     );
 }
 
-function BudgetList({ budgets, isDesktopMode, onCreate, onSelect, selectedCategoryId, spendingDays }) {
+function BudgetList({ budgets, isDesktopMode, onSelect, selectedCategoryId, spendingDays }) {
     if (!budgets.length) {
-        return <BudgetEmptyState onCreate={onCreate} />;
+        return <BudgetEmptyState />;
     }
 
     return (
@@ -417,14 +418,17 @@ export default function BudgetPage({
     mode = "mobile",
     monthKey,
     monthLabel,
+    monthOptions,
     onBack,
     onCloseEditor,
+    onCopyBudgets,
     onDeleteBudget,
     onSaveBudget,
 }) {
     const expenseCategories = getExpenseCategories(categories);
     const [selectedCategoryId, setSelectedCategoryId] = useState(initialCategoryId);
     const [isFormOpen, setIsFormOpen] = useState(Boolean(initialCategoryId));
+    const [isCopyOpen, setIsCopyOpen] = useState(false);
     const isDesktopMode = mode === "desktop";
     const PageElement = isDesktopMode ? "div" : "main";
     const pageClassName = isDesktopMode
@@ -486,12 +490,12 @@ export default function BudgetPage({
                         budgetCount={budgets.length}
                         hasCategoryWithoutBudget={hasCategoryWithoutBudget}
                         isDesktopMode={isDesktopMode}
+                        onCopy={onCopyBudgets && monthKey ? () => setIsCopyOpen(true) : undefined}
                         onCreate={openCreateForm}
                     />
                     <BudgetList
                         budgets={budgets}
                         isDesktopMode={isDesktopMode}
-                        onCreate={openCreateForm}
                         onSelect={openEditForm}
                         selectedCategoryId={selectedCategoryId}
                         spendingDays={spendingDays}
@@ -512,6 +516,17 @@ export default function BudgetPage({
             </div>
 
             {isDesktopMode ? <BudgetTip /> : null}
+
+            {isCopyOpen ? (
+                <CopyBudgetsForm
+                    key={monthKey}
+                    isDesktopMode={isDesktopMode}
+                    monthKey={monthKey}
+                    monthOptions={monthOptions}
+                    onCancel={() => setIsCopyOpen(false)}
+                    onCopy={onCopyBudgets}
+                />
+            ) : null}
 
             {isFormOpen && !isDesktopMode ? (
                 <MobileBudgetFormSheet

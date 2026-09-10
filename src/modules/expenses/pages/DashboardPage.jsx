@@ -132,6 +132,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     const loadExpenseBudgetSavingsTransfers = useExpenseDataStore((state) => state.loadExpenseBudgetSavingsTransfers);
     const createExpenseTransactionAction = useExpenseDataStore((state) => state.createExpenseTransaction);
     const upsertExpenseBudgetAction = useExpenseDataStore((state) => state.upsertExpenseBudget);
+    const copyExpenseBudgetsAction = useExpenseDataStore((state) => state.copyExpenseBudgets);
     const deleteExpenseBudgetAction = useExpenseDataStore((state) => state.deleteExpenseBudget);
     const upsertExpenseWalletAction = useExpenseDataStore((state) => state.upsertExpenseWallet);
     const deleteExpenseWalletAction = useExpenseDataStore((state) => state.deleteExpenseWallet);
@@ -422,6 +423,8 @@ export default function DashboardPage({ initialSettings, onLogout }) {
         return upsertExpenseBudgetAction(uid, budget, monthKey);
     };
 
+    const handleCopyBudgets = (sourceMonthKey) => copyExpenseBudgetsAction(uid, sourceMonthKey, currentMonthKey);
+
     const handleDeleteBudget = async (budget, monthKey = currentMonthKey) => {
         return deleteExpenseBudgetAction(uid, budget, monthKey);
     };
@@ -554,6 +557,8 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                     onCloseEditor={clearBudgetEditorRouteState}
                     onDeleteBudget={handleDeleteBudget}
                     onSaveBudget={handleSaveBudget}
+                    onCopyBudgets={handleCopyBudgets}
+                    monthOptions={monthOptions}
                 />
             );
         }
@@ -670,6 +675,8 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                     onCloseEditor={clearBudgetEditorRouteState}
                     onDeleteBudget={handleDeleteBudget}
                     onSaveBudget={handleSaveBudget}
+                    onCopyBudgets={handleCopyBudgets}
+                    monthOptions={monthOptions}
                 />
             );
         }

@@ -138,3 +138,47 @@ export async function deleteExpenseBudget(uid, input) {
         categoryId: categoryId,
     };
 }
+
+export async function copyExpenseBudgets(uid, sourceMonthKey, targetMonthKey) {
+    const monthPattern = /^\d{4}-(0[1-9]|1[0-2])$/;
+    if (!monthPattern.test(sourceMonthKey) || !monthPattern.test(targetMonthKey) || sourceMonthKey === targetMonthKey) {
+        throw new Error("Tháng nguồn và tháng đích phải hợp lệ và khác nhau.");
+    }
+
+    const sourceBudgets = await getExpenseBudgetsByMonth(uid, sourceMonthKey);
+    const result = { budgets: [], copiedCount: 0, skippedCount: 0, failedCount: 0 };
+
+    // Each category commits independently to stay within Rules document-access limits.
+    // Reading the destination in the transaction makes retries safe across devices.
+    for (const budget of sourceBudgets) {
+        try {
+            const budgetRef = getDocumentReference(uid, expenseCollections.BUDGETS, getBudgetDocumentId(targetMonthKey, budget.categoryId));
+            const categoryRef = getDocumentReference(uid, expenseCollections.CATEGORIES, budget.categoryId);
+            const outcome = await runTransaction(firestore, async (transaction) => {
+                const target = await transaction.get(budgetRef);
+                if (target.exists()) {
+                    return { budget: mapBudget(target), copied: false };
+                }
+                const category = await transaction.get(categoryRef);
+                if (!category.exists() || category.data().isArchived || category.data().type !== "expense") {
+                    return { copied: false };
+                }
+                const data = {
+                    monthKey: targetMonthKey,
+                    categoryId: budget.categoryId,
+                    limitMinor: toPositiveInteger(budget.limitMinor, "Budget limit"),
+                    alertThreshold: normalizeAlertThreshold(budget.alertThreshold),
+                };
+                const timestamp = serverTimestamp();
+                transaction.set(budgetRef, { ...data, createdAt: timestamp, updatedAt: timestamp });
+                return { budget: { id: budgetRef.id, ...data, limit: data.limitMinor }, copied: true };
+            });
+            if (outcome.budget) result.budgets.push(outcome.budget);
+            if (outcome.copied) result.copiedCount += 1;
+            else result.skippedCount += 1;
+        } catch {
+            result.failedCount += 1;
+        }
+    }
+    return result;
+}

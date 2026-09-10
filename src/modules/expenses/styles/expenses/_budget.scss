@@ -1,3 +1,11 @@
+.budget-page__section-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
 @media (min-width: 901px) {
     .desktop-budget-dialog {
         height: auto;
@@ -204,7 +212,6 @@
     }
 
     .budget-page__section-heading button,
-    .budget-page__empty button,
     .budget-page__editor-header button {
         border-radius: 8px;
         cursor: pointer;
@@ -215,8 +222,7 @@
         padding: 0 14px;
     }
 
-    .budget-page__section-heading button,
-    .budget-page__empty button {
+    .budget-page__section-heading button {
         background: linear-gradient(145deg, var(--expense-action-start), var(--expense-action-end));
         border: 0;
         box-shadow: 0 10px 22px var(--expense-action-shadow);
@@ -652,7 +658,7 @@
 
     .budget-page--desktop .budget-page__section-heading {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto auto;
+        grid-template-columns: minmax(0, 1fr) auto;
     }
 
     .budget-page--desktop .budget-page__section-heading>div {
@@ -856,8 +862,7 @@
     }
 
     .budget-page--mobile .mobile-budget-page__header-action,
-    .budget-page--mobile .budget-page__section-heading button,
-    .budget-page--mobile .budget-page__empty button {
+    .budget-page--mobile .budget-page__section-heading button {
         background: transparent;
         border: 0;
         color: var(--expense-active-strong);
@@ -1038,8 +1043,20 @@
     .budget-page--mobile .budget-page__section-heading {
         align-items: center;
         display: flex;
+        flex-wrap: wrap;
         gap: 12px;
         justify-content: space-between;
+    }
+
+    .budget-page--mobile .budget-page__section-actions {
+        flex: 1 0 100%;
+        justify-content: flex-start;
+        gap: 16px;
+    }
+
+    .budget-page--mobile .budget-page__section-actions button {
+        min-height: 44px;
+        padding: 4px 0;
     }
 
     .budget-page--mobile .budget-page__section-heading div {
@@ -1184,11 +1201,6 @@
         color: var(--expense-heading);
         font-size: 14px;
         line-height: 1.2;
-    }
-
-    .budget-page--mobile .budget-page__empty button {
-        justify-self: start;
-        padding-left: 0;
     }
 
     .mobile-budget-page__sheet-backdrop {
