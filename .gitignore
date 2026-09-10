@@ -10,7 +10,21 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+coverage
+.vite
 *.local
+
+# Environment files (may contain local credentials/configuration)
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Tool and test caches
+.cache
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
 package-lock.json
 yarn.lock
 
@@ -39,10 +53,14 @@ graph.mmd~
 !.vscode/extensions.json
 .idea
 .DS_Store
+Thumbs.db
+Desktop.ini
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
+*.tmp
+*.temp
 # Added by code-review-graph
 .code-review-graph/

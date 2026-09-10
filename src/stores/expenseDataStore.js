@@ -506,6 +506,21 @@ export const useExpenseDataStore = create((set, get) => ({
         return result;
     },
 
+    copyExpenseBudgets: async (uid, sourceMonthKey, targetMonthKey) => {
+        const { copyExpenseBudgets } = await import("../modules/expenses/api/budgetsRepository");
+        const result = await copyExpenseBudgets(uid, sourceMonthKey, targetMonthKey);
+        set((state) => state.walletsOwnerUid !== uid ? {} : ({
+            budgetLimitsByMonth: {
+                ...state.budgetLimitsByMonth,
+                [targetMonthKey]: result.budgets.reduce(
+                    (budgets, budget) => updateBudgetList(budgets, budget),
+                    state.budgetLimitsByMonth[targetMonthKey] ?? [],
+                ),
+            },
+        }));
+        return result;
+    },
+
     // Xóa một giới hạn ngân sách chi tiêu
     deleteExpenseBudget: async (uid, budget, monthKey) => {
         const { deleteExpenseBudget } = await import("../modules/expenses/api/budgetsRepository");

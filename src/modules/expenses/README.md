@@ -1300,7 +1300,27 @@ Liên kết nghiệp vụ:
 Mobile mở `BudgetPage` từ `Cài đặt > Quản lý > Ngân sách tháng` hoặc từ card
 ngân sách trên dashboard. Trang này hiển thị tổng ngân sách tháng, danh sách
 budget theo category và mở bottom sheet `BudgetForm` để tạo, sửa hoặc xóa
-budget.
+budget. Khi chưa có ngân sách, phần trạng thái trống chỉ hiển thị thông báo và
+hướng dẫn; nút “Tạo ngân sách” nằm ở thanh thao tác phía trên, cạnh “Sao chép
+ngân sách”, không lặp lại bên dưới.
+
+### Sao chép ngân sách
+
+Trang Budget trên desktop/mobile có action “Sao chép ngân sách” cạnh “Tạo ngân sách”,
+dùng chung style nút của thanh thao tác. Form mở trong dialog trên desktop và
+bottom sheet trên mobile, dùng chung field và nút với form tạo ngân sách. Người dùng
+chọn tháng nguồn bằng dropdown `Tháng MM/YYYY` giống bộ lọc trong Giao dịch,
+dùng chung danh sách tháng từ store, sắp xếp mới nhất trước. Dropdown luôn bổ
+sung tháng trước làm mặc định (kể cả khi chuyển năm), loại tháng đích khỏi lựa
+chọn và sao chép vào tháng hiện tại.
+Chỉ sao chép `limitMinor` và `alertThreshold` của expense category còn hoạt động;
+ngân sách đã tồn tại ở tháng đích được giữ nguyên. Không sao chép số đã chi và
+không thay đổi transaction, số dư ví hoặc monthly stats.
+`copyExpenseBudgets()` đọc nguồn từ server và dùng transaction riêng cho từng
+category để kiểm tra budget đích trước khi tạo, tránh ghi đè khi thao tác đồng
+thời hoặc thử lại. Các mục đã lưu được cập nhật vào store ngay khi action hoàn
+tất. UI báo số mục đã copy, bỏ qua và thất bại; lỗi một mục không hoàn tác các
+mục khác, người dùng có thể thử lại an toàn. Không cần thay Rules hoặc indexes.
 
 ### Hiển thị cảnh báo
 
