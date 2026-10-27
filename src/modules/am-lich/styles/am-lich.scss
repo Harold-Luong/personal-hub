@@ -1,0 +1,112 @@
+.am-lich-page {
+    background: #eef2f7;
+    color: #162033;
+    display: flex;
+    flex-direction: column;
+    height: 100svh;
+    overflow: hidden;
+}
+
+.am-lich-page__header {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.96);
+    border-bottom: 1px solid #dbe3ee;
+    display: grid;
+    flex: 0 0 auto;
+    gap: 20px;
+    grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 1fr);
+    min-height: 66px;
+    padding: 8px clamp(16px, 3vw, 36px);
+}
+
+.am-lich-page__back,
+.am-lich-page__external {
+    align-items: center;
+    border-radius: 10px;
+    color: #365071;
+    display: inline-flex;
+    font-size: 13px;
+    font-weight: 750;
+    gap: 7px;
+    min-height: 40px;
+    padding: 0 12px;
+    text-decoration: none;
+    width: fit-content;
+}
+
+.am-lich-page__back {
+    justify-self: start;
+}
+
+.am-lich-page__external {
+    background: #b45309;
+    color: #fff;
+    justify-self: end;
+}
+
+.am-lich-page__back:hover,
+.am-lich-page__back:focus-visible {
+    background: #edf2f8;
+}
+
+.am-lich-page__external:hover,
+.am-lich-page__external:focus-visible {
+    background: #92400e;
+}
+
+.am-lich-page__back:focus-visible,
+.am-lich-page__external:focus-visible {
+    outline: 3px solid rgba(180, 83, 9, 0.25);
+    outline-offset: 2px;
+}
+
+.am-lich-page__title {
+    display: grid;
+    justify-items: center;
+    line-height: 1.2;
+}
+
+.am-lich-page__title strong {
+    font-size: 16px;
+    letter-spacing: -0.02em;
+}
+
+.am-lich-page__title small {
+    color: #738095;
+    font-size: 11px;
+    margin-top: 3px;
+}
+
+.am-lich-page__viewport {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.am-lich-page__frame {
+    background: #fff;
+    border: 0;
+    display: block;
+    height: 100%;
+    width: 100%;
+}
+
+@media (max-width: 600px) {
+    .am-lich-page__header {
+        gap: 8px;
+        grid-template-columns: auto 1fr auto;
+        min-height: 58px;
+        padding: 7px 10px;
+    }
+
+    .am-lich-page__back,
+    .am-lich-page__external {
+        min-height: 38px;
+        padding: 0 10px;
+    }
+
+    .am-lich-page__back span,
+    .am-lich-page__external span,
+    .am-lich-page__title small {
+        display: none;
+    }
+}

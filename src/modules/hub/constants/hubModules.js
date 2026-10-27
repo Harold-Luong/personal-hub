@@ -53,4 +53,13 @@ export const hubModules = [
         path: "/cv-studio",
         title: "CV Studio",
     },
+    {
+        accent: "#b45309",
+        description: "Tra cứu lịch âm Việt Nam ngay trong Personal Hub.",
+        eyebrow: "Tiện ích hằng ngày",
+        icon: "am-lich",
+        id: "am-lich",
+        path: "/am-lich",
+        title: "Âm lịch",
+    },
 ];

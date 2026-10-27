@@ -38,6 +38,7 @@ src/
   modules/
     auth/              sign-in and shared user-profile bootstrap
     cv-studio/         authenticated iframe shell for the hosted CV Studio app
+    am-lich/           authenticated iframe shell for the hosted Vietnamese lunar calendar
     hub/               authenticated module launcher
     expenses/          authenticated finance module backed by Firestore
     quotes/            authenticated quote module; Firestore favorites
@@ -56,6 +57,7 @@ functions/            trusted Expenses mutations using Firebase Admin SDK
 | `/expenses/*` | Authenticated | Expenses module |
 | `/quotes/*` | Authenticated | Quotes module |
 | `/cv-studio/*` | Authenticated | CV Studio module |
+| `/am-lich/*` | Authenticated | Âm lịch module |
 | `/tools/media-cutter/*` | Public and authenticated | Media Cutter module |
 | `/tools/json/*` | Public and authenticated | JSON Toolkit module |
 | `/tools/qr/*` | Public and authenticated | QR Code Toolkit module |
@@ -70,6 +72,7 @@ Do not move public tools behind authentication, expose account modules publicly 
 | Expenses | `src/modules/expenses/README.md` | Transactions are financial history; repositories and Firestore Rules own persistence contracts. Preserve projection and atomic-update invariants. |
 | Quotes | `src/modules/quotes/AI_GUIDE.md`, then `src/modules/quotes/README.md` | Quote data, shuffle behavior, favorites Rules and local-only image uploads have synchronized contracts. |
 | CV Studio | `src/modules/cv-studio/README.md` | The Personal Hub module is an authenticated iframe shell. The hosted app remains the source of truth for its internal features and data. |
+| Âm lịch | `src/modules/am-lich/README.md` | Authenticated iframe shell; the external calendar owns its features and data. No module Firestore bootstrap. |
 | Media Cutter | `src/modules/media-cutter/README.md` | Processing is browser-only. Media must not be uploaded to Firebase Storage or another server. |
 | JSON Toolkit | `src/modules/json-toolkit/README.md` | Input remains on-device. Preserve size, editor synchronization and diff/formatter semantics. |
 | QR Code Toolkit | `src/modules/qr-toolkit/README.md` | Payloads, logos, camera frames and scan images remain on-device. Preserve camera/Object URL cleanup and safe scanned-link handling. |

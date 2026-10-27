@@ -11,6 +11,7 @@ const MediaCutterRouter = lazy(() => import("../modules/media-cutter/routes/Medi
 const JsonToolkitRouter = lazy(() => import("../modules/json-toolkit/routes/JsonToolkitRouter"));
 const QRCodeToolkitRouter = lazy(() => import("../modules/qr-toolkit/routes/QRCodeToolkitRouter"));
 const CVStudioRouter = lazy(() => import("../modules/cv-studio/routes/CVStudioRouter"));
+const AmLichRouter = lazy(() => import("../modules/am-lich/routes/AmLichRouter"));
 
 function MediaCutterRoute() {
     return (
@@ -92,6 +93,14 @@ function AuthenticatedApplication({ user }) {
                 element={(
                     <Suspense fallback={<div className="auth-loading">Đang mở CV Studio...</div>}>
                         <CVStudioRouter />
+                    </Suspense>
+                )}
+            />
+            <Route
+                path="/am-lich/*"
+                element={(
+                    <Suspense fallback={<div className="auth-loading">Đang mở Âm lịch...</div>}>
+                        <AmLichRouter />
                     </Suspense>
                 )}
             />

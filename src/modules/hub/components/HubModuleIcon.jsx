@@ -1,4 +1,14 @@
 export default function HubModuleIcon({ icon }) {
+    if (icon === "am-lich") {
+        return (
+            <svg aria-hidden="true" fill="none" viewBox="0 0 32 32">
+                <rect x="5" y="7" width="22" height="21" rx="3" />
+                <path d="M10 4v6M22 4v6M5 13h22" />
+                <path d="M18 17a5 5 0 1 0 4 6 5 5 0 0 1-4-6Z" />
+            </svg>
+        );
+    }
+
     if (icon === "quotes") {
         return (
             <svg aria-hidden="true" fill="none" viewBox="0 0 32 32">
