@@ -175,10 +175,44 @@ Tạo, sửa hoặc hủy transaction phải cập nhật cùng lúc:
   `creditPayment`; `creditPayment` chỉ được tính vào transaction count, không
   tăng income/expense/category aggregate.
 
-Implementation hiện tại thực hiện các thao tác này trong repository client bằng
-Firestore `runTransaction`/batch và được ràng buộc bởi Firestore Security Rules.
-Nếu chuyển sang backend/Callable Function sau này, contract nghiệp vụ vẫn giữ
-nguyên.
+Repository frontend gọi Callable Function `mutateExpenses` tại `asia-southeast1`.
+Backend tái sử dụng logic repository qua Admin SDK adapter và thực hiện toàn bộ
+read/validate/write trong một Firestore transaction. Document
+`mutationLocks/main` trong subtree expenses tuần tự hóa mutation của cùng user,
+kể cả kiểm tra ví trước khi setup/archive. UID chỉ lấy từ callable Auth context;
+App Check được enforce. Firestore Rules chặn client ghi transaction,
+monthlyStats và các field tài chính của wallet.
+
+### 3.6 Gửi lại, đồng thời và phiên đăng nhập
+
+- Form tạo giao dịch giữ một `idempotencyKey` cho cùng payload khi gửi lại;
+  thay nội dung thì tạo key mới. Key là transaction document ID. Backend lưu
+  `requestFingerprint`, trả kết quả hiện có khi replay cùng nội dung và từ chối
+  dùng lại key với nội dung khác hoặc giao dịch đã hủy. Key chỉ được giữ trong
+  phiên form đang mở, không phục hồi sau reload.
+- `savingsClaims/{monthKey}_{categoryId}` lưu `transactionId` của lần chuyển
+  phần dư. Đọc/ghi claim cùng transaction tài chính; void giải phóng claim.
+  Backend kiểm tra cả giao dịch cũ chưa có claim nên không cần backfill trước
+  khi dùng. Cùng category/tháng chỉ có một transfer phần dư đang active.
+- Transfer và thanh toán thẻ yêu cầu hai ví cùng currency. Chưa hỗ trợ quy đổi.
+  Đổi currency của ví có giao dịch active bị từ chối. Sửa metadata thẻ luôn lấy
+  dư nợ từ snapshot trong transaction, không ghi đè bằng dữ liệu UI cũ.
+- Đổi UID/logout xóa cache tài chính và preferences. `sessionRevision` ngăn kết
+  quả async cũ ghi vào phiên mới, kể cả logout rồi đăng nhập lại cùng UID.
+  Mutation trong store kiểm tra phiên trước/sau khi tải repository và sau khi
+  nhận kết quả. Thao tác chờ tải code không được gửi trong phiên mới; response
+  của phiên cũ bị từ chối để caller không báo thành công hoặc chuyển trang.
+  Request đã gửi có thể đã commit trên server; kiểm tra phiên không rollback
+  giao dịch đã commit.
+- Client gửi ngày/giờ và IANA timezone; backend chuyển sang `occurredAt`, kiểm
+  tra ngày hợp lệ và từ chối giờ không tồn tại do DST. `localDate`/`monthKey`
+  lấy từ ngày đã được kiểm tra, không phụ thuộc timezone của máy chạy Function.
+  Form sửa giữ timezone của giao dịch cùng ngày/giờ đang hiển thị, kể cả khi
+  thiết bị hiện tại dùng múi giờ khác, để không đổi thời điểm ngoài ý muốn.
+
+Thiết lập, test emulator và thứ tự triển khai nằm trong
+[Functions README](../../../functions/README.md). Checkout này cần triển khai
+Functions, Hosting và Rules tương ứng; chỉ build frontend chưa cập nhật backend.
 
 ## 4. Cấu trúc Firestore
 
@@ -1489,51 +1523,31 @@ như filter để tự loại dữ liệu không thuộc quyền.
 
 ### Client write access
 
-Implementation hiện tại dùng Firebase client SDK. Client chỉ nên ghi thông qua
-repository của module, để mọi mutation đi qua cùng validation và cùng flow cập
-nhật projection.
+Client vẫn ghi profile, settings, categories và budgets theo whitelist Rules.
+Với wallet, client chỉ được đổi `order`/`updatedAt` hoặc tạo ví bootstrap
+`default-wallet-cash` có số dư 0 và `isBalanceInitialized: false`.
+Client không được ghi trực tiếp transactions, monthlyStats, savingsClaims hoặc
+mutationLocks. Setup số dư, metadata/archive ví và mọi mutation giao dịch phải
+đi qua Callable Function.
 
-Client/repository có thể ghi:
+### Trusted write access
 
-- Một số field profile.
-- Expense settings đã whitelist.
-- Budget config đã validate (`monthKey`, `categoryId`, `limitMinor`, `alertThreshold`).
-- Xóa budget config của chính user.
-- Wallet metadata và archive theo rule.
-- Transaction create/update/void cùng với wallet/monthlyStats projection trong
-  Firestore transaction.
+`functions/index.cjs` expose một callable `mutateExpenses` với sáu action:
+`createExpenseWallet`, `updateExpenseWallet`, `deleteExpenseWallet`,
+`createExpenseTransaction`, `updateExpenseTransaction`, `voidExpenseTransaction`.
+Các repository frontend giữ public API hiện có nhưng gọi callable; build backend
+chỉ xuất sáu action trên, tái sử dụng validation và projection trong repository.
 
-Client không nên ghi ad hoc ngoài repository flow:
-
-- `wallet.balance`
-- `monthlyStats`
-- Transaction mutations có tác động tài chính
-
-Security Rules hiện whitelist shape dữ liệu và quyền owner. Những invariant liên
-document như “archive wallet cần balance bằng 0” vẫn phải được repository/Cloud
-Function giữ nhất quán, vì Rules khó kiểm soát toàn bộ nghiệp vụ phức tạp.
-
-### Trusted write access tương lai
-
-Nếu chuyển mutation tài chính sang Callable Cloud Functions, các function tương
-ứng là:
-
-```text
-createExpenseTransaction
-updateExpenseTransaction
-voidExpenseTransaction
-createTransferTransaction
-createBalanceAdjustmentTransaction
-rebuildExpenseProjections
-```
-
-Admin SDK trong Cloud Functions bypass Security Rules, vì vậy functions phải
-tự validate Auth, ownership và payload.
+Admin SDK bypass Security Rules. Handler phải kiểm tra Auth, allowlist action,
+ID tham chiếu và payload; repository phải kiểm tra ownership trong subtree UID,
+loại ví, category, currency, số tiền và các điều kiện nghiệp vụ trước khi ghi.
+Không được thêm action mới mà bỏ qua các lớp kiểm tra này.
 
 ### App Check
 
-Khi đưa lên production, bật Firebase App Check cho web app và Cloud Functions
-để giảm request giả mạo.
+Callable khai báo `enforceAppCheck: true`. Web app cần lấy được App Check token
+hợp lệ trước khi thực hiện mutation. Firestore enforcement cấu hình riêng trên
+Firebase Console; App Check không thay thế Auth hoặc validation nghiệp vụ.
 
 ## 23. Rule validation cho settings
 
@@ -1595,8 +1609,9 @@ src/
 Vai trò:
 
 - `api/repositories`: biết Firestore path và query.
-- Repository hiện tại cũng chứa mutation client-side bằng Firestore
-  `runTransaction`/batch.
+- Repository chứa logic mutation được bundle cho backend qua Admin adapter;
+  browser gọi callable qua `api/financialRuntime.js`. Không mở lại quyền ghi
+  tài chính trực tiếp để né lỗi callable.
 - `stores`: giữ auth snapshot, preferences, projections và mutation actions.
 - `hooks`: quản lý bootstrap module và lifecycle.
 - `utils`: tính toán, format, CSV và chuyển dữ liệu hiển thị.
@@ -1882,7 +1897,7 @@ Có thể thêm scheduled reconciliation để phát hiện chênh lệch mà kh
 - Balance chỉ được cập nhật qua create/edit/void transaction, adjustment hoặc
   setup initial balance cho wallet chưa có active transaction.
 - Monthly stats không được client ghi trực tiếp.
-- Voided transaction không ảnh hưởng balance và aggregates.
+- Voided transaction không ảnh hưởng balance và aggregatesđê.
 - Category aggregate không âm sau mutation hợp lệ.
 - `netMinor = incomeMinor - expenseMinor`.
 - Budget category phải là expense category.
@@ -1890,6 +1905,16 @@ Có thể thêm scheduled reconciliation để phát hiện chênh lệch mà kh
 - Một idempotency key chỉ tạo tối đa một transaction.
 
 ## 33. Testing strategy
+
+Các lệnh hiện có: `npm test`, `npm run lint`, `npm run build`,
+`npm run build:functions`, `npm run test:firestore`, `npm run test:browser`.
+Cài dependency cả root và `functions/`; browser test cần Playwright Chromium.
+Integration suite chỉ chạy khi có `FIRESTORE_EMULATOR_HOST`; `npm test` bình
+thường sẽ skip suite này. `test:firestore` tự khởi động demo emulator, kiểm tra
+handler với Admin SDK, Rules và các race/retry. Suite gọi handler trực tiếp,
+chưa kiểm tra HTTP callable/Auth/App Check transport trên Firebase thật.
+Browser suite kiểm tra lifecycle QR/Media và JSON với thiết bị giả lập.
+
 
 ### Unit tests
 

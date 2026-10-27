@@ -1,0 +1,104 @@
+.expenses-page :is(button, a, input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid var(--expense-active-strong);
+    outline-offset: 3px;
+}
+
+.category-icon--bare {
+    min-height: var(--expense-icon-size, 20px);
+    min-width: var(--expense-icon-size, 20px);
+}
+
+.expense-button__spinner {
+    animation: expense-spin 800ms linear infinite;
+    margin-inline-end: 6px;
+}
+
+@keyframes expense-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+    .expense-button__spinner { animation: none; }
+}
+
+.transaction-form__type button { gap: 7px; }
+
+.savings-transfer-form__amount-control:focus-within {
+    outline: 2px solid var(--expense-active-strong);
+    outline-offset: 2px;
+}
+.expenses-page .savings-transfer-form__amount-control input:focus-visible { outline: none; }
+
+.wallet-transfer-fields {
+    align-items: start;
+    background: var(--expense-active-soft);
+    border: 1px solid var(--expense-border);
+    border-radius: 12px;
+    display: grid;
+    gap: 12px;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    padding: 16px;
+}
+
+.wallet-transfer-fields__wallet,
+.wallet-transfer-fields__wallet label {
+    display: grid;
+    gap: 7px;
+    min-width: 0;
+}
+
+.wallet-transfer-fields__wallet select {
+    background: var(--expense-surface-solid);
+    border: 1px solid var(--expense-border-strong);
+    border-radius: 8px;
+    color: var(--expense-heading);
+    font: inherit;
+    min-height: 44px;
+    min-width: 0;
+    padding: 0 10px;
+    width: 100%;
+}
+
+.wallet-transfer-fields__wallet label > span { font-size: 12px; font-weight: 700; }
+.wallet-transfer-fields__wallet small { color: var(--expense-muted); font-size: 11px; overflow-wrap: anywhere; }
+.wallet-transfer-fields__direction { color: var(--expense-active-strong); margin-top: 38px; }
+
+.expense-form-notice {
+    align-items: start;
+    background: var(--expense-active-soft);
+    border-radius: 8px;
+    color: var(--expense-text);
+    display: flex;
+    font-size: 12px;
+    gap: 8px;
+    grid-column: 1 / -1;
+    line-height: 1.5;
+    margin: 0;
+    padding: 12px;
+}
+
+.expense-form-notice--error {
+    background: color-mix(in srgb, var(--expense-danger) 8%, var(--expense-surface-solid));
+    color: var(--expense-danger-strong);
+}
+
+.savings-transfer-form__actions {
+    background: var(--expense-surface-solid);
+    border-top: 1px solid var(--expense-border);
+    bottom: 0;
+    padding-top: 12px;
+    position: sticky;
+}
+
+.savings-transfer-form__actions button {
+    align-items: center;
+    display: inline-flex;
+    gap: 6px;
+    justify-content: center;
+    min-height: 44px;
+}
+
+@media (max-width: 520px) {
+    .wallet-transfer-fields { gap: 8px; grid-template-columns: minmax(0, 1fr); padding: 12px; }
+    .wallet-transfer-fields__direction { justify-self: center; margin: 0; transform: rotate(90deg); }
+    .savings-transfer-form__actions button:last-child { flex: 1; }
+    .savings-transfer-dialog { padding-bottom: max(18px, env(safe-area-inset-bottom)); }
+}

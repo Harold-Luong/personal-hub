@@ -1,3 +1,6 @@
+import { parseTransactionDate } from "../utils/transactionDate";
+import { runFinancialMutation } from "./financialRuntime";
+import { getTransactionRequestFingerprint } from "../utils/transactionIdempotency";
 import {
     Timestamp,
     count,
@@ -102,18 +105,8 @@ function toPositiveInteger(value) {
     return numberValue;
 }
 
-function getOccurrence(date, time) {
-    if (!date || !time) {
-        throw new Error("Transaction date and time are required.");
-    }
-
-    const occurredDate = new Date(`${date}T${time}:00`);
-
-    if (Number.isNaN(occurredDate.getTime())) {
-        throw new Error("Transaction date or time is invalid.");
-    }
-
-    return Timestamp.fromDate(occurredDate);
+function getOccurrence(date, time, timezone = getTimezone()) {
+    return Timestamp.fromDate(parseTransactionDate(date, time, timezone));
 }
 
 function getTimezone() {
@@ -185,6 +178,9 @@ function assertWalletSupportsTransactionType(wallet, transactionType, label = "W
 }
 
 function assertCreditPaymentWallets(fromWallet, toWallet) {
+    if ((fromWallet.currency ?? expenseDefaultCurrency) !== (toWallet.currency ?? expenseDefaultCurrency)) {
+        throw new Error("Ví nguồn và thẻ tín dụng phải dùng cùng loại tiền tệ.");
+    }
     if (isCreditCardWallet(fromWallet) || isSavingWallet(fromWallet)) {
         throw new Error("Ví thanh toán phải là ví chi tiêu, không phải thẻ tín dụng hoặc ví Tiết kiệm.");
     }
@@ -238,6 +234,7 @@ function getTransactionTime(data) {
         hour: "2-digit",
         hour12: false,
         minute: "2-digit",
+        timeZone: data.timezone ?? expenseDefaultTimezone,
     });
 }
 
@@ -249,8 +246,7 @@ function getTransactionSubtitle(data) {
         return time;
     }
 
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const [, month, day] = data.localDate.split("-");
 
     return [time, `${day}/${month}`].filter(Boolean).join(" ");
 }
@@ -278,7 +274,7 @@ function getBudgetSavingsMetadata(input) {
         return {};
     }
 
-    if (input.type !== transactionTypes.TRANSFER || !sourceMonthKey || !categoryId) {
+    if (input.type !== transactionTypes.TRANSFER || !/^\d{4}-(0[1-9]|1[0-2])$/.test(sourceMonthKey) || !categoryId || categoryId.includes("/")) {
         throw new Error("Budget savings metadata requires a transfer, source month, and category.");
     }
 
@@ -381,6 +377,7 @@ function mapTransactionData(id, data) {
         subtitle: getTransactionSubtitle(data),
         date: data.localDate,
         time: time,
+        timezone: data.timezone ?? expenseDefaultTimezone,
         wallet: walletIcon,
         walletId: data.walletId,
         walletIds: data.walletIds ?? [],
@@ -553,7 +550,7 @@ function createTransactionDataFromInput({
     const amountMinor = toPositiveInteger(input.amount ?? input.amountMinor);
     const title = input.title?.trim();
     const note = input.note?.trim() ?? "";
-    const occurredAt = getOccurrence(input.date, input.time);
+    const occurredAt = getOccurrence(input.date, input.time, input.timezone);
     const monthKey = input.date.slice(0, 7);
     const budgetSavingsMetadata = getBudgetSavingsMetadata(input);
     const savingsTransferMetadata = getSavingsTransferMetadata(input, budgetSavingsMetadata);
@@ -585,7 +582,7 @@ function createTransactionDataFromInput({
             occurredAt,
             localDate: input.date,
             monthKey,
-            timezone: getTimezone(),
+            timezone: input.timezone ?? getTimezone(),
             categorySnapshot: null,
             walletSnapshot: getWalletSnapshot(wallet),
             fromWalletSnapshot: null,
@@ -626,7 +623,7 @@ function createTransactionDataFromInput({
             occurredAt,
             localDate: input.date,
             monthKey,
-            timezone: getTimezone(),
+            timezone: input.timezone ?? getTimezone(),
             categorySnapshot: null,
             walletSnapshot: null,
             fromWalletSnapshot: getWalletSnapshot(fromWallet),
@@ -664,7 +661,7 @@ function createTransactionDataFromInput({
             occurredAt,
             localDate: input.date,
             monthKey,
-            timezone: getTimezone(),
+            timezone: input.timezone ?? getTimezone(),
             categorySnapshot: null,
             walletSnapshot: null,
             fromWalletSnapshot: getWalletSnapshot(fromWallet),
@@ -699,7 +696,7 @@ function createTransactionDataFromInput({
         occurredAt,
         localDate: input.date,
         monthKey,
-        timezone: getTimezone(),
+        timezone: input.timezone ?? getTimezone(),
         categorySnapshot: getCategorySnapshot(category),
         walletSnapshot: getWalletSnapshot(wallet),
         fromWalletSnapshot: null,
@@ -942,7 +939,12 @@ export async function getExpenseBudgetSavingsTransfers(uid, sourceMonthKey) {
         .filter((transaction) => transaction.status === "active");
 }
 
-export async function createExpenseTransaction(uid, input) {
+export function createExpenseTransaction(uid, input) {
+    input = { ...input, idempotencyKey: input?.idempotencyKey ?? crypto.randomUUID() };
+    return runFinancialMutation("createExpenseTransaction", uid, { input }, () => createExpenseTransactionLocally(uid, input));
+}
+
+async function createExpenseTransactionLocally(uid, input) {
     if (!transactionTypeIds.includes(input?.type)) {
         throw new Error("Unsupported transaction type.");
     }
@@ -950,28 +952,27 @@ export async function createExpenseTransaction(uid, input) {
     const budgetSavingsMetadata = getBudgetSavingsMetadata(input);
     const savingsTransferMetadata = getSavingsTransferMetadata(input, budgetSavingsMetadata);
 
-    if (budgetSavingsMetadata.budgetSavingsMonthKey) {
-        const existingTransfers = await getExpenseBudgetSavingsTransfers(
-            uid,
-            budgetSavingsMetadata.budgetSavingsMonthKey,
-        );
-        const hasExistingTransfer = existingTransfers.some(
-            (transaction) =>
-                transaction.budgetSavingsCategoryId === budgetSavingsMetadata.budgetSavingsCategoryId,
-        );
-
-        if (hasExistingTransfer) {
-            throw new Error("Khoản dư của danh mục này đã được đưa vào tiết kiệm.");
-        }
+    const idempotencyKey = input.idempotencyKey ?? crypto.randomUUID();
+    if (!/^[a-zA-Z0-9_-]{1,128}$/.test(idempotencyKey)) {
+        throw new Error("Invalid transaction idempotency key.");
     }
-
+    const requestFingerprint = getTransactionRequestFingerprint(input);
+    // Compatibility with transfers created before claims were introduced. New writes
+    // are serialized by the claim read below; this query is not the concurrency lock.
+    const legacyTransfers = budgetSavingsMetadata.budgetSavingsMonthKey
+        ? await getExpenseBudgetSavingsTransfers(uid, budgetSavingsMetadata.budgetSavingsMonthKey)
+        : [];
+    const claimRef = budgetSavingsMetadata.budgetSavingsMonthKey
+        ? getDocumentReference(uid, expenseCollections.SAVINGS_CLAIMS,
+            getBudgetDocumentId(budgetSavingsMetadata.budgetSavingsMonthKey, budgetSavingsMetadata.budgetSavingsCategoryId))
+        : null;
     const transactionRef = doc(
-        getCollectionReference(uid, expenseCollections.TRANSACTIONS),
+        getCollectionReference(uid, expenseCollections.TRANSACTIONS), idempotencyKey,
     );
     const amountMinor = toPositiveInteger(input.amount ?? input.amountMinor);
     const title = input.title?.trim();
     const note = input.note?.trim() ?? "";
-    const occurredAt = getOccurrence(input.date, input.time);
+    const occurredAt = getOccurrence(input.date, input.time, input.timezone);
     const monthKey = input.date.slice(0, 7);
     const timestamp = serverTimestamp();
 
@@ -986,6 +987,35 @@ export async function createExpenseTransaction(uid, input) {
             expenseCollections.MONTHLY_STATS,
             monthKey,
         );
+        const existing = await firestoreTransaction.get(transactionRef);
+        if (existing.exists()) {
+            const data = existing.data();
+            if (data.requestFingerprint !== requestFingerprint) {
+                throw new Error("Mã gửi giao dịch đã được sử dụng với nội dung khác.");
+            }
+            if (data.status !== "active") throw new Error("Giao dịch này đã được hủy. Hãy tạo giao dịch mới.");
+            const stats = data.type === transactionTypes.ADJUSTMENT ? null : await firestoreTransaction.get(
+                getDocumentReference(uid, expenseCollections.MONTHLY_STATS, data.monthKey),
+            );
+            const walletSnapshots = await Promise.all(data.walletIds.map((id) => firestoreTransaction.get(
+                getDocumentReference(uid, expenseCollections.WALLETS, id),
+            )));
+            return {
+                replayed: true,
+                transaction: mapTransactionData(existing.id, data),
+                monthlyStats: stats?.data(),
+                walletBalanceUpdates: Object.fromEntries(walletSnapshots.map((snapshot) => [
+                    snapshot.id, getWalletProjectionUpdate(snapshot.data(), 0),
+                ])),
+            };
+        }
+        if (claimRef) {
+            const claim = await firestoreTransaction.get(claimRef);
+            if (claim.data()?.transactionId || (!claim.exists() && legacyTransfers.some((item) =>
+                item.budgetSavingsCategoryId === budgetSavingsMetadata.budgetSavingsCategoryId))) {
+                throw new Error("Khoản dư của danh mục này đã được đưa vào tiết kiệm.");
+            }
+        }
         if (budgetSavingsMetadata.budgetSavingsMonthKey) {
             const sourceBudgetRef = getDocumentReference(
                 uid,
@@ -1060,7 +1090,7 @@ export async function createExpenseTransaction(uid, input) {
                 occurredAt,
                 localDate: input.date,
                 monthKey,
-                timezone: getTimezone(),
+                timezone: input.timezone ?? getTimezone(),
                 categorySnapshot: null,
                 walletSnapshot: getWalletSnapshot(wallet),
                 fromWalletSnapshot: null,
@@ -1071,6 +1101,7 @@ export async function createExpenseTransaction(uid, input) {
                 voidedAt: null,
             };
 
+            transactionData = { ...transactionData, idempotencyKey, requestFingerprint };
             firestoreTransaction.set(transactionRef, transactionData);
             firestoreTransaction.update(walletRef, {
                 ...walletProjectionUpdate,
@@ -1144,7 +1175,7 @@ export async function createExpenseTransaction(uid, input) {
                 occurredAt: occurredAt,
                 localDate: input.date,
                 monthKey: monthKey,
-                timezone: getTimezone(),
+                timezone: input.timezone ?? getTimezone(),
                 categorySnapshot: null,
                 walletSnapshot: null,
                 fromWalletSnapshot: getWalletSnapshot(fromWallet),
@@ -1163,6 +1194,7 @@ export async function createExpenseTransaction(uid, input) {
                 timestamp,
             );
 
+            transactionData = { ...transactionData, idempotencyKey, requestFingerprint };
             firestoreTransaction.set(transactionRef, transactionData);
             firestoreTransaction.set(monthlyStatsRef, nextMonthlyStats);
             firestoreTransaction.update(fromWalletRef, {
@@ -1229,7 +1261,7 @@ export async function createExpenseTransaction(uid, input) {
                 occurredAt,
                 localDate: input.date,
                 monthKey,
-                timezone: getTimezone(),
+                timezone: input.timezone ?? getTimezone(),
                 categorySnapshot: getCategorySnapshot(category),
                 walletSnapshot: getWalletSnapshot(wallet),
                 fromWalletSnapshot: null,
@@ -1246,6 +1278,7 @@ export async function createExpenseTransaction(uid, input) {
                 timestamp,
             );
 
+            transactionData = { ...transactionData, idempotencyKey, requestFingerprint };
             firestoreTransaction.set(transactionRef, transactionData);
             firestoreTransaction.set(monthlyStatsRef, nextMonthlyStats);
             firestoreTransaction.update(walletRef, {
@@ -1256,6 +1289,15 @@ export async function createExpenseTransaction(uid, input) {
             walletBalanceUpdates[input.walletId] = walletProjectionUpdate;
         }
 
+        if (claimRef) {
+            firestoreTransaction.set(claimRef, {
+                monthKey: budgetSavingsMetadata.budgetSavingsMonthKey,
+                categoryId: budgetSavingsMetadata.budgetSavingsCategoryId,
+                transactionId: transactionRef.id,
+                updatedAt: timestamp,
+            });
+        }
+
         return {
             monthlyStats: nextMonthlyStats,
             transaction: mapTransactionData(transactionRef.id, transactionData),
@@ -1264,7 +1306,11 @@ export async function createExpenseTransaction(uid, input) {
     });
 }
 
-export async function updateExpenseTransaction(uid, transactionId, input) {
+export function updateExpenseTransaction(uid, transactionId, input) {
+    return runFinancialMutation("updateExpenseTransaction", uid, { transactionId, input }, () => updateExpenseTransactionLocally(uid, transactionId, input));
+}
+
+async function updateExpenseTransactionLocally(uid, transactionId, input) {
     if (!transactionId) {
         throw new Error("A transaction id is required.");
     }
@@ -1475,7 +1521,11 @@ export async function updateExpenseTransaction(uid, transactionId, input) {
     });
 }
 
-export async function voidExpenseTransaction(uid, transactionId) {
+export function voidExpenseTransaction(uid, transactionId) {
+    return runFinancialMutation("voidExpenseTransaction", uid, { transactionId }, () => voidExpenseTransactionLocally(uid, transactionId));
+}
+
+async function voidExpenseTransactionLocally(uid, transactionId) {
     if (!transactionId) {
         throw new Error("A transaction id is required.");
     }
@@ -1499,6 +1549,12 @@ export async function voidExpenseTransaction(uid, transactionId) {
         if (transactionData.status !== "active") {
             throw new Error("Only active transactions can be deleted.");
         }
+
+        const claimRef = transactionData.budgetSavingsMonthKey
+            ? getDocumentReference(uid, expenseCollections.SAVINGS_CLAIMS,
+                getBudgetDocumentId(transactionData.budgetSavingsMonthKey, transactionData.budgetSavingsCategoryId))
+            : null;
+        const claim = claimRef ? await firestoreTransaction.get(claimRef) : null;
 
         const shouldUpdateMonthlyStats = transactionAffectsMonthlyStats(transactionData);
         const monthlyStatsRef = shouldUpdateMonthlyStats
@@ -1545,6 +1601,10 @@ export async function voidExpenseTransaction(uid, transactionId) {
 
             walletBalanceUpdates[walletId] = getWalletProjectionUpdate(walletSnapshot.data(), walletDeltas[walletId]);
         });
+
+        if (claimRef && claim.data()?.transactionId === transactionId) {
+            firestoreTransaction.update(claimRef, { transactionId: null, updatedAt: timestamp });
+        }
 
         firestoreTransaction.set(
             transactionRef,

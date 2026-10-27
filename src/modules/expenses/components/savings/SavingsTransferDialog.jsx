@@ -1,9 +1,10 @@
+import useTransactionSubmission from "../../hooks/useTransactionSubmission";
 import { useState } from "react";
 import { savingsTransferKinds } from "../../constants/expenseMetadata";
 import { formatCurrencyInput, parseCurrencyInput } from "../../utils/formatCurrency";
 import { getSavingWallets, getSpendableWallets } from "../../utils/savingsUtils";
 import { getLocalDateValue, getLocalTimeValue } from "../../utils/transactionFormUtils";
-import { getWalletDisplayName } from "../../utils/walletUtils";
+import WalletTransferFields from "../wallet/WalletTransferFields";
 import ExpenseButton from "../shared/ExpenseButton";
 import ExpenseDialog from "../shared/ExpenseDialog";
 import ExpenseField from "../shared/ExpenseField";
@@ -22,6 +23,7 @@ export default function SavingsTransferDialog({ kind, onCancel, onSubmit, wallet
     const [note, setNote] = useState("");
     const [fromWalletId, setFromWalletId] = useState(defaultSourceWallet?.id ?? "");
     const [toWalletId, setToWalletId] = useState(destinationWallets[0]?.id ?? "");
+    const submitTransaction = useTransactionSubmission(onSubmit);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
     const numericAmount = parseCurrencyInput(amount);
@@ -34,7 +36,7 @@ export default function SavingsTransferDialog({ kind, onCancel, onSubmit, wallet
         : (compatibleDestinationWallets[0]?.id ?? "");
     const canSubmit = Boolean(
         numericAmount > 0
-        && fromWalletId
+        && selectedSourceWallet
         && selectedToWalletId
         && (selectedSourceWallet?.balance ?? 0) >= numericAmount,
     );
@@ -52,7 +54,7 @@ export default function SavingsTransferDialog({ kind, onCancel, onSubmit, wallet
         setSubmitError("");
 
         try {
-            await onSubmit?.({
+            await submitTransaction({
                 amount: numericAmount,
                 date,
                 fromWalletId,
@@ -73,7 +75,7 @@ export default function SavingsTransferDialog({ kind, onCancel, onSubmit, wallet
         <ExpenseDialog
             backdropClassName="desktop-form-dialog__backdrop savings-transfer-dialog__backdrop"
             closeButtonClassName="desktop-form-dialog__close"
-            eyebrow="Ví được bảo vệ"
+            eyebrow="Chuyển tiền giữa các ví"
             headerClassName="desktop-form-dialog__header"
             headingId="savings-transfer-dialog-title"
             onClose={onCancel}
@@ -92,39 +94,20 @@ export default function SavingsTransferDialog({ kind, onCancel, onSubmit, wallet
                             type="text"
                             value={amount}
                         />
-                        <span aria-hidden="true">₫</span>
+                        <span>{selectedSourceWallet?.currency ?? "VND"}</span>
                     </span>
                 </ExpenseField>
 
-                <ExpenseField label={isDeposit ? "Nạp từ ví chi tiêu" : "Rút từ ví Tiết kiệm"}>
-                    <select
-                        disabled={!sourceWallets.length}
-                        onChange={(event) => setFromWalletId(event.target.value)}
-                        required
-                        value={fromWalletId}
-                    >
-                        {sourceWallets.map((wallet) => (
-                            <option key={wallet.id} value={wallet.id}>
-                                {getWalletDisplayName(wallet)}
-                            </option>
-                        ))}
-                    </select>
-                </ExpenseField>
-
-                <ExpenseField label={isDeposit ? "Đưa vào ví Tiết kiệm" : "Nhận vào ví chi tiêu"}>
-                    <select
-                        disabled={!destinationWallets.length}
-                        onChange={(event) => setToWalletId(event.target.value)}
-                        required
-                        value={selectedToWalletId}
-                    >
-                        {compatibleDestinationWallets.map((wallet) => (
-                            <option key={wallet.id} value={wallet.id}>
-                                {getWalletDisplayName(wallet)}
-                            </option>
-                        ))}
-                    </select>
-                </ExpenseField>
+                <WalletTransferFields
+                    sourceWallets={sourceWallets}
+                    destinationWallets={compatibleDestinationWallets}
+                    fromWalletId={fromWalletId}
+                    toWalletId={selectedToWalletId}
+                    onFromChange={setFromWalletId}
+                    onToChange={setToWalletId}
+                    sourceLabel={isDeposit ? "Từ ví chi tiêu" : "Từ ví tiết kiệm"}
+                    destinationLabel={isDeposit ? "Đến ví tiết kiệm" : "Đến ví chi tiêu"}
+                />
 
                 <div className="savings-transfer-form__date-row">
                     <ExpenseField label="Ngày">
@@ -153,7 +136,7 @@ export default function SavingsTransferDialog({ kind, onCancel, onSubmit, wallet
                 {numericAmount > 0 && selectedSourceWallet && (selectedSourceWallet.balance ?? 0) < numericAmount ? (
                     <ExpenseStateMessage message="Số dư ví nguồn không đủ." />
                 ) : null}
-                {submitError ? <ExpenseStateMessage message={submitError} /> : null}
+                {submitError ? <ExpenseStateMessage className="expense-form-notice expense-form-notice--error" role="alert" message={submitError} /> : null}
 
                 <div className="savings-transfer-form__actions">
                     <ExpenseButton label="Hủy" onClick={onCancel} />

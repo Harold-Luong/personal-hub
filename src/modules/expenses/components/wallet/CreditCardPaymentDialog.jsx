@@ -1,3 +1,4 @@
+import useTransactionSubmission from "../../hooks/useTransactionSubmission";
 import { useState } from "react";
 import { transactionTypes } from "../../constants/expenseMetadata";
 import { expenseUiText } from "../../constants/expenseUiMetadata";
@@ -30,12 +31,14 @@ export default function CreditCardPaymentDialog({
     onSubmit,
     sourceWallets = [],
 }) {
-    const orderedSourceWallets = getWalletsDefaultFirst(sourceWallets);
+    const orderedSourceWallets = getWalletsDefaultFirst(sourceWallets.filter((wallet) => (wallet.currency ?? "VND") === (card?.currency ?? "VND")));
     const cardDebt = getCardDebt(card);
     const [selectedWalletId, setSelectedWalletId] = useState(() => initialWalletId ?? orderedSourceWallets[0]?.id ?? "");
     const [amount, setAmount] = useState(() => formatCurrencyInput(cardDebt));
+    const [paymentTime] = useState(getLocalTimeValue);
     const [paymentDate, setPaymentDate] = useState(getLocalDateValue);
     const [note, setNote] = useState(defaultPaymentNote);
+    const submitTransaction = useTransactionSubmission(onSubmit);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
     const selectedWallet = getSelectedWallet(orderedSourceWallets, selectedWalletId);
@@ -66,14 +69,14 @@ export default function CreditCardPaymentDialog({
         setSubmitError("");
 
         try {
-            await onSubmit?.({
+            await submitTransaction({
                 amount: numericAmount,
                 categoryId: null,
                 date: paymentDate,
                 fromWalletId: resolvedWalletId,
                 icon: "card",
                 note: note.trim() || defaultPaymentNote,
-                time: getLocalTimeValue(),
+                time: paymentTime,
                 title: defaultPaymentTitle,
                 toWalletId: card.id,
                 type: transactionTypes.CREDIT_PAYMENT,
@@ -98,7 +101,7 @@ export default function CreditCardPaymentDialog({
         >
             <section className="credit-payment-dialog__card-summary">
                 <span>Dư nợ hiện tại</span>
-                <strong>{formatCurrency(cardDebt)}</strong>
+                <strong>{formatCurrency(cardDebt, card?.currency)}</strong>
             </section>
 
             <form className="credit-payment-dialog__form" onSubmit={handleSubmit}>
@@ -111,6 +114,7 @@ export default function CreditCardPaymentDialog({
                             }}
                             value={resolvedWalletId}
                         >
+                            {!orderedSourceWallets.length && <option value="">Chưa có ví cùng tiền tệ</option>}
                             {orderedSourceWallets.map((wallet) => (
                                 <option key={wallet.id} value={wallet.id}>
                                     {getWalletNameWithDefaultLabel(wallet)}
@@ -119,7 +123,11 @@ export default function CreditCardPaymentDialog({
                         </select>
                     </ExpenseField>
 
-                    <ExpenseField label="Số tiền thanh toán">
+                    {!orderedSourceWallets.length && <p className="expense-form-notice" role="status">
+                        Chưa có ví thanh toán bằng {card?.currency ?? "VND"}. Hãy tạo ví chi tiêu cùng tiền tệ với thẻ.
+                    </p>}
+
+                    <ExpenseField label={`Số tiền thanh toán (${card?.currency ?? "VND"})`}>
                         <input
                             disabled={isSubmitting}
                             inputMode="numeric"
@@ -171,11 +179,11 @@ export default function CreditCardPaymentDialog({
                     <section className="credit-payment-dialog__preview">
                         <p>
                             <span>{selectedWallet ? getWalletNameWithDefaultLabel(selectedWallet) : "Ví nguồn"} sau thanh toán</span>
-                            <strong>{formatCurrency(nextSourceBalance)}</strong>
+                            <strong>{formatCurrency(nextSourceBalance, card?.currency)}</strong>
                         </p>
                         <p>
                             <span>Dư nợ còn lại</span>
-                            <strong>{formatCurrency(nextDebt)}</strong>
+                            <strong>{formatCurrency(nextDebt, card?.currency)}</strong>
                         </p>
                     </section>
 

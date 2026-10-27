@@ -1,10 +1,11 @@
+import { getLocalDateValue, getLocalTimeValue } from "../../utils/transactionFormUtils";
+import useTransactionSubmission from "../../hooks/useTransactionSubmission";
 import { useState } from "react";
 import { creditCardWalletTypeId, savingWalletTypeId } from "../../constants/expenseMetadata";
-import { getWalletDisplayName } from "../../utils/walletUtils";
+import WalletTransferFields from "../wallet/WalletTransferFields";
 import AmountText from "../shared/AmountText";
 import ExpenseButton from "../shared/ExpenseButton";
 import ExpenseDialog from "../shared/ExpenseDialog";
-import ExpenseField from "../shared/ExpenseField";
 import ExpenseStateMessage from "../shared/ExpenseStateMessage";
 
 export default function BudgetSavingsTransferDialog({ candidate, onCancel, onSubmit, wallets = [] }) {
@@ -18,9 +19,15 @@ export default function BudgetSavingsTransferDialog({ candidate, onCancel, onSub
     const defaultSourceWallet = sourceWallets.find((wallet) => wallet.isDefaultWallet) ?? sourceWallets[0];
     const [fromWalletId, setFromWalletId] = useState(defaultSourceWallet?.id ?? "");
     const [toWalletId, setToWalletId] = useState(savingWallets[0]?.id ?? "");
+    const submitTransaction = useTransactionSubmission(onSubmit);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
-    const canSubmit = Boolean(candidate?.savingsAmount > 0 && fromWalletId && toWalletId);
+    const [date] = useState(getLocalDateValue);
+    const [time] = useState(getLocalTimeValue);
+    const sourceCurrency = sourceWallets.find((wallet) => wallet.id === fromWalletId)?.currency ?? "VND";
+    const destinations = savingWallets.filter((wallet) => (wallet.currency ?? "VND") === sourceCurrency);
+    const selectedToWalletId = destinations.some((wallet) => wallet.id === toWalletId) ? toWalletId : (destinations[0]?.id ?? "");
+    const canSubmit = Boolean(candidate?.savingsAmount > 0 && sourceWallets.some((wallet) => wallet.id === fromWalletId) && selectedToWalletId);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -34,7 +41,7 @@ export default function BudgetSavingsTransferDialog({ candidate, onCancel, onSub
         setSubmitError("");
 
         try {
-            await onSubmit?.({ candidate, fromWalletId, toWalletId });
+            await submitTransaction({ candidate, fromWalletId, toWalletId: selectedToWalletId, date, time });
             onCancel?.();
         } catch (error) {
             setSubmitError(
@@ -65,35 +72,15 @@ export default function BudgetSavingsTransferDialog({ candidate, onCancel, onSub
                     <small>Khoản dư được tính từ hạn mức trừ chi tiêu của danh mục.</small>
                 </div>
 
-                <ExpenseField label="Chuyển từ ví">
-                    <select
-                        disabled={!sourceWallets.length}
-                        onChange={(event) => setFromWalletId(event.target.value)}
-                        required
-                        value={fromWalletId}
-                    >
-                        {sourceWallets.map((wallet) => (
-                            <option key={wallet.id} value={wallet.id}>
-                                {getWalletDisplayName(wallet)}
-                            </option>
-                        ))}
-                    </select>
-                </ExpenseField>
-
-                <ExpenseField label="Đưa vào ví tiết kiệm">
-                    <select
-                        disabled={!savingWallets.length}
-                        onChange={(event) => setToWalletId(event.target.value)}
-                        required
-                        value={toWalletId}
-                    >
-                        {savingWallets.map((wallet) => (
-                            <option key={wallet.id} value={wallet.id}>
-                                {getWalletDisplayName(wallet)}
-                            </option>
-                        ))}
-                    </select>
-                </ExpenseField>
+                <WalletTransferFields
+                    sourceWallets={sourceWallets}
+                    destinationWallets={destinations}
+                    fromWalletId={fromWalletId}
+                    toWalletId={selectedToWalletId}
+                    onFromChange={setFromWalletId}
+                    onToChange={setToWalletId}
+                    destinationLabel="Đến ví tiết kiệm"
+                />
 
                 {!savingWallets.length ? (
                     <ExpenseStateMessage

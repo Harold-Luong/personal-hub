@@ -44,6 +44,7 @@ src/
     media-cutter/      public, browser-only FFmpeg WASM tool
     json-toolkit/      public, browser-only JSON/text tool
     qr-toolkit/        public, browser-only QR generator and scanner
+functions/            trusted Expenses mutations using Firebase Admin SDK
 ```
 
 ### Current route and auth contract
@@ -82,6 +83,7 @@ Do not move public tools behind authentication, expose account modules publicly 
 - Components and pages must use the module's existing repository/hook boundary instead of calling Firestore ad hoc.
 - The authenticated UID comes from the shared auth session. Never accept a client-supplied UID as authorization.
 - A Firestore schema, path or write change must be checked against `firestore.rules`, indexes, repositories, tests and documentation.
+- Financial wallet/transaction mutations use `mutateExpenses`; read `functions/README.md` before changing that boundary. Browser repositories call the function, while the backend bundles the same domain logic with an Admin SDK adapter. Do not restore direct client writes to balances, transactions or monthlyStats.
 - Never put service-account credentials, reCAPTCHA secrets or administrative Firebase credentials in frontend source or committed environment files.
 - Media Cutter, JSON Toolkit, QR Code Toolkit and uploaded Quotes background images are local browser data. Do not transmit or persist them externally without explicit authorization.
 
@@ -109,6 +111,9 @@ Run the smallest relevant checks first, then the broader checks appropriate to t
 npm.cmd test
 npm.cmd run lint
 npm.cmd run build
+npm.cmd run build:functions
+npm.cmd run test:firestore
+npm.cmd run test:browser
 git diff --check
 git status --short
 ```
@@ -135,6 +140,7 @@ npx.cmd firebase-tools deploy --only firestore
 - UI, bundled quote data and frontend assets require a Hosting build/deploy.
 - Rules-only changes require `firestore:rules`.
 - Rules plus indexes require `firestore`.
+- Financial backend changes require `functions:mutateExpenses`. For the initial callable migration, follow Functions → Hosting → Rules in `functions/README.md`; verify matching project/database and App Check configuration.
 - A Firestore deploy does not publish frontend code, and a Hosting deploy does not publish Rules.
 
 ## Documentation and handoff

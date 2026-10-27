@@ -1,3 +1,4 @@
+import useTransactionSubmission from "../../hooks/useTransactionSubmission";
 import { useState } from "react";
 import { selectExpensePreferences, useExpensePreferencesStore } from "../../../../stores/expensePreferencesStore";
 import {
@@ -101,8 +102,10 @@ export default function TransactionForm({
     const [toWalletId, setToWalletId] = useState(initialTransaction?.toWalletId ?? initialWalletOptions[1]?.id ?? "");
     const [date, setDate] = useState(initialTransaction?.date ?? getLocalDateValue);
     const [time, setTime] = useState(initialTransaction?.time ?? getLocalTimeValue);
+    const [timezone] = useState(() => initialTransaction?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
     const [note, setNote] = useState(initialTransaction?.note ?? "");
     const [hasSelectedWallet, setHasSelectedWallet] = useState(false);
+    const submitTransaction = useTransactionSubmission(onSubmit);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState("");
 
@@ -122,9 +125,11 @@ export default function TransactionForm({
     const selectedWalletId = canKeepSelectedWallet
         ? walletId
         : (walletOptions.find((wallet) => wallet.isDefaultWallet)?.id ?? walletOptions[0]?.id ?? "");
-    const selectedToWalletId = walletOptions.some((wallet) => wallet.id === toWalletId && wallet.id !== selectedWalletId)
+    const sourceCurrency = walletOptions.find((wallet) => wallet.id === selectedWalletId)?.currency ?? "VND";
+    const destinationWalletOptions = walletOptions.filter((wallet) => wallet.id !== selectedWalletId && (wallet.currency ?? "VND") === sourceCurrency);
+    const selectedToWalletId = destinationWalletOptions.some((wallet) => wallet.id === toWalletId && wallet.id !== selectedWalletId)
         ? toWalletId
-        : (walletOptions.find((wallet) => wallet.id !== selectedWalletId)?.id ?? "");
+        : (destinationWalletOptions[0]?.id ?? "");
     const selectedTransactionType = transactionTypeOptions.find((transactionType) => transactionType.id === type);
     const selectedWallet = walletOptions.find((wallet) => wallet.id === selectedWalletId);
     const isSelectedCreditCard =
@@ -176,7 +181,7 @@ export default function TransactionForm({
         setSubmitError("");
 
         try {
-            await onSubmit?.({
+            await submitTransaction({
                 amount: getSignedTransactionAmount(numericAmount, type),
                 categoryId: isTransfer ? null : selectedCategory.id,
                 date,
@@ -185,6 +190,7 @@ export default function TransactionForm({
                 note: note.trim(),
                 subtitle: getTransactionSubtitle(date, time),
                 time,
+                timezone,
                 title: title.trim(),
                 toWalletId: isTransfer ? selectedToWalletId : null,
                 type,
@@ -206,6 +212,7 @@ export default function TransactionForm({
                             aria-pressed={type === transactionType.id}
                             className={type === transactionType.id ? "is-active" : ""}
                             key={transactionType.id}
+                            icon={transactionType.id === "expense" ? "expense" : transactionType.id === "income" ? "income" : "transfer"}
                             label={transactionType.label}
                             onClick={() => handleTypeChange(transactionType.id)}
                         />
@@ -230,7 +237,7 @@ export default function TransactionForm({
                             type="text"
                             value={amount}
                         />
-                        <span aria-hidden="true">₫</span>
+                        <span>{sourceCurrency}</span>
                     </span>
                     <dl className="transaction-form__balance-preview">
                         <div>
@@ -249,19 +256,19 @@ export default function TransactionForm({
                                         ? "Số dư tạm tính"
                                         : "Số dư hiện tại"}
                             </dt>
-                            <dd>{formatCurrency(currentWalletBalance)}</dd>
+                            <dd>{formatCurrency(currentWalletBalance, sourceCurrency)}</dd>
                         </div>
                         <div>
                             <dt>{isSelectedCreditCard ? "Dư nợ sau giao dịch" : "Số dư sau giao dịch"}</dt>
                             <dd className={previewBalance < 0 ? "is-negative" : "is-positive"}>
-                                {formatCurrency(previewBalance)}
+                                {formatCurrency(previewBalance, sourceCurrency)}
                             </dd>
                         </div>
                         {isSelectedCreditCard ? (
                             <div>
                                 <dt>Hạn mức còn lại</dt>
                                 <dd className={previewAvailableCredit < 0 ? "is-negative" : "is-positive"}>
-                                    {formatCurrency(previewAvailableCredit)}
+                                    {formatCurrency(previewAvailableCredit, sourceCurrency)}
                                 </dd>
                             </div>
                         ) : null}
@@ -322,12 +329,13 @@ export default function TransactionForm({
                         <ExpenseField className="transaction-form__field" label="Ví nhận">
                             <select
                                 name="toWallet"
+                                disabled={!destinationWalletOptions.length}
                                 onChange={(event) => setToWalletId(event.target.value)}
                                 required
                                 value={selectedToWalletId}
                             >
-                                {walletOptions
-                                    .filter((wallet) => wallet.id !== selectedWalletId)
+                                {!destinationWalletOptions.length && <option value="">Chưa có ví cùng tiền tệ</option>}
+                                {destinationWalletOptions
                                     .map((wallet) => (
                                         <option key={wallet.id} value={wallet.id}>
                                             {getWalletDisplayName(wallet)}
@@ -336,6 +344,10 @@ export default function TransactionForm({
                             </select>
                         </ExpenseField>
                     ) : null}
+
+                    {isTransfer && !destinationWalletOptions.length && <p className="expense-form-notice" role="status">
+                        Chưa có ví nhận bằng {sourceCurrency}. Chọn ví nguồn khác hoặc tạo thêm ví cùng tiền tệ.
+                    </p>}
 
                     <div className="transaction-form__field-row">
                         <ExpenseField className="transaction-form__field" label="Ngày">
@@ -372,6 +384,7 @@ export default function TransactionForm({
                 {submitError ? (
                     <ExpenseStateMessage
                         className="transaction-form__error"
+                        role="alert"
                         message={submitError}
                     />
                 ) : null}
@@ -388,6 +401,7 @@ export default function TransactionForm({
                     ) : null}
                     <ExpenseButton
                         className="transaction-form__submit"
+                        disabled={isTransfer && !destinationWalletOptions.length}
                         isLoading={isSubmitting}
                         label={submitLabel}
                         loadingLabel={expenseUiText.actions.SAVING}

@@ -45,7 +45,6 @@ import { expenseSortKeys } from "../constants/expenseUiMetadata";
 import { getCategorySpendingByMonth } from "../utils/categorySpendingUtils";
 import { calculateTrend, getEmptyMonthlyStats, getPreviousMonthKey } from "../utils/monthlyStatsUtils";
 import { getSpendableWallets } from "../utils/savingsUtils";
-import { getLocalDateValue, getLocalTimeValue } from "../utils/transactionFormUtils";
 import {
     getCompactMonthLabel,
     getCurrentMonthKey,
@@ -178,11 +177,11 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     );
     const initialSetupWallet =
         walletsOwnerUid === uid &&
-        walletsLoadStatus === "loaded" &&
-        (resolvedAllWallets.length === 0 ||
-            (resolvedAllWallets.length === 1 &&
-                resolvedAllWallets[0].type !== creditCardWalletTypeId &&
-                !resolvedAllWallets[0].isBalanceInitialized))
+            walletsLoadStatus === "loaded" &&
+            (resolvedAllWallets.length === 0 ||
+                (resolvedAllWallets.length === 1 &&
+                    resolvedAllWallets[0].type !== creditCardWalletTypeId &&
+                    !resolvedAllWallets[0].isBalanceInitialized))
             ? (resolvedAllWallets[0] ?? null)
             : undefined;
     const shouldShowInitialWalletSetup = initialSetupWallet !== undefined;
@@ -429,16 +428,17 @@ export default function DashboardPage({ initialSettings, onLogout }) {
         return deleteExpenseBudgetAction(uid, budget, monthKey);
     };
 
-    const handleSaveBudgetSavings = async ({ candidate, fromWalletId, toWalletId }) => {
+    const handleSaveBudgetSavings = async ({ candidate, fromWalletId, toWalletId, idempotencyKey, date, time }) => {
         const result = await handleAddTransaction({
+            idempotencyKey,
             amount: candidate.savingsAmount,
             budgetSavingsCategoryId: candidate.categoryId,
             budgetSavingsMonthKey: previousMonthKey,
-            date: getLocalDateValue(),
+            date,
             fromWalletId,
             note: `Phần dư ngân sách ${candidate.category} của ${previousMonthLabel}.`,
             savingsTransferKind: savingsTransferKinds.DEPOSIT,
-            time: getLocalTimeValue(),
+            time,
             title: `Tiết kiệm từ ngân sách ${candidate.category}`,
             toWalletId,
             type: transactionTypes.TRANSFER,
@@ -450,6 +450,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
     };
 
     const handleSaveSavingsTransfer = async ({
+        idempotencyKey,
         amount,
         date,
         fromWalletId,
@@ -458,6 +459,7 @@ export default function DashboardPage({ initialSettings, onLogout }) {
         time,
         toWalletId,
     }) => handleAddTransaction({
+        idempotencyKey,
         amount,
         date,
         fromWalletId,

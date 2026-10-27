@@ -46,15 +46,13 @@ Chức năng chính:
   * `hiddenCategoryIds`
   * `hiddenWalletIds`
   * `updatedAt`
-* Wallet, category, transaction, budget và monthly stats phải đúng schema,
-  ownership và invariant được khai báo trong rules. Các mutation tài chính của
-  client đi qua repository và Firestore transaction/batch.
-* Transfer chạm wallet type `saving` phải lưu `savingsTransferKind` là `deposit`
-  hoặc `withdrawal`; Rules khóa đúng chiều ví và không cho transfer thường dùng
-  ví tiết kiệm. Transfer từ phần dư ngân sách lưu thêm `budgetSavingsMonthKey`,
-  `budgetSavingsCategoryId` và bắt buộc là `deposit`.
-* Wallet `saving` không được dùng cho expense, adjustment hoặc credit payment;
-  income trực tiếp chỉ hợp lệ với category `interest`.
+* Client ghi category/budget theo schema và ownership trong Rules.
+* Client chỉ được tạo wallet bootstrap `default-wallet-cash` có số dư 0, chưa
+  khởi tạo số dư, hoặc sửa `order`/`updatedAt` của wallet hiện có.
+* Rules từ chối mọi client write vào transactions, monthlyStats, savingsClaims
+  và mutationLocks. Các mutation ví/giao dịch đi qua callable `mutateExpenses`.
+* Backend kiểm tra chiều Nạp/Rút tiết kiệm, cùng currency, giới hạn thẻ, category
+  và các projection trong cùng transaction; Admin SDK không chạy Rules.
 
 Rules này được Firebase server tự động áp dụng mỗi khi app React gọi Firestore.
 React code không import file này.
@@ -184,7 +182,7 @@ thì request được chấp nhận.
 
 Nếu không, Firestore trả lỗi permission denied.
 
-Flow đổi tên hiển thị cũng cần rules đã deploy vì app ghi đồng thời Firebase
+Flow đổi tên hiển thị cũng cần rules đã deploy vì app lần lượt cập nhật Firebase
 Authentication và `users/{uid}.displayName`. Nếu Firestore từ chối request, app
 rollback Auth profile về tên trước đó.
 
@@ -232,8 +230,8 @@ Kiểm tra:
 
 1. Login Firebase CLI.
 2. Chọn Firebase project bằng `use --add`.
-3. Deploy `firestore.rules`.
-4. Deploy `firestore.indexes.json`.
+3. Triển khai Functions và Hosting tương thích callable theo [Functions README](functions/README.md).
+4. Deploy Rules/indexes đúng database; cấu hình mặc định chỉ chọn `(default)`. Với named database, đồng bộ `firebase.json`, `VITE_FIREBASE_DATABASE_ID` và `EXPENSE_DATABASE_ID`.
 5. Test đăng nhập, đổi displayName và kiểm tra cả Firebase Auth lẫn
    `users/{uid}`.
 6. Test tạo/cập nhật `modules/expenses/settings/main` với các preference mới.

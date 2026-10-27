@@ -146,7 +146,7 @@ Vite sẽ in URL preview local ra terminal.
 npx.cmd firebase-tools emulators:start --only hosting --project personal-hub-1605
 ```
 
-Hosting Emulator thường chạy tại `http://localhost:5000`. Khi dùng cách này, ứng dụng vẫn kết nối tới Firebase backend thật vì repo chưa cấu hình Firestore/Auth Emulator.
+Hosting Emulator thường chạy tại `http://localhost:5000`. Khi dùng cách này, ứng dụng vẫn kết nối tới Firebase backend thật; frontend chưa tự kết nối Auth/Firestore/Functions Emulator. Firestore Emulator trong repo chỉ được nối tự động bởi integration test.
 
 Kiểm tra ít nhất:
 
@@ -172,6 +172,11 @@ https://personal-hub-1605--moneycare-preview-<hash>.web.app
 Preview URL là URL công khai và sử dụng Firebase backend thật. Nếu đăng nhập hoặc App Check báo lỗi domain, thêm chính hostname preview được CLI trả về vào cấu hình Authorized domains/reCAPTCHA trước khi kiểm tra.
 
 ## 9. Deploy production
+
+Với migration mutation tài chính sang callable, triển khai `mutateExpenses`
+trước Hosting rồi cập nhật Firestore Rules trong cùng đợt. Xem
+[Functions README](functions/README.md) cho dependency, database và App Check.
+Deploy Hosting riêng không tạo Function; deploy Rules mới trước sẽ chặn app cũ.
 
 Sau khi lint, build và preview đều đạt:
 
@@ -289,6 +294,9 @@ Sau đó deploy lại Hosting.
 4. Hard refresh trình duyệt.
 
 ## 13. Rollback
+
+Không rollback về bundle ghi tài chính trực tiếp sau khi đã bật Rules dành cho
+callable. Bản frontend rollback phải tương thích với backend và Rules hiện tại.
 
 Nếu bản production có lỗi:
 

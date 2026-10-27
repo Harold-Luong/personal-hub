@@ -68,6 +68,14 @@ export function getSavingsTransferValidationError({ fromWallet, kind, toWallet }
     const fromIsSaving = isSavingWallet(fromWallet);
     const toIsSaving = isSavingWallet(toWallet);
 
+    if (!fromWallet || !toWallet) return "Vui lòng chọn đủ hai ví.";
+    if ((fromWallet.currency ?? "VND") !== (toWallet.currency ?? "VND")) {
+        return "Ví nguồn và ví nhận phải dùng cùng loại tiền tệ.";
+    }
+    if (fromWallet.type === creditCardWalletTypeId || toWallet.type === creditCardWalletTypeId) {
+        return "Thẻ tín dụng chỉ được sử dụng qua luồng chi tiêu hoặc thanh toán thẻ.";
+    }
+
     if (!kind) {
         return fromIsSaving || toIsSaving
             ? "Ví Tiết kiệm chỉ được sử dụng qua luồng Nạp hoặc Rút tiền tiết kiệm."
@@ -84,10 +92,6 @@ export function getSavingsTransferValidationError({ fromWallet, kind, toWallet }
         }
     } else if (!fromIsSaving || !isSpendableWallet(toWallet)) {
         return "Tiền tiết kiệm chỉ được rút từ ví Tiết kiệm sang ví chi tiêu.";
-    }
-
-    if ((fromWallet?.currency ?? "VND") !== (toWallet?.currency ?? "VND")) {
-        return "Ví nguồn và ví nhận phải dùng cùng loại tiền tệ.";
     }
 
     return "";

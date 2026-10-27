@@ -184,6 +184,11 @@ Lặng dùng dữ liệu và ảnh nền đóng gói cùng frontend. Favorites �
 
 ## Chạy dự án trên máy local
 
+Mutation tài chính dùng Callable Function `mutateExpenses`. Cài thêm dependency
+backend bằng `npm install --prefix functions`; xem [Functions README](functions/README.md)
+cho build, test emulator và triển khai Functions → Hosting → Rules. `npm run dev`
+không tự nối Firebase Emulator; backend phải sẵn sàng trên project đã cấu hình.
+
 ### Yêu cầu
 
 - Node.js phù hợp với Vite 8.

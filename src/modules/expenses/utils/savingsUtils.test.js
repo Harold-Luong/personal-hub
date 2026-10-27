@@ -55,3 +55,8 @@ describe("savingsUtils", () => {
         })).toContain("rút từ ví Tiết kiệm");
     });
 });
+
+it("rejects mixed currencies and credit cards even on ordinary transfers", () => {
+    expect(getSavingsTransferValidationError({ fromWallet: wallets[0], toWallet: { ...wallets[1], currency: "USD" } })).toContain("tiền tệ");
+    expect(getSavingsTransferValidationError({ fromWallet: wallets[0], toWallet: wallets[3] })).toContain("Thẻ tín dụng");
+});

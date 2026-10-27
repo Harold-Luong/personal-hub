@@ -106,7 +106,11 @@ Tài liệu Firebase tham khảo:
 
 ## 3. Firestore Security Rules
 
-Firestore Security Rules là lớp bảo vệ quan trọng nhất của hệ thống.
+Firestore Security Rules bảo vệ các request client SDK. Mutation tài chính chạy
+trong callable `mutateExpenses` dùng Admin SDK nên phải tự validate Auth, payload
+và nghiệp vụ; UID chỉ lấy từ Auth context. Callable enforce App Check.
+Rules chặn client ghi trực tiếp transactions, monthlyStats và field tài chính
+của wallet. Xem [Functions README](functions/README.md).
 
 Các quy tắc bảo mật sẽ:
 
@@ -147,7 +151,9 @@ Trong giai đoạn đầu, MoneyCare sẽ sử dụng kết hợp:
 * Firebase App Check
 * Firestore Security Rules
 
-Khi hệ thống phát triển và có yêu cầu bảo mật cao hơn, các thao tác ghi dữ liệu quan trọng sẽ được chuyển sang Cloud Functions. Tại đây có thể triển khai các cơ chế như:
+Mutation ví và giao dịch đã chuyển sang Cloud Functions trong source code. Cần
+triển khai Functions → Hosting → Rules để áp dụng trên Firebase. Các cơ chế
+chưa triển khai, có thể bổ sung sau:
 
 * Rate Limiting.
 * Kiểm soát tần suất ghi dữ liệu.

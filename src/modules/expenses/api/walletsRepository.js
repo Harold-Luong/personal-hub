@@ -1,3 +1,4 @@
+import { runFinancialMutation } from "./financialRuntime";
 import {
     Timestamp,
     deleteField,
@@ -265,17 +266,15 @@ async function getActiveWalletNetMovement(uid, walletId) {
     )
 }
 
-function getLocalDateTimeParts(date = new Date()) {
-    const year = date.getFullYear()
-    const month = String(date.getMonth() + 1).padStart(2, "0")
-    const day = String(date.getDate()).padStart(2, "0")
-    const hours = String(date.getHours()).padStart(2, "0")
-    const minutes = String(date.getMinutes()).padStart(2, "0")
-
+function getLocalDateTimeParts(date = new Date(), timezone = getTimezone()) {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+        timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+    }).formatToParts(date).map((part) => [part.type, part.value]))
     return {
-        localDate: `${year}-${month}-${day}`,
-        monthKey: `${year}-${month}`,
-        time: `${hours}:${minutes}`,
+        localDate: `${parts.year}-${parts.month}-${parts.day}`,
+        monthKey: `${parts.year}-${parts.month}`,
+        time: `${parts.hour}:${parts.minute}`,
     }
 }
 
@@ -295,7 +294,7 @@ function getWalletSnapshot(wallet) {
 function mapAdjustmentTransaction(id, data) {
     const occurredAt = data.occurredAt?.toDate?.()
     const time = occurredAt
-        ? `${String(occurredAt.getHours()).padStart(2, "0")}:${String(occurredAt.getMinutes()).padStart(2, "0")}`
+        ? getLocalDateTimeParts(occurredAt, data.timezone).time
         : ""
 
     return {
@@ -327,9 +326,9 @@ function mapAdjustmentTransaction(id, data) {
     }
 }
 
-function createBalanceAdjustmentTransactionData({ balanceDelta, currentBalance, targetBalance, timestamp, wallet, walletId }) {
+function createBalanceAdjustmentTransactionData({ balanceDelta, currentBalance, targetBalance, timestamp, wallet, walletId, timezone = getTimezone() }) {
     const now = new Date()
-    const { localDate, monthKey } = getLocalDateTimeParts(now)
+    const { localDate, monthKey } = getLocalDateTimeParts(now, timezone)
     const adjustmentDirection = balanceDelta > 0 ? "increase" : "decrease"
     const title = adjustmentDirection === "increase" ? "Điều chỉnh tăng số dư" : "Điều chỉnh giảm số dư"
     const note = `Cập nhật số dư ví từ ${currentBalance} thành ${targetBalance}.`
@@ -349,7 +348,7 @@ function createBalanceAdjustmentTransactionData({ balanceDelta, currentBalance, 
         occurredAt: Timestamp.fromDate(now),
         searchTokens: getTransactionSearchTokens({ title, note }),
         status: "active",
-        timezone: getTimezone(),
+        timezone,
         title,
         titleNormalized: normalizeSearchText(title),
         toWalletId: null,
@@ -380,7 +379,7 @@ function normalizeWalletInput(input = {}, { existingWallet, includeBalance = tru
         color: normalizeColor(input.color ?? existingWallet?.color, typeMeta.color),
         currency: normalizeCurrency(input.currency ?? existingWallet?.currency),
         icon: normalizeText(input.icon ?? existingWallet?.icon ?? typeMeta.icon, 'Wallet icon'),
-        isBalanceInitialized: Boolean(input.isBalanceInitialized ?? existingWallet?.isBalanceInitialized ?? true),
+        isBalanceInitialized: Boolean(existingWallet?.isBalanceInitialized ?? true),
         name: normalizeText(input.name ?? existingWallet?.name, 'Wallet name'),
         order: normalizeInteger(input.order ?? existingWallet?.order ?? order, 'Wallet order'),
         type,
@@ -392,7 +391,7 @@ function normalizeWalletInput(input = {}, { existingWallet, includeBalance = tru
             'Credit limit',
         )
         const outstandingDebt = normalizeNonNegativeInteger(
-            existingWallet?.outstandingDebt ?? input.outstandingDebt ?? 0,
+            existingWallet?.outstandingDebt ?? 0,
             'Outstanding debt',
         )
 
@@ -417,6 +416,9 @@ function normalizeWalletInput(input = {}, { existingWallet, includeBalance = tru
             input.initialBalance ?? existingWallet?.initialBalance ?? balance,
             'Initial wallet balance',
         )
+        if (!existingWallet && wallet.initialBalance !== balance) {
+            throw new Error('Số dư ví mới phải bằng số dư ban đầu.')
+        }
     }
 
     return wallet
@@ -442,7 +444,11 @@ export async function getExpenseWallets(uid, { includeArchived = false } = {}) {
         .sort(sortWallets);
 }
 
-export async function createExpenseWallet(uid, input) {
+export function createExpenseWallet(uid, input) {
+    return runFinancialMutation("createExpenseWallet", uid, { input }, () => createExpenseWalletLocally(uid, input));
+}
+
+async function createExpenseWalletLocally(uid, input) {
     const activeWallets = await getExpenseWallets(uid)
     const walletRef = doc(getCollectionReference(uid, expenseCollections.WALLETS))
     const wallet = normalizeWalletInput(input, {
@@ -474,7 +480,11 @@ export async function createExpenseWallet(uid, input) {
     }
 }
 
-export async function updateExpenseWallet(uid, input) {
+export function updateExpenseWallet(uid, input) {
+    return runFinancialMutation("updateExpenseWallet", uid, { input }, () => updateExpenseWalletLocally(uid, input));
+}
+
+async function updateExpenseWalletLocally(uid, input) {
     const walletId = input?.id
     const activeWallets = await getExpenseWallets(uid)
     const existingWallet = activeWallets.find((wallet) => wallet.id === walletId)
@@ -497,6 +507,9 @@ export async function updateExpenseWallet(uid, input) {
         ...normalizeWalletInput(input, { existingWallet, includeBalance: false }),
     }
     assertWalletTypeChangeAllowed(existingWallet, wallet)
+    if (wallet.currency !== existingWallet.currency && await hasActiveWalletTransactions(uid, walletId)) {
+        throw new Error('Không thể đổi tiền tệ của ví đã có giao dịch.')
+    }
     assertUniqueWalletName(activeWallets, wallet, walletId)
 
     const isRegularWallet = !isCreditCardWallet(wallet)
@@ -540,8 +553,12 @@ export async function updateExpenseWallet(uid, input) {
 
         const currentBalance = currentWalletData.balance ?? 0
         const balanceDelta = shouldApplyBalanceChange ? targetBalance - currentBalance : 0
+        // Recompute card projections from the transactional read, never the earlier list.
+        const currentWallet = isCreditCardWallet(currentWalletData)
+            ? normalizeWalletInput(input, { existingWallet: currentWalletData, includeBalance: false })
+            : wallet;
         const walletUpdate = {
-            ...wallet,
+            ...currentWallet,
             isDefault: deleteField(),
             updatedAt: timestamp,
         }
@@ -560,6 +577,7 @@ export async function updateExpenseWallet(uid, input) {
                 getCollectionReference(uid, expenseCollections.TRANSACTIONS),
             )
             const transactionData = createBalanceAdjustmentTransactionData({
+                timezone: input.timezone,
                 balanceDelta,
                 currentBalance,
                 targetBalance,
@@ -583,8 +601,8 @@ export async function updateExpenseWallet(uid, input) {
         firestoreTransaction.update(walletRef, walletUpdate)
 
         const nextWallet = {
-            ...existingWallet,
-            ...wallet,
+            ...currentWalletData,
+            ...currentWallet,
             balance: shouldSetInitialBalance || shouldRecalculateOpeningBalance || balanceDelta !== 0 ? targetBalance : currentBalance,
             initialBalance:
                 shouldSetInitialBalance
@@ -620,7 +638,11 @@ export async function upsertExpenseWallet(uid, input) {
     return createExpenseWallet(uid, input)
 }
 
-export async function deleteExpenseWallet(uid, input) {
+export function deleteExpenseWallet(uid, input) {
+    return runFinancialMutation("deleteExpenseWallet", uid, { input }, () => deleteExpenseWalletLocally(uid, input));
+}
+
+async function deleteExpenseWalletLocally(uid, input) {
     const walletId = input?.id
     const activeWallets = await getExpenseWallets(uid)
     const wallet = activeWallets.find((activeWallet) => activeWallet.id === walletId)
