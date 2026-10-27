@@ -33,9 +33,11 @@ vi.mock("firebase/firestore", () => ({
 }));
 
 import { copyExpenseBudgets } from "./budgetsRepository";
+import { useAuthSessionStore } from "../../../stores/authSessionStore";
 import { useExpenseDataStore } from "../../../stores/expenseDataStore";
 
 beforeEach(() => {
+    useAuthSessionStore.getState().setAuthUser({ uid: "user" });
     mock.documents.clear();
     mock.source = [{ monthKey: "2026-08", categoryId: "food", limitMinor: 3000000, alertThreshold: 75 }];
     mock.failId = "";

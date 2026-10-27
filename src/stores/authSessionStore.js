@@ -26,19 +26,22 @@ function getAuthUserSnapshot(user) {
  * @property {Function} clearAuthUser - Hàm để xóa thông tin người dùng xác thực.
  * @property {Function} setAuthUser - Hàm để thiết lập thông tin người dùng xác thực.
  */
-export const useAuthSessionStore = create((set) => ({
+export const useAuthSessionStore = create((set, get) => ({
     authUser: null,
     uid: null,
+    sessionRevision: 0,
     clearAuthUser: () => {
         set({
             authUser: null,
             uid: null,
+            sessionRevision: get().sessionRevision + (get().uid !== null ? 1 : 0),
         });
     },
     setAuthUser: (user) => {
         const authUser = getAuthUserSnapshot(user);
 
         set({
+            sessionRevision: get().sessionRevision + (get().uid !== (authUser?.uid ?? null) ? 1 : 0),
             authUser: authUser,
             uid: authUser?.uid ?? null,
         });

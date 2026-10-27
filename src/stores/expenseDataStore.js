@@ -1,8 +1,10 @@
 import { create } from "zustand";
+import { useAuthSessionStore } from "./authSessionStore";
 import { getVisibleMonthOptions } from "../modules/expenses/utils/monthUtils";
 
 const defaultExpenseDataState = {
     budgetLimitsByMonth: {},
+    budgetLimitsErrorByMonth: {},
     budgetSavingsTransfersByMonth: {},
     categories: [],
     monthOptionsByYear: {},
@@ -13,6 +15,35 @@ const defaultExpenseDataState = {
     walletsLoadStatus: "idle",
     walletsOwnerUid: null,
 };
+
+// Capture both UID and generation: A -> logout -> A must invalidate old requests too.
+function sessionSetter(set, uid) {
+    const session = useAuthSessionStore.getState();
+    return (update) => {
+        const current = useAuthSessionStore.getState();
+        if (current.uid === uid && current.sessionRevision === session.sessionRevision) {
+            set(update);
+        }
+    };
+}
+
+async function runSessionMutation(uid, loadRepository, mutate) {
+    const session = useAuthSessionStore.getState();
+    const assertCurrent = () => {
+        const current = useAuthSessionStore.getState();
+        if (!uid || session.uid !== uid || current.uid !== uid || current.sessionRevision !== session.sessionRevision) {
+            throw new Error("Phiên đăng nhập đã thay đổi. Vui lòng thử lại.");
+        }
+    };
+    assertCurrent();
+    const repository = await loadRepository();
+    assertCurrent();
+    const result = await mutate(repository);
+    // A completed request may already be committed, but must not trigger success
+    // navigation or update UI state belonging to a subsequent session.
+    assertCurrent();
+    return result;
+}
 
 /**
  * Sắp xếp danh sách ví chi tiêu.
@@ -156,15 +187,16 @@ function mergeMonthlyStatsUpdates(monthlyStatsByMonth, monthlyStatsUpdates = {})
  * @property {Function} upsertExpenseWallet - Hàm để thêm hoặc cập nhật một ví chi tiêu.
  * @property {Function} deleteExpenseWallet - Hàm để xóa một ví chi tiêu.
  */
-export const useExpenseDataStore = create((set, get) => ({
+export const useExpenseDataStore = create((rawSet, get) => ({
     // Trạng thái mặc định của dữ liệu chi tiêu
     ...defaultExpenseDataState,
     resetExpenseData: () => {
-        set(defaultExpenseDataState);
+        rawSet(defaultExpenseDataState);
     },
 
     // Tải danh sách danh mục chi tiêu
     loadExpenseCategories: async (uid) => {
+        const set = sessionSetter(rawSet, uid);
         if (!uid) {
             set({ categories: [] });
             return [];
@@ -184,6 +216,7 @@ export const useExpenseDataStore = create((set, get) => ({
 
     // Tải danh sách ví chi tiêu
     loadExpenseWallets: async (uid) => {
+        const set = sessionSetter(rawSet, uid);
         if (!uid) {
             set({ wallets: [], walletsLoadStatus: "idle", walletsOwnerUid: null });
             return [];
@@ -213,6 +246,7 @@ export const useExpenseDataStore = create((set, get) => ({
 
     // Tải thống kê chi tiêu hàng tháng
     loadExpenseMonthlyStats: async (uid, monthKey) => {
+        const set = sessionSetter(rawSet, uid);
         if (!uid || !monthKey) {
             return null;
         }
@@ -232,6 +266,7 @@ export const useExpenseDataStore = create((set, get) => ({
 
     // Tải giới hạn ngân sách theo tháng
     loadExpenseBudgets: async (uid, monthKey) => {
+        const set = sessionSetter(rawSet, uid);
         if (!uid || !monthKey) {
             return [];
         }
@@ -281,6 +316,7 @@ export const useExpenseDataStore = create((set, get) => ({
     },
 
     loadExpenseBudgetSavingsTransfers: async (uid, sourceMonthKey) => {
+        const set = sessionSetter(rawSet, uid);
         if (!uid || !sourceMonthKey) {
             return [];
         }
@@ -307,6 +343,7 @@ export const useExpenseDataStore = create((set, get) => ({
 
     // Tải danh sách giao dịch gần đây
     loadExpenseRecentTransactions: async (uid, maxTransactions = 10) => {
+        const set = sessionSetter(rawSet, uid);
         if (!uid) {
             set({ recentTransactions: [] });
             return [];
@@ -326,6 +363,7 @@ export const useExpenseDataStore = create((set, get) => ({
 
     // Tải các tùy chọn tháng theo năm
     loadExpenseMonthOptions: async (uid, year, currentMonthKey, { force = false } = {}) => {
+        const set = sessionSetter(rawSet, uid);
         const cacheKey = getMonthOptionsCacheKey(uid, year);
         const cachedOptions = get().monthOptionsByYear[cacheKey];
 
@@ -372,6 +410,7 @@ export const useExpenseDataStore = create((set, get) => ({
 
     // Tải dữ liệu tổng quan chi tiêu
     loadExpenseDashboardData: async (uid, { currentMonthKey, previousMonthKey }) => {
+        const set = sessionSetter(rawSet, uid);
         if (!uid) {
             set(defaultExpenseDataState);
             return;
@@ -391,8 +430,11 @@ export const useExpenseDataStore = create((set, get) => ({
 
     // Tạo một giao dịch chi tiêu mới
     createExpenseTransaction: async (uid, transaction, { currentMonthKey, previousMonthKey, recentLimit = 10 } = {}) => {
-        const { createExpenseTransaction } = await import("../modules/expenses/api/transactionsRepository");
-        const result = await createExpenseTransaction(uid, transaction);
+        const set = sessionSetter(rawSet, uid);
+        const result = await runSessionMutation(uid,
+            () => import("../modules/expenses/api/transactionsRepository"),
+            (repository) => repository.createExpenseTransaction(uid, transaction),
+        );
 
         set((state) => {
             const monthlyStatsUpdates = {};
@@ -409,7 +451,7 @@ export const useExpenseDataStore = create((set, get) => ({
                     transactionMonthKey,
                 ),
                 monthlyStatsByMonth: mergeMonthlyStatsUpdates(state.monthlyStatsByMonth, monthlyStatsUpdates),
-                recentTransactions: sortTransactionList([result.transaction, ...state.recentTransactions]).slice(
+                recentTransactions: sortTransactionList([result.transaction, ...state.recentTransactions.filter((item) => item.id !== result.transaction.id)]).slice(
                     0,
                     recentLimit,
                 ),
@@ -432,8 +474,11 @@ export const useExpenseDataStore = create((set, get) => ({
 
     // Cập nhật một giao dịch chi tiêu hiện có
     updateExpenseTransaction: async (uid, transactionId, transaction) => {
-        const { updateExpenseTransaction } = await import("../modules/expenses/api/transactionsRepository");
-        const result = await updateExpenseTransaction(uid, transactionId, transaction);
+        const set = sessionSetter(rawSet, uid);
+        const result = await runSessionMutation(uid,
+            () => import("../modules/expenses/api/transactionsRepository"),
+            (repository) => repository.updateExpenseTransaction(uid, transactionId, transaction),
+        );
 
         set((state) => {
             const transactionMonthKey = getTransactionMonthKey(result.transaction);
@@ -460,8 +505,11 @@ export const useExpenseDataStore = create((set, get) => ({
 
     // Hủy bỏ một giao dịch chi tiêu hiện có
     voidExpenseTransaction: async (uid, transactionId) => {
-        const { voidExpenseTransaction } = await import("../modules/expenses/api/transactionsRepository");
-        const result = await voidExpenseTransaction(uid, transactionId);
+        const set = sessionSetter(rawSet, uid);
+        const result = await runSessionMutation(uid,
+            () => import("../modules/expenses/api/transactionsRepository"),
+            (repository) => repository.voidExpenseTransaction(uid, transactionId),
+        );
 
         set((state) => {
             const nextBudgetSavingsTransfersByMonth = { ...state.budgetSavingsTransfersByMonth };
@@ -490,11 +538,14 @@ export const useExpenseDataStore = create((set, get) => ({
 
     // Thêm hoặc cập nhật một giới hạn ngân sách chi tiêu
     upsertExpenseBudget: async (uid, budget, monthKey) => {
-        const { upsertExpenseBudget } = await import("../modules/expenses/api/budgetsRepository");
-        const result = await upsertExpenseBudget(uid, {
-            ...budget,
-            monthKey,
-        });
+        const set = sessionSetter(rawSet, uid);
+        const result = await runSessionMutation(uid,
+            () => import("../modules/expenses/api/budgetsRepository"),
+            (repository) => repository.upsertExpenseBudget(uid, {
+                ...budget,
+                monthKey,
+            }),
+        );
 
         set((state) => ({
             budgetLimitsByMonth: {
@@ -507,8 +558,11 @@ export const useExpenseDataStore = create((set, get) => ({
     },
 
     copyExpenseBudgets: async (uid, sourceMonthKey, targetMonthKey) => {
-        const { copyExpenseBudgets } = await import("../modules/expenses/api/budgetsRepository");
-        const result = await copyExpenseBudgets(uid, sourceMonthKey, targetMonthKey);
+        const set = sessionSetter(rawSet, uid);
+        const result = await runSessionMutation(uid,
+            () => import("../modules/expenses/api/budgetsRepository"),
+            (repository) => repository.copyExpenseBudgets(uid, sourceMonthKey, targetMonthKey),
+        );
         set((state) => state.walletsOwnerUid !== uid ? {} : ({
             budgetLimitsByMonth: {
                 ...state.budgetLimitsByMonth,
@@ -523,11 +577,14 @@ export const useExpenseDataStore = create((set, get) => ({
 
     // Xóa một giới hạn ngân sách chi tiêu
     deleteExpenseBudget: async (uid, budget, monthKey) => {
-        const { deleteExpenseBudget } = await import("../modules/expenses/api/budgetsRepository");
-        const result = await deleteExpenseBudget(uid, {
-            ...budget,
-            monthKey,
-        });
+        const set = sessionSetter(rawSet, uid);
+        const result = await runSessionMutation(uid,
+            () => import("../modules/expenses/api/budgetsRepository"),
+            (repository) => repository.deleteExpenseBudget(uid, {
+                ...budget,
+                monthKey,
+            }),
+        );
 
         set((state) => ({
             budgetLimitsByMonth: {
@@ -544,8 +601,11 @@ export const useExpenseDataStore = create((set, get) => ({
 
     // Thêm hoặc cập nhật một ví chi tiêu
     upsertExpenseWallet: async (uid, wallet) => {
-        const { upsertExpenseWallet } = await import("../modules/expenses/api/walletsRepository");
-        const result = await upsertExpenseWallet(uid, wallet);
+        const set = sessionSetter(rawSet, uid);
+        const result = await runSessionMutation(uid,
+            () => import("../modules/expenses/api/walletsRepository"),
+            (repository) => repository.upsertExpenseWallet(uid, wallet),
+        );
         const savedWallet = result.wallet ?? result;
 
         set((state) => {
@@ -570,8 +630,11 @@ export const useExpenseDataStore = create((set, get) => ({
 
     // Xóa một ví chi tiêu
     deleteExpenseWallet: async (uid, wallet) => {
-        const { deleteExpenseWallet } = await import("../modules/expenses/api/walletsRepository");
-        const result = await deleteExpenseWallet(uid, wallet);
+        const set = sessionSetter(rawSet, uid);
+        const result = await runSessionMutation(uid,
+            () => import("../modules/expenses/api/walletsRepository"),
+            (repository) => repository.deleteExpenseWallet(uid, wallet),
+        );
 
         set((state) => ({
             wallets: state.wallets
@@ -583,8 +646,11 @@ export const useExpenseDataStore = create((set, get) => ({
     },
 
     reorderExpenseCategories: async (uid, categoryIds) => {
-        const { reorderExpenseCategories } = await import("../modules/expenses/api/categoriesRepository");
-        const orderedIds = await reorderExpenseCategories(uid, categoryIds);
+        const set = sessionSetter(rawSet, uid);
+        const orderedIds = await runSessionMutation(uid,
+            () => import("../modules/expenses/api/categoriesRepository"),
+            (repository) => repository.reorderExpenseCategories(uid, categoryIds),
+        );
         const orderById = new Map(orderedIds.map((id, index) => [id, (index + 1) * 10]));
 
         set((state) => ({
@@ -603,8 +669,11 @@ export const useExpenseDataStore = create((set, get) => ({
     },
 
     reorderExpenseWallets: async (uid, walletIds) => {
-        const { reorderExpenseWallets } = await import("../modules/expenses/api/walletsRepository");
-        const orderedIds = await reorderExpenseWallets(uid, walletIds);
+        const set = sessionSetter(rawSet, uid);
+        const orderedIds = await runSessionMutation(uid,
+            () => import("../modules/expenses/api/walletsRepository"),
+            (repository) => repository.reorderExpenseWallets(uid, walletIds),
+        );
         const orderById = new Map(orderedIds.map((id, index) => [id, (index + 1) * 10]));
 
         set((state) => ({
@@ -629,3 +698,9 @@ export const selectExpenseBudgetSavingsTransfersByMonth = (state) => state.budge
 export const selectExpenseMonthlyStatsByMonth = (state) => state.monthlyStatsByMonth;
 export const selectExpenseMonthOptionsByYear = (state) => state.monthOptionsByYear;
 export const getExpenseMonthOptionsCacheKey = getMonthOptionsCacheKey;
+
+useAuthSessionStore.subscribe((session, previous) => {
+    if (session.sessionRevision !== previous.sessionRevision) {
+        useExpenseDataStore.getState().resetExpenseData();
+    }
+});

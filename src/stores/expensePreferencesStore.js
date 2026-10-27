@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useAuthSessionStore } from "./authSessionStore";
 import { createJSONStorage, persist } from "zustand/middleware";
 import {
     expenseAmountFormatIds,
@@ -143,9 +144,14 @@ export const useExpensePreferencesStore = create(
 
             // Lưu một cài đặt chi tiêu cụ thể vào cơ sở dữ liệu
             saveExpensePreference: (uid, key, value) => {
+                const session = useAuthSessionStore.getState();
+                const isCurrentSession = () => {
+                    const current = useAuthSessionStore.getState();
+                    return current.uid === uid && current.sessionRevision === session.sessionRevision;
+                };
                 const currentPreference = useExpensePreferencesStore.getState().expensePreferences[key];
 
-                if (!uid || value === currentPreference) {
+                if (!uid || !isCurrentSession() || value === currentPreference) {
                     return settingsWriteQueue;
                 }
 
@@ -165,10 +171,12 @@ export const useExpensePreferencesStore = create(
                     .then(async () => {
                         const { updateExpenseSettings } = await import("../modules/expenses/api/expenseSettingsRepository");
 
+                        if (!isCurrentSession()) return;
                         await updateExpenseSettings(uid, {
                             [key]: value,
                         });
 
+                        if (!isCurrentSession()) return;
                         set((state) => ({
                             confirmedExpensePreferences: normalizeExpensePreferences({
                                 ...state.confirmedExpensePreferences,
@@ -180,7 +188,7 @@ export const useExpensePreferencesStore = create(
                 settingsWriteQueue = writePromise;
 
                 writePromise.catch(() => {
-                    if (settingRevisions[key] !== revision) {
+                    if (!isCurrentSession() || settingRevisions[key] !== revision) {
                         return;
                     }
 
@@ -215,3 +223,10 @@ export const useExpensePreferencesStore = create(
 export const selectExpensePreferences = (state) => state.expensePreferences;
 export const selectExpenseIconSet = (state) => state.expensePreferences.iconSet;
 export const selectExpenseSettingsError = (state) => state.settingsError;
+
+useAuthSessionStore.subscribe((session, previous) => {
+    if (session.sessionRevision !== previous.sessionRevision) {
+        settingsWriteQueue = Promise.resolve();
+        useExpensePreferencesStore.getState().resetExpensePreferences();
+    }
+});

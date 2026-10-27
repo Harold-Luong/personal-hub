@@ -188,6 +188,11 @@ Flow đổi tên hiển thị cũng cần rules đã deploy vì app ghi đồng 
 Authentication và `users/{uid}.displayName`. Nếu Firestore từ chối request, app
 rollback Auth profile về tên trước đó.
 
+Hai bước đổi tên chạy tuần tự và được gắn với user/phiên tại thời điểm bắt đầu.
+Nếu phiên thay đổi trong lúc chờ, app không ghi profile hoặc rollback vào tài
+khoản mới và không trả kết quả thành công cho phiên mới. Rollback Auth chỉ chạy
+khi vẫn còn cùng phiên đăng nhập.
+
 ## Lỗi thường gặp
 
 ### `bash: firebase: command not found`
