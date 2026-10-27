@@ -31,6 +31,7 @@ async function inspectEncoderCapabilities(ffmpeg) {
 
 export default function useFfmpeg() {
     const ffmpegRef = useRef(null);
+    const generationRef = useRef(0);
     const loadPromiseRef = useRef(null);
     const isMountedRef = useRef(true);
     const [capabilities, setCapabilities] = useState(EMPTY_CAPABILITIES);
@@ -44,6 +45,7 @@ export default function useFfmpeg() {
 
         return () => {
             isMountedRef.current = false;
+            generationRef.current += 1;
             ffmpegRef.current?.terminate();
             ffmpegRef.current = null;
             loadPromiseRef.current = null;
@@ -65,6 +67,7 @@ export default function useFfmpeg() {
             throw new Error(browserError);
         }
 
+        const generation = generationRef.current;
         setError("");
         setIsLoading(true);
         loadPromiseRef.current = (async () => {
@@ -74,6 +77,9 @@ export default function useFfmpeg() {
                     import("@ffmpeg/core?url"),
                     import("@ffmpeg/core/wasm?url"),
                 ]);
+                if (!isMountedRef.current || generation !== generationRef.current) {
+                    throw new Error("ffmpeg-load-cancelled");
+                }
                 const ffmpeg = new FFmpeg();
                 ffmpegRef.current = ffmpeg;
                 await ffmpeg.load({
@@ -82,27 +88,29 @@ export default function useFfmpeg() {
                 });
                 const encoderCapabilities = await inspectEncoderCapabilities(ffmpeg);
 
-                if (isMountedRef.current) {
+                if (isMountedRef.current && generation === generationRef.current) {
                     setCapabilities(encoderCapabilities);
                     setIsReady(true);
                 }
 
                 return ffmpeg;
             } catch (loadError) {
-                ffmpegRef.current?.terminate();
-                ffmpegRef.current = null;
+                if (generation === generationRef.current) {
+                    ffmpegRef.current?.terminate();
+                    ffmpegRef.current = null;
+                }
                 const message = toUserLoadError(loadError);
 
-                if (isMountedRef.current) {
+                if (isMountedRef.current && generation === generationRef.current) {
                     setError(message);
                     setIsReady(false);
                 }
 
                 throw loadError;
             } finally {
-                loadPromiseRef.current = null;
+                if (generation === generationRef.current) loadPromiseRef.current = null;
 
-                if (isMountedRef.current) {
+                if (isMountedRef.current && generation === generationRef.current) {
                     setIsLoading(false);
                 }
             }
@@ -143,6 +151,9 @@ export default function useFfmpeg() {
     }, []);
 
     const cancel = useCallback(() => {
+        generationRef.current += 1;
+        loadPromiseRef.current = null;
+        setIsLoading(false);
         if (!ffmpegRef.current) {
             return false;
         }
@@ -157,6 +168,7 @@ export default function useFfmpeg() {
     }, []);
 
     const reset = useCallback(() => {
+        generationRef.current += 1;
         ffmpegRef.current?.terminate();
         ffmpegRef.current = null;
         loadPromiseRef.current = null;

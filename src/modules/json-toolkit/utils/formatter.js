@@ -6,15 +6,12 @@ function sortJsonValue(value) {
     }
 
     if (typeof value === "object" && value !== null) {
-        return Object.keys(value)
+        return Object.fromEntries(Object.keys(value)
             .sort((firstKey, secondKey) => firstKey.localeCompare(secondKey, "en", {
                 numeric: true,
                 sensitivity: "base",
             }))
-            .reduce((sortedObject, key) => {
-                sortedObject[key] = sortJsonValue(value[key]);
-                return sortedObject;
-            }, {});
+            .map((key) => [key, sortJsonValue(value[key])]));
     }
 
     return value;

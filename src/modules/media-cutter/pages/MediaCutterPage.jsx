@@ -100,11 +100,15 @@ export default function MediaCutterPage() {
     const canProcess = Object.keys(currentValidationErrors).length === 0 && hasRequiredCodec && !isBusy;
 
     useEffect(() => () => {
+        cancellationRequestedRef.current = true;
         metadataRequestIdRef.current += 1;
         cancelMetadata();
         previewCleanupRef.current();
         if (sourceUrlRef.current) URL.revokeObjectURL(sourceUrlRef.current);
         if (resultUrlRef.current) URL.revokeObjectURL(resultUrlRef.current);
+        sourceUrlRef.current = "";
+        resultUrlRef.current = "";
+        useMediaCutterStore.getState().resetAll();
     }, [cancelMetadata]);
 
     function revokeSourceUrl() {
@@ -322,6 +326,7 @@ export default function MediaCutterPage() {
                 capabilities,
                 endTime: store.endTime,
                 execute: async (args) => {
+                    if (cancellationRequestedRef.current) throw new Error("processing-cancelled");
                     store.setFfmpegStatus(FFMPEG_STATUSES.PROCESSING);
                     return execute(args);
                 },
@@ -371,13 +376,16 @@ export default function MediaCutterPage() {
     }
 
     async function handleRetryFfmpeg() {
+        const requestId = metadataRequestIdRef.current;
         store.setError("");
         store.setFfmpegStatus(FFMPEG_STATUSES.LOADING);
 
         try {
             await loadFfmpeg();
+            if (requestId !== metadataRequestIdRef.current) return;
             store.setFfmpegStatus(FFMPEG_STATUSES.READY);
         } catch {
+            if (requestId !== metadataRequestIdRef.current) return;
             store.setError("Không thể tải bộ xử lý media. Vui lòng kiểm tra kết nối và thử lại.");
             store.setFfmpegStatus(FFMPEG_STATUSES.FAILED);
         }

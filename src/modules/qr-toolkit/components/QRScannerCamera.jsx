@@ -13,14 +13,19 @@ function cameraErrorMessage(error) {
 export default function QRScannerCamera({ onResult }) {
     const videoRef = useRef(null);
     const controlsRef = useRef(null);
+    const streamRef = useRef(null);
     const activeRef = useRef(true);
+    const requestRef = useRef(0);
     const [devices, setDevices] = useState([]);
     const [deviceId, setDeviceId] = useState("");
     const [status, setStatus] = useState("idle");
     const [error, setError] = useState("");
     const stopCamera = useCallback(() => {
+        requestRef.current += 1;
         controlsRef.current?.stop();
         controlsRef.current = null;
+        streamRef.current?.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
         const video = videoRef.current;
         if (video?.srcObject instanceof MediaStream)
             video.srcObject.getTracks().forEach((track) => track.stop());
@@ -30,42 +35,71 @@ export default function QRScannerCamera({ onResult }) {
         }
         setStatus("idle");
     }, []);
-    useEffect(() => () => { activeRef.current = false; stopCamera(); }, [stopCamera]);
+    useEffect(() => {
+        activeRef.current = true;
+        return () => { activeRef.current = false; stopCamera(); };
+    }, [stopCamera]);
     const startCamera = useCallback(async (preferredDeviceId) => {
         stopCamera();
+        const requestId = requestRef.current;
+        const isCurrent = () => activeRef.current && requestId === requestRef.current;
         setError("");
         setStatus("starting");
+        let stream;
         try {
             if (!navigator.mediaDevices?.getUserMedia)
                 throw new DOMException("No camera API", "NotFoundError");
             const { BrowserQRCodeReader } = await import("@zxing/browser");
-            if (!activeRef.current || !videoRef.current)
+            if (!isCurrent() || !videoRef.current)
                 return;
             const reader = new BrowserQRCodeReader(undefined, { delayBetweenScanAttempts: 180 });
-            const controls = await reader.decodeFromVideoDevice(preferredDeviceId || undefined, videoRef.current, (result) => {
-                if (!result || !activeRef.current)
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: preferredDeviceId ? { deviceId: { exact: preferredDeviceId } } : { facingMode: "environment" },
+                audio: false,
+            });
+            if (!isCurrent()) {
+                stream.getTracks().forEach((track) => track.stop());
+                return;
+            }
+            streamRef.current = stream;
+            videoRef.current.srcObject = stream;
+            await videoRef.current.play();
+            if (!isCurrent()) {
+                stream.getTracks().forEach((track) => track.stop());
+                return;
+            }
+            // Give each decoder its own video so a late cleanup cannot detach the
+            // next camera's live preview.
+            const decodingVideo = document.createElement("video");
+            decodingVideo.muted = true;
+            decodingVideo.playsInline = true;
+            const controls = await reader.decodeFromStream(stream, decodingVideo, (result, _error, scanControls) => {
+                if (!result || !isCurrent())
                     return;
                 const value = result.getText();
+                scanControls.stop();
                 stopCamera();
                 onResult(value);
             });
-            if (!activeRef.current) {
+            if (!isCurrent()) {
                 controls.stop();
                 return;
             }
             controlsRef.current = controls;
             setStatus("scanning");
             const available = await BrowserQRCodeReader.listVideoInputDevices();
-            if (activeRef.current) {
+            if (isCurrent()) {
                 setDevices(available);
                 const selected = preferredDeviceId || available.find((item) => /back|rear|environment/i.test(item.label))?.deviceId || available[0]?.deviceId || "";
                 setDeviceId(selected);
             }
         }
         catch (reason) {
-            stopCamera();
-            if (activeRef.current)
+            stream?.getTracks().forEach((track) => track.stop());
+            if (isCurrent()) {
+                stopCamera();
                 setError(cameraErrorMessage(reason));
+            }
         }
     }, [onResult, stopCamera]);
     const switchCamera = async (nextDeviceId) => {

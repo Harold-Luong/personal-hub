@@ -64,3 +64,8 @@ Desktop.ini
 *.temp
 # Added by code-review-graph
 .code-review-graph/
+
+# Generated backend bundle and local test output
+functions/lib/
+playwright-report/
+test-results/

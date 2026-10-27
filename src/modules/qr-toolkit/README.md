@@ -1,5 +1,9 @@
 # QR Code Toolkit
 
+## Lifecycle và tính toàn vẹn dữ liệu
+
+Camera reset lifecycle khi StrictMode mount lại; mỗi lần start có generation riêng. Stop/unmount dừng cả stream đang decode và stream cấp quyền muộn. Stream được giữ bằng ref riêng để cleanup vẫn hoạt động khi video DOM đã bị tháo.
+
 QR Code Toolkit là module public tại `/tools/qr` để tạo, tùy chỉnh, kiểm tra, tải xuống và quét QR Code. Toàn bộ payload, logo, camera và ảnh quét được xử lý trong trình duyệt; module không gọi Firebase, không có backend và không upload dữ liệu.
 
 ## Cài đặt và chạy

@@ -1,5 +1,9 @@
 # JSON Toolkit
 
+## Lifecycle và tính toàn vẹn dữ liệu
+
+Sort key bảo toàn cả các khóa JSON đặc biệt như `__proto__`, `constructor` và `prototype`; tạo object từ entries để không gọi setter prototype khi sắp xếp.
+
 ## Hướng dẫn dành cho AI agent
 
 Trước khi sửa module này, đọc [`AI_GUIDE.md`](../../../AI_GUIDE.md) và toàn bộ README này. Giữ nguyên boundary xử lý dữ liệu trên thiết bị, đối chiếu thay đổi với các test formatter/diff/editor hiện có và cập nhật tài liệu khi route, giới hạn hoặc semantics xử lý thay đổi.

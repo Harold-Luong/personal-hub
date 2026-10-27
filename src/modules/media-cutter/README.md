@@ -1,5 +1,9 @@
 # Media Cutter
 
+## Lifecycle và tính toàn vẹn dữ liệu
+
+Rời trang reset store nguồn/kết quả, revoke Object URL và vô hiệu hóa tác vụ metadata/FFmpeg còn chờ. Worker load cũ không được ghi đè instance của lần mount mới; dữ liệu media tiếp tục chỉ xử lý trong trình duyệt.
+
 ## Hướng dẫn dành cho AI agent
 
 Trước khi sửa module này, đọc [`AI_GUIDE.md`](../../../AI_GUIDE.md) và toàn bộ README này. Giữ nguyên boundary xử lý hoàn toàn trong trình duyệt, kiểm tra lifecycle của FFmpeg/MEMFS/Object URL và cập nhật tài liệu khi route, giới hạn file, codec hoặc hành vi xuất file thay đổi.

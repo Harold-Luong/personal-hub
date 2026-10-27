@@ -38,3 +38,9 @@ describe("JSON transformations", () => {
         }
     });
 });
+
+it("preserves prototype-named own keys recursively when sorting", () => {
+    const source = '{"z":0,"__proto__":{"constructor":{"prototype":1}},"items":[{"__proto__":"value"}]}';
+    expect(JSON.parse(sortJson(source).output)).toEqual(JSON.parse(source));
+    expect(Object.hasOwn(JSON.parse(sortJson(source).output), "__proto__")).toBe(true);
+});
