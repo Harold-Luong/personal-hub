@@ -10,27 +10,29 @@ export default function ExpenseBottomNav({ items = [], activeId = "dashboard", o
         return (
             <button
                 aria-label={item.label}
+                aria-current={item.id === activeId ? "page" : undefined}
                 className={`expense-bottom-nav__item${item.id === activeId ? " is-active" : ""}`}
                 key={item.id}
                 onClick={() => onNavigate?.(item.id)}
                 type="button"
             >
-                <ExpenseIcon bare className="expense-bottom-nav__icon" icon={item.icon} label={item.label} size={22} />
+                <ExpenseIcon appearance="base" bare className="expense-bottom-nav__icon" icon={item.icon} size={22} />
                 <span>{item.label}</span>
             </button>
         );
     };
 
     return (
-        <nav className="expense-bottom-nav">
+        <nav aria-label="Điều hướng MoneyCare trên điện thoại" className="expense-bottom-nav">
             {leftItems.map(renderNavItem)}
             <button
-                aria-label="Them giao dich"
+                aria-label="Thêm giao dịch"
+                aria-current={activeId === "add" ? "page" : undefined}
                 className={`expense-bottom-nav__action${activeId === "add" ? " is-active" : ""}`}
                 onClick={() => onNavigate?.("add")}
                 type="button"
             >
-                <ExpenseIcon bare icon="add" label="Thêm giao dịch" size={30} />
+                <ExpenseIcon appearance="base" bare icon="add" size={26} />
             </button>
             {rightItems.map(renderNavItem)}
         </nav>

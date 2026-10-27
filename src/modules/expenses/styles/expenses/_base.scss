@@ -57,13 +57,13 @@
   width: 34px;
 }
 
-.category-icon--emoji {
-  font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;
-  font-size: 17px;
-  font-weight: 400;
+.category-icon--duotone {
+  background: color-mix(in srgb, var(--icon-color, var(--expense-active-strong)) 12%, var(--expense-surface-solid));
+  border-color: transparent;
+  border-radius: 10px;
 }
 
-.category-icon--base svg {
+.category-icon svg {
   display: block;
 }
 
@@ -73,10 +73,6 @@
   color: inherit;
   height: auto;
   width: auto;
-}
-
-.category-icon--bare.category-icon--emoji {
-  font-size: var(--expense-icon-size, 17px);
 }
 
 .section-card {

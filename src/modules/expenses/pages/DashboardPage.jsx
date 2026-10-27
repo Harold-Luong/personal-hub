@@ -618,6 +618,8 @@ export default function DashboardPage({ initialSettings, onLogout }) {
                 monthLabel={currentMonthLabel}
                 onBackToHub={() => navigate("/hub")}
                 onManageBudget={() => navigateExpenseRoute("budgets")}
+                onManageWallet={() => navigateExpenseRoute("wallets")}
+                onManageSavings={() => navigateExpenseRoute("savings")}
                 onToggleTheme={handleToggleTheme}
                 onViewCategorySpending={() => navigateExpenseRoute("categories")}
                 onViewTransactions={() => navigateExpenseRoute("transactions")}

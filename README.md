@@ -71,7 +71,7 @@ Personal Hub đưa người dùng về một màn hình chung sau đăng nhập.
 ### Cá nhân hóa và dữ liệu
 
 - Chọn giao diện sáng/tối theo theme của ứng dụng.
-- Chọn bộ biểu tượng `Base` tối giản hoặc `Emoji`; lựa chọn được đồng bộ trên các màn hình.
+- Chọn bộ biểu tượng nét tối giản hoặc hai tông màu cho danh mục và ví; icon điều hướng và thao tác luôn dùng nét.
 - Chọn tiền tệ `VND`/`USD`, định dạng số tiền và định dạng ngày.
 - Ẩn số dư khi cần riêng tư.
 - Xuất giao dịch ra CSV tương thích Microsoft Excel và tiếng Việt.

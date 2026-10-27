@@ -12,7 +12,7 @@ function getWalletMeta(wallet) {
     if (isCreditCardWallet(wallet)) {
         return (
             <small>
-                Dư nợ · còn lại <AmountText amount={wallet.availableCredit ?? 0} />
+                Dư nợ · còn lại <AmountText amount={wallet.availableCredit ?? 0} currency={wallet.currency} />
             </small>
         );
     }
@@ -43,7 +43,7 @@ export default function WalletCard({ onManageWallet, onPayCreditCard, wallets = 
                             {getWalletMeta(wallet)}
                         </span>
                         <strong>
-                            <AmountText amount={isCreditCardWallet(wallet) ? wallet.outstandingDebt : wallet.balance} />
+                            <AmountText amount={isCreditCardWallet(wallet) ? wallet.outstandingDebt : wallet.balance} currency={wallet.currency} />
                         </strong>
                         {isCreditCardWallet(wallet) && (wallet.outstandingDebt ?? 0) > 0 ? (
                             <button

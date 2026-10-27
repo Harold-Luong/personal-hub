@@ -1,7 +1,7 @@
 import { useState } from "react";
 import MoneyCareLogo from "../../../../components/brand/MoneyCareLogo";
 import { selectAuthUser, useAuthSessionStore } from "../../../../stores/authSessionStore";
-import { expenseDefaultTheme } from "../../constants/expenseMetadata";
+import { expenseDefaultTheme, expenseThemeOptions } from "../../constants/expenseMetadata";
 import { expenseUiText } from "../../constants/expenseUiMetadata";
 import ExpenseIcon from "../../icon/ExpenseIcon";
 import ExpenseButton from "../shared/ExpenseButton";
@@ -52,17 +52,24 @@ export default function ExpenseSidebar({
                 </span>
             </button>
 
-            <nav>
-                {items.map((item) => (
-                    <button
-                        className={item.id === activeId ? "is-active" : ""}
-                        key={item.id}
-                        onClick={() => onNavigate?.(item.id)}
-                        type="button"
-                    >
-                        <ExpenseIcon icon={item.icon} label={item.label} />
-                        <span>{item.label}</span>
-                    </button>
+            <nav aria-label="Điều hướng MoneyCare">
+                {[{ label: "Theo dõi", ids: ["dashboard", "transactions", "report"] },
+                    { label: "Quản lý", ids: ["categories", "budgets", "savings", "wallets", "settings"] }].map((group) => (
+                    <div className="expense-sidebar__nav-group" key={group.label}>
+                        <p>{group.label}</p>
+                        {group.ids.map((id) => items.find((item) => item.id === id)).filter(Boolean).map((item) => (
+                            <button
+                                aria-current={item.id === activeId ? "page" : undefined}
+                                className={item.id === activeId ? "is-active" : ""}
+                                key={item.id}
+                                onClick={() => onNavigate?.(item.id)}
+                                type="button"
+                            >
+                                <ExpenseIcon appearance="base" bare icon={item.icon} size={20} />
+                                <span>{item.label}</span>
+                            </button>
+                        ))}
+                    </div>
                 ))}
             </nav>
 
@@ -86,7 +93,7 @@ export default function ExpenseSidebar({
                         className="expense-sidebar__theme"
                         icon="theme"
                         iconSize={17}
-                        label={theme}
+                        label={expenseThemeOptions.find((option) => option.id === theme)?.label ?? theme}
                         labelTag="span"
                         onClick={onToggleTheme}
                         title={expenseUiText.actions.TOGGLE_THEME}

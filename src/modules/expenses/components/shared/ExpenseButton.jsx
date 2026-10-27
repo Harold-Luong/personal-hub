@@ -14,7 +14,7 @@ export default function ExpenseButton({
     className = "",
     disabled = false,
     icon,
-    iconAppearance = "auto",
+    iconAppearance = "base",
     iconSize = 18,
     isLoading = false,
     label,
@@ -30,12 +30,14 @@ export default function ExpenseButton({
         <button
             {...buttonProps}
             aria-label={ariaLabel}
+            aria-busy={isLoading || undefined}
             className={className || undefined}
             disabled={disabled || isLoading}
             title={title}
             type={type}
         >
-            <ExpenseButtonIcon appearance={iconAppearance} icon={icon} size={iconSize} />
+            {isLoading ? <ExpenseIcon appearance="base" bare className="expense-button__spinner" icon="loading" size={iconSize} />
+                : <ExpenseButtonIcon appearance={iconAppearance} icon={icon} size={iconSize} />}
             {LabelTag && content !== undefined ? <LabelTag>{content}</LabelTag> : content}
         </button>
     );

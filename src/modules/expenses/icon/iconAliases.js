@@ -19,5 +19,5 @@ export const expenseIconAliases = Object.freeze({
 export function getCanonicalExpenseIconKey(iconKey) {
     const normalizedIconKey = String(iconKey ?? "more").trim().toLocaleLowerCase("en");
 
-    return expenseIconAliases[normalizedIconKey] ?? normalizedIconKey;
+    return Object.hasOwn(expenseIconAliases, normalizedIconKey) ? expenseIconAliases[normalizedIconKey] : normalizedIconKey;
 }

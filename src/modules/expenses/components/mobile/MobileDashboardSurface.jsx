@@ -14,6 +14,8 @@ export default function MobileDashboardSurface({
     monthLabel,
     onBackToHub,
     onManageBudget,
+    onManageWallet,
+    onManageSavings,
     onToggleTheme,
     onViewCategorySpending,
     onViewTransactions,
@@ -60,7 +62,7 @@ export default function MobileDashboardSurface({
                 subtitle={formatDate(new Date())}
                 title={
                     <>
-                        Xin chào, {user?.displayName || user?.email} <ExpenseIcon bare icon="greeting" size={18} />
+                        Xin chào, {user?.displayName || user?.email || "bạn"} <ExpenseIcon bare icon="greeting" size={18} />
                     </>
                 }
             />
@@ -73,6 +75,16 @@ export default function MobileDashboardSurface({
                 income={income}
                 incomeTrend={incomeTrend}
             />
+            <nav aria-label="Quản lý tài chính" className="mobile-dashboard-shortcuts">
+                {[{ label: "Ví tiền", icon: "wallet", onClick: onManageWallet },
+                    { label: "Ngân sách", icon: "budget", onClick: onManageBudget },
+                    { label: "Tiết kiệm", icon: "saving", onClick: onManageSavings }].filter((item) => item.onClick).map((item) => (
+                    <button key={item.icon} onClick={item.onClick} type="button">
+                        <ExpenseIcon appearance="base" icon={item.icon} size={21} />
+                        <span>{item.label}</span>
+                    </button>
+                ))}
+            </nav>
             <MonthlyBudgetCard budgets={budgets} monthLabel={monthLabel} onManageBudget={onManageBudget} />
             <CategorySpendingCard
                 categories={categorySpending}

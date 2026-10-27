@@ -133,7 +133,7 @@ export default function SettingsContent({ categories = [], isWorking, message, o
                     <PreferenceSelect description="Đơn vị dùng khi hiển thị số tiền" label="Tiền tệ" onChange={(value) => onSettingChange("currency", value)} options={expenseCurrencyLabels} value={settings.currency} />
                     <PreferenceSelect description="Cách rút gọn số tiền trên các báo cáo" label="Định dạng số tiền" onChange={(value) => onSettingChange("amountFormat", value)} options={expenseAmountFormatOptions} value={settings.amountFormat} />
                     <PreferenceSelect description="Áp dụng cho ngày hiển thị trong ứng dụng" label="Định dạng ngày" onChange={(value) => onSettingChange("dateFormat", value)} options={expenseDateFormatOptions} value={settings.dateFormat} />
-                    <PreferenceSelect description="Áp dụng cho danh mục, ví và điều hướng" label="Bộ biểu tượng" onChange={(value) => onSettingChange("iconSet", value)} options={expenseIconSetOptions} value={settings.iconSet} />
+                    <PreferenceSelect description="Áp dụng cho danh mục và ví" label="Bộ biểu tượng" onChange={(value) => onSettingChange("iconSet", value)} options={expenseIconSetOptions} value={settings.iconSet} />
                 </SectionCard>
 
                 <SectionCard actionLabel={null} className="settings-content__data" title="Dữ liệu">

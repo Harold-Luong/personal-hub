@@ -318,9 +318,12 @@ retro
 Quy tắc:
 
 - Theme là preference của user và nên được lưu trên Firestore.
-- `iconSet` nhận `emoji` hoặc `base`; lựa chọn này áp dụng đồng bộ cho icon nội dung,
-  điều hướng và thao tác, trong đó `base` là bộ SVG Scandinavian. Riêng thao tác
-  đăng xuất luôn dùng base icon để giữ hình thức nhất quán và không dùng emoji cửa.
+- `iconSet` giữ giá trị lưu `emoji` hoặc `base` cho icon danh mục/ví; `emoji`
+  hiển thị bộ Phosphor hai tông màu, `base` dùng Lucide với stroke 1.8.
+  Icon điều hướng và nút thao tác luôn dùng nét để giữ hình dạng và
+  kích thước ổn định. `ExpenseIcon` chuẩn hóa alias cũ và fallback an toàn về
+  `more`; không đổi icon key đã lưu trong Firestore. `appearance` tường minh
+  vẫn override lựa chọn tự động.
 - Theme cũng được cache trong `localStorage` để tránh nháy giao diện lúc app
   khởi động.
 - Khi chưa đăng nhập, theme chỉ được lưu trong `localStorage`.
@@ -1626,6 +1629,28 @@ trang này không nằm trong bottom nav.
 Nhờ mapper, có thể giữ phần lớn component hiện tại trong giai đoạn migration.
 
 ## 25. Mapping sang UI hiện tại
+
+### Điều hướng, icon và form dùng chung
+
+- Sidebar chia `Theo dõi` / `Quản lý`, đánh dấu trang bằng `aria-current`.
+  Dashboard mobile có shortcut Ví tiền, Ngân sách, Tiết kiệm để các luồng này
+  không phải đi vòng qua Settings. Bottom nav giữ bốn mục chính và nút thêm.
+- `ExpenseButton` dùng icon nét, có spinner và `aria-busy` khi đang gửi.
+  `ExpenseIcon` giữ API/alias cũ; không thêm SVG thao tác riêng lẻ khi Lucide
+  trong `baseIconSet` đã có icon phù hợp. Icon cạnh chữ là trang trí, tránh đọc
+  lặp label bằng screen reader.
+- `WalletTransferFields` dùng chung cho nạp/rút và chuyển phần dư; hiển thị
+  chiều chuyển, số dư nguồn, currency và lý do thiếu ví nhận. Trường chọn ví
+  rỗng bị vô hiệu hóa và có thông báo cách xử lý. Form giao dịch/thanh toán thẻ
+  cũng giải thích trường hợp thiếu ví cùng currency.
+- Các số tiền gắn với một ví trong form/WalletCard hiển thị theo currency của
+  ví. Chưa bổ sung quy đổi tiền tệ hoặc thay đổi cách nhập số tiền.
+- `ExpenseDialog` giữ Tab/Shift+Tab trong dialog, hỗ trợ Escape và trả focus về
+  nút mở khi đóng. Không thêm autofocus ngoài dialog đang active. Nút đóng có
+  vùng bấm 44px; form tiết kiệm giữ nút hành động ở đáy phần cuộn trên mobile.
+- `tests/browser/expenses.html` là fixture local dùng component thật và dữ liệu
+  giả lập, không nối Firebase. Browser tests kiểm tra điều hướng, keyboard,
+  chọn currency và layout 320/390/768px; đây không phải test đăng nhập production.
 
 ### Firestore transaction sang transaction prop
 

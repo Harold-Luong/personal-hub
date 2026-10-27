@@ -1,14 +1,14 @@
 import { getCanonicalExpenseIconKey } from "./iconAliases";
 import { selectExpenseIconSet, useExpensePreferencesStore } from "../../../stores/expensePreferencesStore";
-import { expenseDefaultIconSet, expenseIconSetIds, expenseIconSets } from "./iconSets";
+import { expenseControlIconKeys, expenseDefaultIconSet, expenseIconSetIds, expenseIconSets } from "./iconSets";
 
 function getIconSetId(appearance, iconSet) {
     if (appearance === expenseIconSetIds.BASE || appearance === "icon" || appearance === "label") {
         return expenseIconSetIds.BASE;
     }
 
-    if (appearance === expenseIconSetIds.EMOJI) {
-        return expenseIconSetIds.EMOJI;
+    if (appearance === expenseIconSetIds.DUOTONE || appearance === "duotone") {
+        return expenseIconSetIds.DUOTONE;
     }
 
     return iconSet;
@@ -25,21 +25,23 @@ export default function ExpenseIcon({
     size = 20,
 }) {
     const preferredIconSet = useExpensePreferencesStore(selectExpenseIconSet);
-    const resolvedIconSetId = getIconSetId(appearance, iconSet ?? preferredIconSet ?? expenseDefaultIconSet);
-    const resolvedIconSet = expenseIconSets[resolvedIconSetId] ?? expenseIconSets[expenseIconSetIds.EMOJI];
     const iconKey = getCanonicalExpenseIconKey(icon);
-    const resolvedIcon = resolvedIconSet[iconKey] ?? resolvedIconSet.more;
-    const BaseIcon = resolvedIconSetId === expenseIconSetIds.BASE ? resolvedIcon : null;
+    const requestedSetId = getIconSetId(appearance,
+        appearance === "auto" && !iconSet && expenseControlIconKeys.has(iconKey)
+            ? expenseIconSetIds.BASE : (iconSet ?? preferredIconSet ?? expenseDefaultIconSet));
+    const resolvedIconSetId = Object.hasOwn(expenseIconSets, requestedSetId) ? requestedSetId : expenseDefaultIconSet;
+    const resolvedIconSet = expenseIconSets[resolvedIconSetId];
+    const resolvedIcon = Object.hasOwn(resolvedIconSet, iconKey) ? resolvedIconSet[iconKey] : resolvedIconSet.more;
+    const Icon = resolvedIcon;
+    const isDuotone = resolvedIconSetId === expenseIconSetIds.DUOTONE;
     const accessibilityProps = label ? { "aria-label": label, role: "img" } : { "aria-hidden": true };
     const iconStyle = {
         ...(color ? { "--icon-color": color } : {}),
-        ...(bare && resolvedIconSetId === expenseIconSetIds.EMOJI
-            ? { "--expense-icon-size": `${size}px` }
-            : {}),
+        "--expense-icon-size": `${size}px`,
     };
     const iconClassName = [
         "category-icon",
-        `category-icon--${resolvedIconSetId}`,
+        `category-icon--${isDuotone ? "duotone" : "base"}`,
         bare ? "category-icon--bare" : "",
         className,
     ]
@@ -52,7 +54,8 @@ export default function ExpenseIcon({
             className={iconClassName}
             style={Object.keys(iconStyle).length ? iconStyle : undefined}
         >
-            {BaseIcon ? <BaseIcon size={size} /> : resolvedIcon}
+            <Icon aria-hidden="true" focusable="false" size={size}
+                {...(isDuotone ? { weight: "duotone" } : { strokeWidth: 1.8 })} />
         </span>
     );
 }

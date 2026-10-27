@@ -41,7 +41,7 @@
 }
 
 .expense-bottom-nav__item.is-active {
-  color: $expense-active-color;
+  color: var(--expense-active-strong);
   font-weight: 800;
 }
 
@@ -50,16 +50,16 @@
 }
 
 .expense-bottom-nav .expense-bottom-nav__action {
-  align-self: start;
-  background: color-mix(in srgb, var(--expense-active-color) 12%, var(--expense-surface-solid));
+  align-self: center;
+  background: var(--expense-active-strong);
   border: 1px solid currentColor;
   border-radius: 50%;
-  color: var(--expense-active-strong);
-  height: 52px;
+  color: white;
+  height: 48px;
   justify-self: center;
-  margin-top: -18px;
+  margin-top: 0;
   padding: 0;
-  width: 52px;
+  width: 48px;
 }
 
 .expense-bottom-nav .expense-bottom-nav__action svg {
@@ -257,4 +257,31 @@
 
 .monthly-budget-card__savings.is-negative strong {
   color: var(--expense-danger);
+}
+
+.expense-bottom-nav__item.is-active {
+  background: var(--expense-active-soft);
+  border-radius: 12px;
+}
+
+.mobile-dashboard-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.mobile-dashboard-shortcuts button {
+  align-items: center;
+  background: var(--expense-surface-solid);
+  border: 1px solid var(--expense-border);
+  border-radius: 12px;
+  color: var(--expense-heading);
+  cursor: pointer;
+  display: grid;
+  font-size: 12px;
+  font-weight: 650;
+  gap: 8px;
+  justify-items: center;
+  min-height: 88px;
+  padding: 12px 4px;
 }

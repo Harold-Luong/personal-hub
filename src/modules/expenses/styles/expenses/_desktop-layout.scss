@@ -4,7 +4,7 @@
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
     min-height: 100%;
-    padding: 28px;
+    padding: 24px 18px;
 }
 
 .expense-sidebar__brand {
@@ -58,7 +58,7 @@
 .expense-sidebar nav {
     align-content: start;
     display: grid;
-    gap: 10px;
+    gap: 24px;
     min-height: 0;
     overflow-y: auto;
 }
@@ -80,7 +80,10 @@
     color: var(--expense-muted);
     display: flex;
     gap: 12px;
-    padding: 12px 14px;
+    min-height: 46px;
+    padding: 11px 14px;
+    width: 100%;
+    font-size: 14px;
     text-align: left;
 }
 
@@ -305,10 +308,10 @@
 
 .desktop-dashboard-surface {
     display: grid;
-    grid-template-columns: 260px minmax(0, 1fr);
-    margin: 36px auto;
+    grid-template-columns: 232px minmax(0, 1fr);
+    margin: 24px auto;
     max-width: 1600px;
-    min-height: calc(100vh - 72px);
+    min-height: calc(100vh - 48px);
     overflow: hidden;
     width: min(calc(100% - 48px), 1600px);
 }
@@ -318,7 +321,7 @@
     display: grid;
     gap: 24px;
     min-width: 0;
-    padding: 48px 32px 32px;
+    padding: 32px;
 }
 
 .desktop-dashboard-surface__grid {
@@ -381,11 +384,11 @@
     display: inline-flex;
     flex: 0 0 auto;
     font: inherit;
-    height: 38px;
+    height: 44px;
     justify-content: center;
     line-height: 0;
     padding: 0;
-    width: 38px;
+    width: 44px;
 }
 
 .desktop-form-dialog__close svg {
@@ -398,4 +401,27 @@
     background: var(--expense-active-strong);
     color: white;
     outline: 0;
+}
+
+.expense-sidebar__nav-group {
+    display: grid;
+    gap: 4px;
+}
+
+.expense-sidebar__nav-group > p {
+    color: var(--expense-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    margin: 0 14px 6px;
+    text-transform: uppercase;
+}
+
+.expense-sidebar nav button:hover {
+    background: var(--expense-active-soft);
+    color: var(--expense-active-strong);
+}
+
+.expense-sidebar nav button.is-active {
+    box-shadow: inset 3px 0 var(--expense-active-strong);
 }
